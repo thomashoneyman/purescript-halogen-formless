@@ -1,0 +1,21 @@
+{
+  "name": "purescript-halogen-formless",
+  "authors": [
+    "Thomas R. Honeyman <admin@thomashoneyman.com>"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/thomashoneyman/purescript-halogen-formless",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "output",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "purescript-prelude": "^4.0.1",
+    "purescript-halogen": "^4.0.0"
+  }
+}
