@@ -1,6 +1,8 @@
-# Renderless
+# Formless
 
-Renderless components make code reuse possible between Halogen components. This repository contains the minimal implementation for a renderless component you can use as a scaffold to introduce them in your own codebase.
+Formless is a renderless component which helps you build forms in Halogen.
+
+Forms can be designed as data, but eventually you'll need to render an interactive form to the DOM. This is tedious and boilerplate-heavy in Halogen. Once you have a form spec, you can use Formless to handle all the wiring for validation, dirty states, field updates, and so on.
 
 # Use
 
@@ -9,12 +11,5 @@ The component implemented in this project is a working renderless component. Eit
 For demonstration purposes this is a fully-functioning Halogen app.
 
 - `yarn` will install everything you need
-- `yarn build` will build the project, which you can view at `dist/index.html`
-
-# Tutorial
-
-Upcoming. For now the component is exhaustively documented and I recommend reading those comments.
-
-# Todo
-
-- Add an intermediate component example (one that imports the base renderless component, extends it, and repeats the raise/emit pattern).
+- `yarn build` will build the library, but not the app
+- `yarn build-all` will build the library and application, which you can view with the included `index.html` file.
