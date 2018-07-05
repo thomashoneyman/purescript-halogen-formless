@@ -1,3 +1,7 @@
+-- | Formless is a renderless component to help you build forms in Halogen.
+-- | It expects that you have already written a form spec and validation and
+-- | you simply need a component to run it on your behalf.
+
 module Formless where
 
 import Prelude
@@ -9,7 +13,7 @@ import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
-import Formless.State (modifyStore_)
+import Renderless.State (modifyStore_)
 
 data Query o m a
   = Raise (o Unit) a

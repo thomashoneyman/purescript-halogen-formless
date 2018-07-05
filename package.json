@@ -4,7 +4,6 @@
   "repository": "git@github.com:thomashoneyman/purescript-halogen-formless",
   "author": "Thomas R. Honeyman <admin@thomashoneyman.com>",
   "license": "MIT",
-  "private": true,
   "scripts": {
     "postinstall": "bower i --silent",
     "clean": "rm -rf bower_components node_modules output",
