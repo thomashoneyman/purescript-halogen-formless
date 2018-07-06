@@ -4,19 +4,19 @@ import Data.Either (Either)
 import Data.Maybe (Maybe)
 import Data.Symbol (SProxy(..))
 
--- Have the user pass a row of types like this, from which I can derive
--- all the information I need? How do I get the validation functions?
+-- An example input type that should be provided
 
---  type Inputs f =
+--  type Form = Record (Form' InputField)
+--  type Form' f =
 --    ( name :: f String (Array String) String
 --    , email :: f String (Array String) String
 --    )
 
-type InputField i e o =
-  { input :: i
+type InputField input error output =
+  { input :: input
   , touched :: Boolean
-  , validator :: i -> Either e o
-  , result :: Maybe (Either e o)
+  , validator :: input -> Either error output
+  , result :: Maybe (Either error output)
   }
 
 _input = SProxy :: SProxy "input"

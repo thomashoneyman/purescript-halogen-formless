@@ -29,39 +29,6 @@ data Query pq cq cs form m a
   | Raise (pq Unit) a
   | Receive (Input pq cq cs form m) a
 
--- | Given a proxy symbol, will trigger validation on that field using
--- | its validator and current input
-handleBlur
-  :: ∀ sym form inp err out r
-   . IsSymbol sym
-  => Cons sym (InputField inp err out) r form
-  => SProxy sym
-  -> Record form
-  -> Record form
-handleBlur sym form = newForm
-  where
-    input = Record.get _input $ Record.get sym form
-    validator = Record.get _validator $ Record.get sym form
-    newForm =
-      ( Lens.set (prop sym <<< prop _result) (Just $ validator input)
-        <<<
-        Lens.set (prop sym <<< prop _touched) true
-      ) form
-
--- | Replace the value at a given field with a new value of the correct type.
-handleChange
-  :: ∀ sym form inp err out r
-   . IsSymbol sym
-  => Cons sym (InputField inp err out) r form
-  => SProxy sym
-  -> inp
-  -> Record form
-  -> Record form
-handleChange sym val = setInput val <<< setTouched true
-  where
-    setInput = Lens.set (prop sym <<< prop _input)
-    setTouched = Lens.set (prop sym <<< prop _touched)
-
 -- | The overall component state type, which contains the local state type
 -- | and also the render function
 type StateStore pq cq cs form m =
@@ -164,3 +131,36 @@ component =
       modifyStore_ render (\s -> s)
       pure a
 
+---------
+-- Helpers
+
+-- | Given a proxy symbol, will trigger validation on that field using
+-- | its validator and current input
+handleBlur
+  :: ∀ sym form inp err out r
+   . IsSymbol sym
+  => Cons sym (InputField inp err out) r form
+  => SProxy sym
+  -> Record form
+  -> Record form
+handleBlur sym form = newForm form
+  where
+    input = Record.get _input $ Record.get sym form
+    validator = Record.get _validator $ Record.get sym form
+    setResult = Lens.set (prop sym <<< prop _result)
+    setTouched = Lens.set (prop sym <<< prop _touched)
+    newForm = setResult (Just $ validator input) >>> setTouched true
+
+-- | Replace the value at a given field with a new value of the correct type.
+handleChange
+  :: ∀ sym form inp err out r
+   . IsSymbol sym
+  => Cons sym (InputField inp err out) r form
+  => SProxy sym
+  -> inp
+  -> Record form
+  -> Record form
+handleChange sym val = setInput val <<< setTouched true
+  where
+    setInput = Lens.set (prop sym <<< prop _input)
+    setTouched = Lens.set (prop sym <<< prop _touched)

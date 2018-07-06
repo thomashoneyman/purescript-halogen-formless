@@ -5,13 +5,11 @@ import Prelude
 import Data.Array (reverse)
 import Data.Const (Const)
 import Data.Either (Either(..))
-import Data.Lens as Lens
-import Data.Lens.Record as Lens.Record
 import Data.Maybe (Maybe(..))
 import Data.String.CodeUnits (fromCharArray, toCharArray)
-import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Formless as Formless
+import Formless.Spec (InputField)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -24,7 +22,14 @@ data Query a
 
 -- | Yea, I know
 type State = Unit
-type Form = Unit
+
+-- | Form inputs are expected to have this particular shape and rely
+-- | on the `InputField` type from Formless.
+type Form = Record (FormInputs' InputField)
+type FormInputs' f =
+  ( name :: f String (Array String) String
+  , email :: f String (Array String) String
+  )
 
 -- | Now we can create _this_ component's child query and child slot pairing.
 type ChildQuery = Formless.Query Query FCQ FCS Form Aff
@@ -88,7 +93,6 @@ renderFormless state =
     , renderName state
     , renderEmail state
     ]
-
 
 ----------
 -- Helpers
