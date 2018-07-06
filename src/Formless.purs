@@ -8,16 +8,18 @@ import Prelude
 
 import Control.Comonad (extract)
 import Control.Comonad.Store (Store, store)
+import Data.Lens as Lens
+import Data.Lens.Iso.Newtype (_Newtype)
+import Data.Lens.Record (prop)
 import Data.Maybe (Maybe(..))
-import Data.Newtype (unwrap)
+import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy)
 import Effect.Aff.Class (class MonadAff)
-import Formless.Spec (InputField, OutputField, _input, _validator)
+import Formless.Spec (InputField, OutputField, _input, _result, _touched, _validator)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Prim.Row (class Cons)
-import Record as Record
 import Renderless.State (modifyState_, modifyStore_)
 
 data Query pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) m a
@@ -49,6 +51,7 @@ type DSL pq cq cs form m
 type State form =
   { isValid :: Boolean
   , formResult :: Maybe (form OutputField)
+  , errors :: Int -- Count of all error fields. Starts at 0. Validators increment / decrement.
   , form :: form InputField
   }
 
@@ -75,9 +78,11 @@ component =
   initialState :: Input pq cq cs form m -> StateStore pq cq cs form m
   initialState { form, render } = store render $
     { isValid: false
+    , errors: 0
     , formResult: Nothing
     , form
     }
+
 
   eval :: Query pq cq cs form m ~> DSL pq cq cs form m
   eval = case _ of
@@ -112,30 +117,35 @@ component =
 -- | Given a proxy symbol, will trigger validation on that field using
 -- | its validator and current input
 handleBlur
-  :: ∀ sym form inp err out r
+  :: ∀ sym form' form inp err out r
    . IsSymbol sym
   => Cons sym (InputField inp err out) r form
+  => Newtype form' (Record form)
   => SProxy sym
-  -> Record form
-  -> Record form
-handleBlur sym form = form
+  -> form'
+  -> form'
+handleBlur sym form = wrap <<< setResult <<< setTouched $ unwrap form
   where
-    input = Record.get _input $ unwrap $ Record.get sym $ form
-    validator = Record.get _validator $ unwrap $ Record.get sym form
-    --  setResult = Record.set sym (over <<< Record.set _result) form
-    --  setTouched = Record.set (prop sym <<< _Newtype <<< prop _touched)
-    --  newForm = setResult (Just $ validator input) >>> setTouched true
+    _sym :: Lens.Lens' (Record form) (InputField inp err out)
+    _sym = prop sym
+    input = Lens.view (_sym <<< _Newtype <<< prop _input) (unwrap form)
+    validator = Lens.view (_sym <<< _Newtype <<< prop _validator) (unwrap form)
+    setResult = Lens.set (_sym <<< _Newtype <<< prop _result) (Just $ validator input)
+    setTouched = Lens.set (_sym <<< _Newtype <<< prop _touched) true
 
 -- | Replace the value at a given field with a new value of the correct type.
 handleChange
-  :: ∀ sym form inp err out r
+  :: ∀ sym form form' inp err out r
    . IsSymbol sym
   => Cons sym (InputField inp err out) r form
+  => Newtype form' (Record form)
   => SProxy sym
   -> inp
-  -> Record form
-  -> Record form
-handleChange sym val form = form -- setInput val <<< setTouched true
-  --  where
-  --    setInput = Lens.set (prop sym <<< _Newtype <<< prop _input)
-  --    setTouched = Lens.set (prop sym <<< _Newtype <<< prop _touched)
+  -> form'
+  -> form'
+handleChange sym val = wrap <<< setInput val <<< setTouched true <<< unwrap
+  where
+    _sym :: Lens.Lens' (Record form) (InputField inp err out)
+    _sym = prop sym
+    setInput = Lens.set (_sym <<< _Newtype <<< prop _input)
+    setTouched = Lens.set (_sym <<< _Newtype <<< prop _touched)

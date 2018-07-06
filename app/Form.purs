@@ -5,9 +5,11 @@ import Prelude
 import Data.Array (reverse)
 import Data.Const (Const)
 import Data.Either (Either(..))
+import Record as Record
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
 import Data.String.CodeUnits (fromCharArray, toCharArray)
+import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Formless as Formless
 import Formless.Spec (InputField(..))
@@ -110,7 +112,7 @@ renderFormless state =
     [ HH.h3_
       [ HH.text "Fill out the form:" ]
     , renderName state
-    --  , renderEmail state
+    , renderEmail state
     ]
 
 ----------
@@ -118,58 +120,67 @@ renderFormless state =
 
 -- | A helper function to render a form text input
 renderName :: Formless.State Form -> Formless.HTML Query FCQ FCS Form Aff
-renderName state = let name = unwrap $ _.name $ unwrap state.form in
-  HH.div_
-    ( [ HH.label_
-        [ HH.text "Name" ]
-      , HH.br_
-      , HH.code_
-        [ HH.text $ fromCharArray <<< reverse <<< toCharArray $ name.input ]
-      , HH.br_
-      , HH.input
-        [ HP.value name.input
-        --  , HE.onValueInput
-        --      $ HE.input \str ->
-        --          Formless.HandleChange
-        --          $ Formless.handleChange (SProxy :: SProxy "name") str
-        ]
-      , HH.br_
-      , if name.touched
-          then HH.text "-- changed since form initialization --"
-          else HH.text ""
-      , HH.br_
-      ]
-    <>
-    case name.result of
-      Nothing -> [ HH.text "" ]
-      Just (Left err) -> [ HH.text err ]
-      Just (Right _) -> [ HH.text "" ]
-    <>
-    [ HH.br_, HH.br_ ]
-    )
+renderName state =
+  let field = unwrap $ Record.get sym $ unwrap state.form
+      sym = SProxy :: SProxy "name"
+      label = "Name"
+   in
+      HH.div_
+        ( [ HH.label_
+            [ HH.text label ]
+          , HH.br_
+          , HH.code_
+            [ HH.text $ fromCharArray <<< reverse <<< toCharArray $ field.input ]
+          , HH.br_
+          , HH.input
+            [ HP.value field.input
+            , HE.onBlur $ HE.input_ $ Formless.HandleBlur (Formless.handleBlur sym)
+            , HE.onValueInput $ HE.input \str -> Formless.HandleChange (Formless.handleChange sym str)
+            ]
+          , HH.br_
+          , if field.touched
+              then HH.text "-- changed since form initialization --"
+              else HH.text ""
+          , HH.br_
+          ]
+        <>
+        case field.result of
+          Nothing -> [ HH.text "" ]
+          Just (Left err) -> [ HH.text err ]
+          Just (Right _) -> [ HH.text "" ]
+        <>
+        [ HH.br_, HH.br_ ]
+        )
 
---  renderEmail :: Formless.State -> Formless.HTML Query FCQ FCS Form Aff
---  renderEmail state =
---    HH.div_
---      ( [ HH.label_
---          [ HH.text "Email" ]
---        , HH.br_
---        , HH.code_
---          [ HH.text $ fromCharArray <<< reverse <<< toCharArray $ state.form.email.input ]
---        , HH.br_
---        , HH.input
---          [ HP.value state.form.email.input
---          --  , HE.onValueInput $ HE.input \str ->
---          ]
---        , HH.br_
---        , if state.form.email.touched
---            then HH.text "-- changed since form initialization --"
---            else HH.text ""
---        , HH.br_
---        ]
---      <>
---      case state.form.email.result of
---        Nothing -> [ HH.text "" ]
---        Just (Left err) -> [ HH.text err ]
---        Just (Right _) -> [ HH.text "" ]
---      )
+renderEmail :: Formless.State Form -> Formless.HTML Query FCQ FCS Form Aff
+renderEmail state =
+  let field = unwrap $ Record.get sym $ unwrap state.form
+      sym = SProxy :: SProxy "email"
+      label = "Email"
+   in
+      HH.div_
+        ( [ HH.label_
+            [ HH.text label ]
+          , HH.br_
+          , HH.code_
+            [ HH.text $ fromCharArray <<< reverse <<< toCharArray $ field.input ]
+          , HH.br_
+          , HH.input
+            [ HP.value field.input
+            , HE.onBlur $ HE.input_ $ Formless.HandleBlur (Formless.handleBlur sym)
+            , HE.onValueInput $ HE.input \str -> Formless.HandleChange (Formless.handleChange sym str)
+            ]
+          , HH.br_
+          , if field.touched
+              then HH.text "-- changed since form initialization --"
+              else HH.text ""
+          , HH.br_
+          ]
+        <>
+        case field.result of
+          Nothing -> [ HH.text "" ]
+          Just (Left err) -> [ HH.text err ]
+          Just (Right _) -> [ HH.text "" ]
+        <>
+        [ HH.br_, HH.br_ ]
+        )
