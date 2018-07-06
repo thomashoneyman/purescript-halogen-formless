@@ -8,35 +8,37 @@ import Prelude
 
 import Control.Comonad (extract)
 import Control.Comonad.Store (Store, store)
-import Data.Const (Const)
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Renderless.State (modifyStore_)
 
-data Query o m a
-  = Raise (o Unit) a
-  | Receive (Input o m) a
+data Query pq cq cs m a
+  = HandleBlur (State -> State) a
+  | HandleChange (State -> State) a
+  | Submit a
+  | Raise (pq Unit) a
+  | Receive (Input pq cq cs m) a
 
-type StateStore o m =
-  Store State (H.ParentHTML (Query o m) ChildQuery ChildSlot m)
+type StateStore pq cq cs m =
+  Store State (H.ParentHTML (Query pq cq cs m) cq cs m)
 
 type State = Unit
 
-type Input o m =
-  { render :: State -> H.ParentHTML (Query o m) ChildQuery ChildSlot m }
+type Input pq cq cs m =
+  { render :: State -> H.ParentHTML (Query pq cq cs m) cq cs m }
 
-data Message o
-  = Emit (o Unit)
+data Message pq
+  = Submitted
+  | Validated
+  | Emit (pq Unit)
 
-type ChildQuery
-  = Const Void
-
-type ChildSlot
-  = Unit
-
-component :: ∀ o m. MonadAff m => H.Component HH.HTML (Query o m) (Input o m) (Message o) m
+component
+  :: ∀ pq cq cs m
+   . Ord cs
+  => MonadAff m
+  => H.Component HH.HTML (Query pq cq cs m) (Input pq cq cs m) (Message pq) m
 component =
   H.parentComponent
     { initialState
@@ -46,13 +48,19 @@ component =
     }
   where
 
-  initialState :: Input o m -> StateStore o m
+  initialState :: Input pq cq cs m -> StateStore pq cq cs m
   initialState { render } = store render unit
 
   eval
-    :: Query o m
-    ~> H.ParentDSL (StateStore o m) (Query o m) ChildQuery ChildSlot (Message o) m
+    :: Query pq cq cs m
+    ~> H.ParentDSL (StateStore pq cq cs m) (Query pq cq cs m) cq cs (Message pq) m
   eval = case _ of
+    HandleBlur fs a -> pure a
+
+    HandleChange fs a -> pure a
+
+    Submit a -> pure a
+
     Raise query a -> do
       H.raise (Emit query)
       pure a
