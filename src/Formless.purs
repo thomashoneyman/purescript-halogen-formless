@@ -8,70 +8,111 @@ import Prelude
 
 import Control.Comonad (extract)
 import Control.Comonad.Store (Store, store)
-import Data.Either (Either)
+import Data.Either (Either(..))
+import Data.Lens as Lens
+import Data.Lens.Record (prop)
 import Data.Maybe (Maybe(..))
+import Data.Symbol (class IsSymbol, SProxy)
 import Effect.Aff.Class (class MonadAff)
+import Formless.Spec (InputField, _input, _result, _touched, _validator)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
-import Renderless.State (modifyState_, modifyStore_)
+import Prim.Row (class Cons)
+import Record as Record
+import Renderless.State (modifyStore_)
 
-data Query pq cq cs m a
-  = HandleBlur (State -> State) a
-  | HandleChange (State -> State) a
+data Query pq cq cs form m a
+  = HandleBlur (form -> form) a
+  | HandleChange (form -> form) a
   | Submit a
   | Raise (pq Unit) a
-  | Receive (Input pq cq cs m) a
+  | Receive (Input pq cq cs form m) a
 
-type StateStore pq cq cs m =
-  Store State (H.ParentHTML (Query pq cq cs m) cq cs m)
+-- | Given a proxy symbol, will trigger validation on that field using
+-- | its validator and current input
+handleBlur
+  :: ∀ sym form inp err out r
+   . IsSymbol sym
+  => Cons sym (InputField inp err out) r form
+  => SProxy sym
+  -> Record form
+  -> Record form
+handleBlur sym form = newForm
+  where
+    input = Record.get _input $ Record.get sym form
+    validator = Record.get _validator $ Record.get sym form
+    newForm =
+      ( Lens.set (prop sym <<< prop _result) (Just $ validator input)
+        <<<
+        Lens.set (prop sym <<< prop _touched) true
+      ) form
+
+-- | Replace the value at a given field with a new value of the correct type.
+handleChange
+  :: ∀ sym form inp err out r
+   . IsSymbol sym
+  => Cons sym (InputField inp err out) r form
+  => SProxy sym
+  -> inp
+  -> Record form
+  -> Record form
+handleChange sym val = setInput val <<< setTouched true
+  where
+    setInput = Lens.set (prop sym <<< prop _input)
+    setTouched = Lens.set (prop sym <<< prop _touched)
+
+-- | The overall component state type, which contains the local state type
+-- | and also the render function
+type StateStore pq cq cs form m =
+  Store State (HTML pq cq cs form m)
 
 -- | The component type
-type Component pq cq cs m
-  = H.Component HH.HTML (Query pq cq cs m) (Input pq cq cs m) (Message pq) m
+type Component pq cq cs form m
+  = H.Component HH.HTML (Query pq cq cs form m) (Input pq cq cs form m) (Message pq) m
 
 -- | The component's HTML type, the result of the render function.
-type HTML pq cq cs m
-  = H.ParentHTML (Query pq cq cs m) cq cs m
+type HTML pq cq cs form m
+  = H.ParentHTML (Query pq cq cs form m) cq cs m
 
 -- | The component's DSL type, the result of the eval function.
-type DSL pq cq cs m
-  = H.ParentDSL (StateStore pq cq cs m) (Query pq cq cs m) cq cs (Message pq) m
+type DSL pq cq cs form m
+  = H.ParentDSL (StateStore pq cq cs form m) (Query pq cq cs form m) cq cs (Message pq) m
 
--- | The component's internal state type, which manages form values
+-- | The component local state
 type State =
   { isValid :: Boolean
+  , formResult ::
+      Maybe
+        { name :: String
+        , email :: String
+        }
   , form ::
-      { inputs :: -- Raw form inputs on the DOM
-          { name :: String
-          , email :: String
+      { name ::
+          { input :: String
+          , touched :: Boolean
+          , validator :: String -> Either String String
+          , result :: Maybe (Either String String)
           }
-      , touched :: -- The value has been changed from its original
-          { name :: Boolean
-          , email :: Boolean
-          }
-      , results :: -- The result of validation on this field
-          { name :: Maybe (Either (Array String) String)
-          , email :: Maybe (Either (Array String) String)
-          }
-      , result :: -- The end result of validation on the entire form
-          Maybe
-            { name :: String
-            , email :: String
-            }
+      , email ::
+         { input :: String
+         , touched :: Boolean
+         , validator :: String -> Either String String
+         , result :: Maybe (Either String String)
+         }
       }
   }
 
 -- | The component's input type
-type Input pq cq cs m =
-  { render :: State -> H.ParentHTML (Query pq cq cs m) cq cs m }
+type Input pq cq cs form m =
+  { render :: State -> H.ParentHTML (Query pq cq cs form m) cq cs m }
 
 data Message pq
   = Submitted
   | Emit (pq Unit)
 
 -- | The component itself
-component :: ∀ pq cq cs m. Ord cs => MonadAff m => Component pq cq cs m
+component :: ∀ pq cq cs form m. Ord cs => MonadAff m => Component pq cq cs form m
 component =
   H.parentComponent
     { initialState
@@ -81,34 +122,34 @@ component =
     }
   where
 
-  initialState :: Input pq cq cs m -> StateStore pq cq cs m
+  initialState :: Input pq cq cs form m -> StateStore pq cq cs form m
   initialState { render } = store render $
     { isValid: false
+    , formResult: Nothing
     , form:
-        { inputs:
-            { name: ""
-            , email: ""
+        { name:
+            { input: ""
+            , touched: false
+            , validator: const (Left "Error checking not implemented.")
+            , result: Nothing
             }
-        , touched:
-            { name: false
-            , email: false
+        , email:
+            { input: ""
+            , touched: false
+            , validator: const (Left "Error checking not implemented here either.")
+            , result: Nothing
             }
-        , results:
-            { name: Nothing
-            , email: Nothing
-            }
-        , result: Nothing
         }
     }
 
-  eval :: Query pq cq cs m ~> DSL pq cq cs m
+  eval :: Query pq cq cs form m ~> DSL pq cq cs form m
   eval = case _ of
     HandleBlur fs a -> do
-      modifyState_ fs
+      --  modifyState_ \st -> st { form = fs st.form }
       pure a
 
     HandleChange fs a -> do
-      modifyState_ fs
+      --  modifyState_ fs
       pure a
 
     Submit a -> do

@@ -24,9 +24,10 @@ data Query a
 
 -- | Yea, I know
 type State = Unit
+type Form = Unit
 
 -- | Now we can create _this_ component's child query and child slot pairing.
-type ChildQuery = Formless.Query Query FCQ FCS Aff
+type ChildQuery = Formless.Query Query FCQ FCS Form Aff
 type ChildSlot = Unit
 
 -- | Now we can create our form component. We'll essentially write a render
@@ -75,12 +76,11 @@ component =
 type FCQ = Const Void
 type FCS = Unit
 
-
 -- | Our render function has access to anything in Formless' State type, plus
 -- | anything additional in your own state type.
 renderFormless
   :: Formless.State
-  -> Formless.HTML Query FCQ FCS Aff
+  -> Formless.HTML Query FCQ FCS Form Aff
 renderFormless state =
   HH.div_
     [ HH.h3_
@@ -94,90 +94,59 @@ renderFormless state =
 -- Helpers
 
 -- | A helper function to render a form text input
-renderName :: Formless.State -> Formless.HTML Query FCQ FCS Aff
+renderName :: Formless.State -> Formless.HTML Query FCQ FCS Form Aff
 renderName state =
   HH.div_
     ( [ HH.label_
         [ HH.text "Name" ]
       , HH.br_
       , HH.code_
-        [ HH.text $ fromCharArray <<< reverse <<< toCharArray $ state.form.inputs.name ]
+        [ HH.text $ fromCharArray <<< reverse <<< toCharArray $ state.form.name.input ]
       , HH.br_
       , HH.input
-        [ HP.value state.form.inputs.name
-        , HE.onValueInput $ HE.input \str ->
-            Formless.HandleChange
-              ( ( Lens.set
-                  ( Lens.Record.prop (SProxy :: SProxy "form")
-                  <<< Lens.Record.prop (SProxy :: SProxy "inputs")
-                  <<< Lens.Record.prop (SProxy :: SProxy "name")
-                  )
-                  str
-                )
-              <<<
-                ( Lens.set
-                  ( Lens.Record.prop (SProxy :: SProxy "form")
-                  <<< Lens.Record.prop (SProxy :: SProxy "touched")
-                  <<< Lens.Record.prop (SProxy :: SProxy "name")
-                  )
-                  true
-                )
-              )
+        [ HP.value state.form.name.input
+        --  , HE.onValueInput
+        --      $ HE.input \str ->
+        --          Formless.HandleChange
+        --          $ Formless.handleChange (SProxy :: SProxy "name") str
         ]
       , HH.br_
-      , if state.form.touched.name
+      , if state.form.name.touched
           then HH.text "-- changed since form initialization --"
           else HH.text ""
       , HH.br_
       ]
     <>
-    case state.form.results.name of
+    case state.form.name.result of
       Nothing -> [ HH.text "" ]
-      Just (Left errs) -> map HH.text errs
+      Just (Left err) -> [ HH.text err ]
       Just (Right _) -> [ HH.text "" ]
     <>
     [ HH.br_, HH.br_ ]
     )
 
-renderEmail :: Formless.State -> Formless.HTML Query FCQ FCS Aff
+renderEmail :: Formless.State -> Formless.HTML Query FCQ FCS Form Aff
 renderEmail state =
   HH.div_
     ( [ HH.label_
         [ HH.text "Email" ]
       , HH.br_
       , HH.code_
-        [ HH.text $ fromCharArray <<< reverse <<< toCharArray $ state.form.inputs.email ]
+        [ HH.text $ fromCharArray <<< reverse <<< toCharArray $ state.form.email.input ]
       , HH.br_
       , HH.input
-        [ HP.value state.form.inputs.email
-        , HE.onValueInput $ HE.input \str ->
-            Formless.HandleChange
-              ( ( Lens.set
-                  ( Lens.Record.prop (SProxy :: SProxy "form")
-                  <<< Lens.Record.prop (SProxy :: SProxy "inputs")
-                  <<< Lens.Record.prop (SProxy :: SProxy "email")
-                  )
-                  str
-                )
-              <<<
-                ( Lens.set
-                  ( Lens.Record.prop (SProxy :: SProxy "form")
-                  <<< Lens.Record.prop (SProxy :: SProxy "touched")
-                  <<< Lens.Record.prop (SProxy :: SProxy "email")
-                  )
-                  true
-                )
-              )
+        [ HP.value state.form.email.input
+        --  , HE.onValueInput $ HE.input \str ->
         ]
       , HH.br_
-      , if state.form.touched.email
+      , if state.form.email.touched
           then HH.text "-- changed since form initialization --"
           else HH.text ""
       , HH.br_
       ]
     <>
-    case state.form.results.email of
+    case state.form.email.result of
       Nothing -> [ HH.text "" ]
-      Just (Left errs) -> map HH.text errs
+      Just (Left err) -> [ HH.text err ]
       Just (Right _) -> [ HH.text "" ]
     )
