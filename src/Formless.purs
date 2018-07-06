@@ -8,23 +8,22 @@ import Prelude
 
 import Control.Comonad (extract)
 import Control.Comonad.Store (Store, store)
-import Data.Either (Either(..))
-import Data.Lens as Lens
-import Data.Lens.Record (prop)
 import Data.Maybe (Maybe(..))
+import Data.Newtype (unwrap)
 import Data.Symbol (class IsSymbol, SProxy)
 import Effect.Aff.Class (class MonadAff)
-import Formless.Spec (InputField, _input, _result, _touched, _validator)
+import Formless.Spec (InputField, OutputField, _input, _validator)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Prim.Row (class Cons)
 import Record as Record
-import Renderless.State (modifyStore_)
+import Renderless.State (modifyState_, modifyStore_)
 
-data Query pq cq cs form m a
-  = HandleBlur (form -> form) a
-  | HandleChange (form -> form) a
+data Query pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) m a
+  = HandleBlur (form InputField -> form InputField) a
+  | HandleChange (form InputField -> form InputField) a
+  | ValidateAll a
   | Submit a
   | Raise (pq Unit) a
   | Receive (Input pq cq cs form m) a
@@ -32,7 +31,7 @@ data Query pq cq cs form m a
 -- | The overall component state type, which contains the local state type
 -- | and also the render function
 type StateStore pq cq cs form m =
-  Store State (HTML pq cq cs form m)
+  Store (State form) (HTML pq cq cs form m)
 
 -- | The component type
 type Component pq cq cs form m
@@ -47,32 +46,16 @@ type DSL pq cq cs form m
   = H.ParentDSL (StateStore pq cq cs form m) (Query pq cq cs form m) cq cs (Message pq) m
 
 -- | The component local state
-type State =
+type State form =
   { isValid :: Boolean
-  , formResult ::
-      Maybe
-        { name :: String
-        , email :: String
-        }
-  , form ::
-      { name ::
-          { input :: String
-          , touched :: Boolean
-          , validator :: String -> Either String String
-          , result :: Maybe (Either String String)
-          }
-      , email ::
-         { input :: String
-         , touched :: Boolean
-         , validator :: String -> Either String String
-         , result :: Maybe (Either String String)
-         }
-      }
+  , formResult :: Maybe (form OutputField)
+  , form :: form InputField
   }
 
 -- | The component's input type
-type Input pq cq cs form m =
-  { render :: State -> H.ParentHTML (Query pq cq cs form m) cq cs m }
+type Input pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) m =
+  { form :: form InputField
+  , render :: State form -> HTML pq cq cs form m }
 
 data Message pq
   = Submitted
@@ -90,33 +73,25 @@ component =
   where
 
   initialState :: Input pq cq cs form m -> StateStore pq cq cs form m
-  initialState { render } = store render $
+  initialState { form, render } = store render $
     { isValid: false
     , formResult: Nothing
-    , form:
-        { name:
-            { input: ""
-            , touched: false
-            , validator: const (Left "Error checking not implemented.")
-            , result: Nothing
-            }
-        , email:
-            { input: ""
-            , touched: false
-            , validator: const (Left "Error checking not implemented here either.")
-            , result: Nothing
-            }
-        }
+    , form
     }
 
   eval :: Query pq cq cs form m ~> DSL pq cq cs form m
   eval = case _ of
     HandleBlur fs a -> do
-      --  modifyState_ \st -> st { form = fs st.form }
+      modifyState_ \st -> st { form = fs st.form }
       pure a
 
     HandleChange fs a -> do
-      --  modifyState_ fs
+      modifyState_ \st -> st { form = fs st.form }
+      pure a
+
+    ValidateAll a -> do
+      -- traverse the record calling all validate functions
+      -- call any record-wide validation functions
       pure a
 
     Submit a -> do
@@ -143,13 +118,13 @@ handleBlur
   => SProxy sym
   -> Record form
   -> Record form
-handleBlur sym form = newForm form
+handleBlur sym form = form
   where
-    input = Record.get _input $ Record.get sym form
-    validator = Record.get _validator $ Record.get sym form
-    setResult = Lens.set (prop sym <<< prop _result)
-    setTouched = Lens.set (prop sym <<< prop _touched)
-    newForm = setResult (Just $ validator input) >>> setTouched true
+    input = Record.get _input $ unwrap $ Record.get sym $ form
+    validator = Record.get _validator $ unwrap $ Record.get sym form
+    --  setResult = Record.set sym (over <<< Record.set _result) form
+    --  setTouched = Record.set (prop sym <<< _Newtype <<< prop _touched)
+    --  newForm = setResult (Just $ validator input) >>> setTouched true
 
 -- | Replace the value at a given field with a new value of the correct type.
 handleChange
@@ -160,7 +135,7 @@ handleChange
   -> inp
   -> Record form
   -> Record form
-handleChange sym val = setInput val <<< setTouched true
-  where
-    setInput = Lens.set (prop sym <<< prop _input)
-    setTouched = Lens.set (prop sym <<< prop _touched)
+handleChange sym val form = form -- setInput val <<< setTouched true
+  --  where
+  --    setInput = Lens.set (prop sym <<< _Newtype <<< prop _input)
+  --    setTouched = Lens.set (prop sym <<< _Newtype <<< prop _touched)

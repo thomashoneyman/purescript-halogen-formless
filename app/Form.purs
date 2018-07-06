@@ -6,10 +6,11 @@ import Data.Array (reverse)
 import Data.Const (Const)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
+import Data.Newtype (class Newtype, unwrap)
 import Data.String.CodeUnits (fromCharArray, toCharArray)
 import Effect.Aff (Aff)
 import Formless as Formless
-import Formless.Spec (InputField)
+import Formless.Spec (InputField(..))
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -25,11 +26,28 @@ type State = Unit
 
 -- | Form inputs are expected to have this particular shape and rely
 -- | on the `InputField` type from Formless.
-type Form = Record (FormInputs' InputField)
-type FormInputs' f =
-  ( name :: f String (Array String) String
-  , email :: f String (Array String) String
-  )
+newtype Form f = Form
+  { name :: f String String String
+  , email :: f String String String
+  }
+derive instance newtypeForm :: Newtype (Form f) _
+
+form :: Form InputField
+form = Form
+  { name: InputField
+      { input: ""
+      , touched: false
+      , validator: const (Left "Not implemented.")
+      , result: Nothing
+      }
+  , email: InputField
+      { input: ""
+      , touched: false
+      , validator: const (Left "Not implemented.")
+      , result: Nothing
+      }
+  }
+
 
 -- | Now we can create _this_ component's child query and child slot pairing.
 type ChildQuery = Formless.Query Query FCQ FCS Form Aff
@@ -55,7 +73,8 @@ component =
       , HH.slot
           unit
           Formless.component
-          { render: renderFormless }
+          { form
+          , render: renderFormless }
           ( HE.input HandleFormless )
       , HH.hr_
       , HH.p_
@@ -84,44 +103,44 @@ type FCS = Unit
 -- | Our render function has access to anything in Formless' State type, plus
 -- | anything additional in your own state type.
 renderFormless
-  :: Formless.State
+  :: Formless.State Form
   -> Formless.HTML Query FCQ FCS Form Aff
 renderFormless state =
   HH.div_
     [ HH.h3_
       [ HH.text "Fill out the form:" ]
     , renderName state
-    , renderEmail state
+    --  , renderEmail state
     ]
 
 ----------
 -- Helpers
 
 -- | A helper function to render a form text input
-renderName :: Formless.State -> Formless.HTML Query FCQ FCS Form Aff
-renderName state =
+renderName :: Formless.State Form -> Formless.HTML Query FCQ FCS Form Aff
+renderName state = let name = unwrap $ _.name $ unwrap state.form in
   HH.div_
     ( [ HH.label_
         [ HH.text "Name" ]
       , HH.br_
       , HH.code_
-        [ HH.text $ fromCharArray <<< reverse <<< toCharArray $ state.form.name.input ]
+        [ HH.text $ fromCharArray <<< reverse <<< toCharArray $ name.input ]
       , HH.br_
       , HH.input
-        [ HP.value state.form.name.input
+        [ HP.value name.input
         --  , HE.onValueInput
         --      $ HE.input \str ->
         --          Formless.HandleChange
         --          $ Formless.handleChange (SProxy :: SProxy "name") str
         ]
       , HH.br_
-      , if state.form.name.touched
+      , if name.touched
           then HH.text "-- changed since form initialization --"
           else HH.text ""
       , HH.br_
       ]
     <>
-    case state.form.name.result of
+    case name.result of
       Nothing -> [ HH.text "" ]
       Just (Left err) -> [ HH.text err ]
       Just (Right _) -> [ HH.text "" ]
@@ -129,28 +148,28 @@ renderName state =
     [ HH.br_, HH.br_ ]
     )
 
-renderEmail :: Formless.State -> Formless.HTML Query FCQ FCS Form Aff
-renderEmail state =
-  HH.div_
-    ( [ HH.label_
-        [ HH.text "Email" ]
-      , HH.br_
-      , HH.code_
-        [ HH.text $ fromCharArray <<< reverse <<< toCharArray $ state.form.email.input ]
-      , HH.br_
-      , HH.input
-        [ HP.value state.form.email.input
-        --  , HE.onValueInput $ HE.input \str ->
-        ]
-      , HH.br_
-      , if state.form.email.touched
-          then HH.text "-- changed since form initialization --"
-          else HH.text ""
-      , HH.br_
-      ]
-    <>
-    case state.form.email.result of
-      Nothing -> [ HH.text "" ]
-      Just (Left err) -> [ HH.text err ]
-      Just (Right _) -> [ HH.text "" ]
-    )
+--  renderEmail :: Formless.State -> Formless.HTML Query FCQ FCS Form Aff
+--  renderEmail state =
+--    HH.div_
+--      ( [ HH.label_
+--          [ HH.text "Email" ]
+--        , HH.br_
+--        , HH.code_
+--          [ HH.text $ fromCharArray <<< reverse <<< toCharArray $ state.form.email.input ]
+--        , HH.br_
+--        , HH.input
+--          [ HP.value state.form.email.input
+--          --  , HE.onValueInput $ HE.input \str ->
+--          ]
+--        , HH.br_
+--        , if state.form.email.touched
+--            then HH.text "-- changed since form initialization --"
+--            else HH.text ""
+--        , HH.br_
+--        ]
+--      <>
+--      case state.form.email.result of
+--        Nothing -> [ HH.text "" ]
+--        Just (Left err) -> [ HH.text err ]
+--        Just (Right _) -> [ HH.text "" ]
+--      )
