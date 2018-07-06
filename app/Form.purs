@@ -2,11 +2,13 @@ module App.Form where
 
 import Prelude
 
+import Data.Array (reverse)
 import Data.Const (Const)
 import Data.Either (Either(..))
 import Data.Lens as Lens
 import Data.Lens.Record as Lens.Record
 import Data.Maybe (Maybe(..))
+import Data.String.CodeUnits (fromCharArray, toCharArray)
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Formless as Formless
@@ -88,11 +90,19 @@ renderFormless state =
     ]
 
 
+----------
+-- Helpers
+
 -- | A helper function to render a form text input
 renderName :: Formless.State -> Formless.HTML Query FCQ FCS Aff
 renderName state =
   HH.div_
-    ( [ HH.text "Name"
+    ( [ HH.label_
+        [ HH.text "Name" ]
+      , HH.br_
+      , HH.code_
+        [ HH.text $ fromCharArray <<< reverse <<< toCharArray $ state.form.inputs.name ]
+      , HH.br_
       , HH.input
         [ HP.value state.form.inputs.name
         , HE.onValueInput $ HE.input \str ->
@@ -114,21 +124,30 @@ renderName state =
                 )
               )
         ]
+      , HH.br_
       , if state.form.touched.name
           then HH.text "-- changed since form initialization --"
           else HH.text ""
+      , HH.br_
       ]
     <>
     case state.form.results.name of
       Nothing -> [ HH.text "" ]
       Just (Left errs) -> map HH.text errs
       Just (Right _) -> [ HH.text "" ]
+    <>
+    [ HH.br_, HH.br_ ]
     )
 
 renderEmail :: Formless.State -> Formless.HTML Query FCQ FCS Aff
 renderEmail state =
   HH.div_
-    ( [ HH.text "Email"
+    ( [ HH.label_
+        [ HH.text "Email" ]
+      , HH.br_
+      , HH.code_
+        [ HH.text $ fromCharArray <<< reverse <<< toCharArray $ state.form.inputs.email ]
+      , HH.br_
       , HH.input
         [ HP.value state.form.inputs.email
         , HE.onValueInput $ HE.input \str ->
@@ -150,9 +169,11 @@ renderEmail state =
                 )
               )
         ]
+      , HH.br_
       , if state.form.touched.email
           then HH.text "-- changed since form initialization --"
           else HH.text ""
+      , HH.br_
       ]
     <>
     case state.form.results.email of
