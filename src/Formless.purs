@@ -14,7 +14,7 @@ import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
-import Renderless.State (modifyStore_)
+import Renderless.State (modifyState_, modifyStore_)
 
 data Query pq cq cs m a
   = HandleBlur (State -> State) a
@@ -41,7 +41,7 @@ type DSL pq cq cs m
 -- | The component's internal state type, which manages form values
 type State =
   { isValid :: Boolean
-  , spec ::
+  , form ::
       { inputs :: -- Raw form inputs on the DOM
           { name :: String
           , email :: String
@@ -84,7 +84,7 @@ component =
   initialState :: Input pq cq cs m -> StateStore pq cq cs m
   initialState { render } = store render $
     { isValid: false
-    , spec:
+    , form:
         { inputs:
             { name: ""
             , email: ""
@@ -103,11 +103,17 @@ component =
 
   eval :: Query pq cq cs m ~> DSL pq cq cs m
   eval = case _ of
-    HandleBlur fs a -> pure a
+    HandleBlur fs a -> do
+      modifyState_ fs
+      pure a
 
-    HandleChange fs a -> pure a
+    HandleChange fs a -> do
+      modifyState_ fs
+      pure a
 
-    Submit a -> pure a
+    Submit a -> do
+      H.raise Submitted
+      pure a
 
     Raise query a -> do
       H.raise (Emit query)

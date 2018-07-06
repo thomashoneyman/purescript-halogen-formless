@@ -3,12 +3,17 @@ module App.Form where
 import Prelude
 
 import Data.Const (Const)
+import Data.Either (Either(..))
+import Data.Lens as Lens
+import Data.Lens.Record as Lens.Record
 import Data.Maybe (Maybe(..))
+import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Formless as Formless
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
+import Halogen.HTML.Properties as HP
 
 -- | This component will only handle output from Formless to keep
 -- | things simple.
@@ -76,4 +81,82 @@ renderFormless
   -> Formless.HTML Query FCQ FCS Aff
 renderFormless state =
   HH.div_
-    [ HH.text "I'm in formless." ]
+    [ HH.h3_
+      [ HH.text "Fill out the form:" ]
+    , renderName state
+    , renderEmail state
+    ]
+
+
+-- | A helper function to render a form text input
+renderName :: Formless.State -> Formless.HTML Query FCQ FCS Aff
+renderName state =
+  HH.div_
+    ( [ HH.text "Name"
+      , HH.input
+        [ HP.value state.form.inputs.name
+        , HE.onValueInput $ HE.input \str ->
+            Formless.HandleChange
+              ( ( Lens.set
+                  ( Lens.Record.prop (SProxy :: SProxy "form")
+                  <<< Lens.Record.prop (SProxy :: SProxy "inputs")
+                  <<< Lens.Record.prop (SProxy :: SProxy "name")
+                  )
+                  str
+                )
+              <<<
+                ( Lens.set
+                  ( Lens.Record.prop (SProxy :: SProxy "form")
+                  <<< Lens.Record.prop (SProxy :: SProxy "touched")
+                  <<< Lens.Record.prop (SProxy :: SProxy "name")
+                  )
+                  true
+                )
+              )
+        ]
+      , if state.form.touched.name
+          then HH.text "-- changed since form initialization --"
+          else HH.text ""
+      ]
+    <>
+    case state.form.results.name of
+      Nothing -> [ HH.text "" ]
+      Just (Left errs) -> map HH.text errs
+      Just (Right _) -> [ HH.text "" ]
+    )
+
+renderEmail :: Formless.State -> Formless.HTML Query FCQ FCS Aff
+renderEmail state =
+  HH.div_
+    ( [ HH.text "Email"
+      , HH.input
+        [ HP.value state.form.inputs.email
+        , HE.onValueInput $ HE.input \str ->
+            Formless.HandleChange
+              ( ( Lens.set
+                  ( Lens.Record.prop (SProxy :: SProxy "form")
+                  <<< Lens.Record.prop (SProxy :: SProxy "inputs")
+                  <<< Lens.Record.prop (SProxy :: SProxy "email")
+                  )
+                  str
+                )
+              <<<
+                ( Lens.set
+                  ( Lens.Record.prop (SProxy :: SProxy "form")
+                  <<< Lens.Record.prop (SProxy :: SProxy "touched")
+                  <<< Lens.Record.prop (SProxy :: SProxy "email")
+                  )
+                  true
+                )
+              )
+        ]
+      , if state.form.touched.email
+          then HH.text "-- changed since form initialization --"
+          else HH.text ""
+      ]
+    <>
+    case state.form.results.email of
+      Nothing -> [ HH.text "" ]
+      Just (Left errs) -> map HH.text errs
+      Just (Right _) -> [ HH.text "" ]
+    )
