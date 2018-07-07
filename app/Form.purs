@@ -52,9 +52,9 @@ form = Form
   , email: FormSpec
       { input: ""
       , validator: \str ->
-          if String.contains (String.Pattern "@") str
-            then Left "Email addresses can't contain the '@' symbol."
-            else Right str
+          if String.contains (String.Pattern "_") str
+            then Right str
+            else Left "Email addresses must have underscores."
       }
   }
 
@@ -80,7 +80,7 @@ component =
   render :: State -> H.ParentHTML Query ChildQuery ChildSlot Aff
   render _ =
     HH.div
-      [ css "p-6 flex flex-1" ]
+      [ css "p-12 container mx-auto flex flex-1" ]
       [ HH.div
         [ css "flex-1 mx-10 mt-10" ]
         [ Format.heading_
@@ -108,10 +108,13 @@ component =
     -- and change events.
     HandleTypeahead m a -> case m of
       TA.Emit q -> eval q *> pure a
-      TA.SelectionsChanged _ _ -> do
-        _ <- H.query unit $ H.action $ Formless.HandleChange $ Formless.handleChange (SProxy :: SProxy "email") "a@a.com"
-        _ <- H.query unit $ H.action $ Formless.HandleBlur (Formless.handleBlur (SProxy :: SProxy "email"))
-        pure a
+      TA.SelectionsChanged s _ -> do
+        case s of
+          TA.ItemSelected x -> do
+            _ <- H.query unit $ H.action $ Formless.HandleChange $ Formless.handleChange (SProxy :: SProxy "email") x
+            _ <- H.query unit $ H.action $ Formless.HandleBlur (Formless.handleBlur (SProxy :: SProxy "email"))
+            pure a
+          _ -> pure a
       TA.VisibilityChanged _ -> do
         _ <- H.query unit $ H.action $ Formless.HandleBlur (Formless.handleBlur (SProxy :: SProxy "email"))
         pure a
