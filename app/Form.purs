@@ -5,18 +5,18 @@ import Prelude
 import Data.Array (reverse)
 import Data.Const (Const)
 import Data.Either (Either(..))
-import Record as Record
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
 import Data.String.CodeUnits (fromCharArray, toCharArray)
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Formless as Formless
-import Formless.Spec (InputField(..))
+import Formless.Spec (FormSpec(..), formSpecToInputField)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Record as Record
 
 -- | This component will only handle output from Formless to keep
 -- | things simple.
@@ -34,19 +34,15 @@ newtype Form f = Form
   }
 derive instance newtypeForm :: Newtype (Form f) _
 
-form :: Form InputField
+form :: Form FormSpec
 form = Form
-  { name: InputField
+  { name: FormSpec
       { input: ""
-      , touched: false
       , validator: const (Left "Not implemented.")
-      , result: Nothing
       }
-  , email: InputField
+  , email: FormSpec
       { input: ""
-      , touched: false
       , validator: const (Left "Not implemented.")
-      , result: Nothing
       }
   }
 
@@ -75,7 +71,7 @@ component =
       , HH.slot
           unit
           Formless.component
-          { form
+          { form: formSpecToInputField form
           , render: renderFormless }
           ( HE.input HandleFormless )
       , HH.hr_
