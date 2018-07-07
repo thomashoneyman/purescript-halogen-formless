@@ -7,9 +7,8 @@ import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.String.CodeUnits (fromCharArray, toCharArray)
-import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
-import Example.ExternalComponents.Spec (Form)
+import Example.ExternalComponents.Spec (Form, _email, _name)
 import Example.ExternalComponents.Types (FCQ, FCS, Query(..))
 import Formless as Formless
 import Halogen as H
@@ -36,7 +35,6 @@ renderFormless state =
     , renderEmail state
     ]
 
-
 ----------
 -- Helpers
 
@@ -44,7 +42,7 @@ renderFormless state =
 renderName :: Formless.State Form -> Formless.HTML Query FCQ FCS Form Aff
 renderName state =
   let field = unwrap $ Record.get sym $ unwrap state.form
-      sym = SProxy :: SProxy "name"
+      sym = _name
       label = "Name"
    in
       HH.div_
@@ -66,10 +64,8 @@ renderName state =
               [ HP.placeholder "Dale"
               , HP.id_ label
               , HP.value field.input
-              , HE.onBlur
-                $ HE.input_ $ Formless.HandleBlur (Formless.handleBlur sym)
-              , HE.onValueInput
-                $ HE.input \str -> Formless.HandleChange (Formless.handleChange sym str)
+              , Formless.onBlurWith sym
+              , Formless.onValueInputWith sym
               ]
             ]
         ]
@@ -77,7 +73,7 @@ renderName state =
 renderEmail :: Formless.State Form -> Formless.HTML Query FCQ FCS Form Aff
 renderEmail state =
   let field = unwrap $ Record.get sym $ unwrap state.form
-      sym = SProxy :: SProxy "email"
+      sym = _email
       label = "Email"
    in
       HH.div_

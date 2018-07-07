@@ -19,8 +19,11 @@ import Formless.Spec (InputField, OutputField, _input, _result, _touched, _valid
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
+import Halogen.HTML.Properties as HP
 import Prim.Row (class Cons)
 import Renderless.State (modifyState_, modifyStore_)
+import Web.Event.Event (Event)
+import Web.UIEvent.FocusEvent (FocusEvent)
 
 data Query pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) m a
   = HandleBlur (form InputField -> form InputField) a
@@ -118,7 +121,25 @@ component =
 
 -- | Given a proxy symbol, will trigger validation on that field using
 -- | its validator and current input
+onBlurWith
+  :: ∀ pq cq cs m sym form' form inp err out r props
+   . IsSymbol sym
+  => Cons sym (InputField inp err out) r form
+  => Newtype (form' InputField) (Record form)
+  => SProxy sym
+  -> HP.IProp (onBlur :: FocusEvent | props) (Query pq cq cs form' m Unit)
+onBlurWith sym = HE.onBlur $ const $ Just $ handleBlur sym
+
 handleBlur
+  :: ∀ pq cq cs m sym form' form inp err out r
+   . IsSymbol sym
+  => Cons sym (InputField inp err out) r form
+  => Newtype (form' InputField) (Record form)
+  => SProxy sym
+  -> Query pq cq cs form' m Unit
+handleBlur sym = HandleBlur (handleBlur' sym) unit
+
+handleBlur'
   :: ∀ sym form' form inp err out r
    . IsSymbol sym
   => Cons sym (InputField inp err out) r form
@@ -126,7 +147,7 @@ handleBlur
   => SProxy sym
   -> form'
   -> form'
-handleBlur sym form = wrap <<< setResult <<< setTouched $ unwrap form
+handleBlur' sym form = wrap <<< setResult <<< setTouched $ unwrap form
   where
     _sym :: Lens.Lens' (Record form) (InputField inp err out)
     _sym = prop sym
@@ -136,7 +157,27 @@ handleBlur sym form = wrap <<< setResult <<< setTouched $ unwrap form
     setTouched = Lens.set (_sym <<< _Newtype <<< prop _touched) true
 
 -- | Replace the value at a given field with a new value of the correct type.
+onValueInputWith
+  :: ∀ pq cq cs m sym form' form err out r props
+   . IsSymbol sym
+  => Cons sym (InputField String err out) r form
+  => Newtype (form' InputField) (Record form)
+  => SProxy sym
+  -> HP.IProp (onInput :: Event, value :: String | props) (Query pq cq cs form' m Unit)
+onValueInputWith sym =
+  HE.onValueInput $ \str -> Just (handleChange sym str)
+
 handleChange
+  :: ∀ pq cq cs m sym form' form inp err out r
+   . IsSymbol sym
+  => Cons sym (InputField inp err out) r form
+  => Newtype (form' InputField) (Record form)
+  => SProxy sym
+  -> inp
+  -> Query pq cq cs form' m Unit
+handleChange sym val = HandleChange (handleChange' sym val) unit
+
+handleChange'
   :: ∀ sym form form' inp err out r
    . IsSymbol sym
   => Cons sym (InputField inp err out) r form
@@ -145,7 +186,7 @@ handleChange
   -> inp
   -> form'
   -> form'
-handleChange sym val = wrap <<< setInput val <<< setTouched true <<< unwrap
+handleChange' sym val = wrap <<< setInput val <<< setTouched true <<< unwrap
   where
     _sym :: Lens.Lens' (Record form) (InputField inp err out)
     _sym = prop sym

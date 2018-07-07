@@ -13,7 +13,6 @@ import Formless as Formless
 import Formless.Spec (FormSpec(..), formSpecToInputFields)
 import Halogen as H
 import Halogen.HTML as HH
-import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Record (get) as Record
 
@@ -94,10 +93,8 @@ formless state =
    [ HH.input
      [ HP.attr (HH.AttrName "style") "border: 1px solid #c2c6cc;"
      , HP.value name.input
-     , HE.onBlur
-       $ HE.input_ $ Formless.HandleBlur (Formless.handleBlur _name)
-     , HE.onValueInput
-       $ HE.input \str -> Formless.HandleChange (Formless.handleChange _name str)
+     , Formless.onBlurWith _name
+     , Formless.onValueInputWith _name
      ]
    , HH.br_
    , HH.text $ "Touched: " <> show name.touched
@@ -108,10 +105,8 @@ formless state =
    , HH.textarea
      [ HP.attr (HH.AttrName "style") "border: 1px solid #c2c6cc;"
      , HP.value text.input
-     , HE.onBlur
-       $ HE.input_ $ Formless.HandleBlur (Formless.handleBlur _text)
-     , HE.onValueInput
-       $ HE.input \str -> Formless.HandleChange (Formless.handleChange _text str)
+     , Formless.onBlurWith _text
+     , Formless.onValueInputWith _text
      ]
    , HH.br_
    , HH.text $ "Touched: " <> show text.touched

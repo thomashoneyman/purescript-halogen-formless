@@ -3,10 +3,9 @@ module Example.ExternalComponents.Component where
 import Prelude
 
 import Data.Maybe (Maybe(..))
-import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Example.ExternalComponents.RenderFormless (renderFormless)
-import Example.ExternalComponents.Spec (form)
+import Example.ExternalComponents.Spec (_email, form)
 import Example.ExternalComponents.Types (ChildQuery, ChildSlot, Query(..), State)
 import Formless as Formless
 import Formless.Spec (formSpecToInputFields)
@@ -63,15 +62,9 @@ component =
     HandleTypeahead m a -> case m of
       TA.Emit q -> eval q *> pure a
       TA.SelectionsChanged s _ -> case s of
-        TA.ItemSelected x -> do
-          _ <- H.query unit
-                $ Formless.HandleChange
-                ( Formless.handleChange (SProxy :: SProxy "email") x ) unit
-          pure a
+        TA.ItemSelected x ->
+          (H.query unit $ Formless.handleChange _email x) *> pure a
         _ -> pure a
-      TA.VisibilityChanged _ -> do
-        _ <- H.query unit
-              $ Formless.HandleBlur
-              ( Formless.handleBlur (SProxy :: SProxy "email") ) unit
-        pure a
+      TA.VisibilityChanged _ ->
+        (H.query unit $ Formless.handleBlur _email) *> pure a
       _ -> pure a

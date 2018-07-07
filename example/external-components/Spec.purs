@@ -5,6 +5,7 @@ import Prelude
 import Data.Either (Either(..))
 import Data.Newtype (class Newtype)
 import Data.String as String
+import Data.Symbol (SProxy(..))
 import Formless.Spec (FormSpec(..))
 
 -- | Form inputs are expected to have this particular shape and rely
@@ -14,6 +15,10 @@ newtype Form f = Form
   , email :: f String String String
   }
 derive instance newtypeForm :: Newtype (Form f) _
+
+-- | You'll usually want symbol proxies for convenience
+_name = SProxy :: SProxy "name"
+_email = SProxy :: SProxy "email"
 
 -- | You are meant to provide a wrapper around `FormSpec` in order for
 -- | this to all work out. Validators could be written (should be written)
