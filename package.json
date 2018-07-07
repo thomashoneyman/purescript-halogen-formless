@@ -9,8 +9,8 @@
     "clean": "rm -rf bower_components node_modules output",
     "build": "pulp build",
     "watch": "pulp -w build",
-    "build-all": "pulp build -I app --to dist/app.js",
-    "watch-all": "pulp -w build -I app --to dist/app.js"
+    "build-all": "pulp build -I example --to dist/app.js",
+    "watch-all": "pulp -w build -I example --to dist/app.js"
   },
   "devDependencies": {
     "bower": "^1.8.4",

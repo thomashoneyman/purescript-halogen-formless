@@ -11,4 +11,5 @@ generated-docs/
 dist/*
 !dist/index.html
 !dist/cn-tailwind.min.css
+!dist/storybook.css
 *.lock
