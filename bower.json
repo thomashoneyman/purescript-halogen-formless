@@ -18,5 +18,8 @@
     "purescript-prelude": "^4.0.1",
     "purescript-halogen": "^4.0.0",
     "purescript-halogen-renderless": "^0.0.2"
+  },
+  "devDependencies": {
+     "purescript-ocelot": "git@github.com:citizennet/purescript-ocelot.git#v0.4.1"
   }
 }

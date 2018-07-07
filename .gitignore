@@ -10,4 +10,5 @@ generated-docs/
 .psa*
 dist/*
 !dist/index.html
+!dist/cn-tailwind.min.css
 *.lock

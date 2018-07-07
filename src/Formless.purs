@@ -52,12 +52,13 @@ type State form =
   { isValid :: Boolean
   , formResult :: Maybe (form OutputField)
   , errors :: Int -- Count of all error fields. Starts at 0. Validators increment / decrement.
+  , formSpec :: form InputField
   , form :: form InputField
   }
 
 -- | The component's input type
 type Input pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) m =
-  { form :: form InputField
+  { formSpec :: form InputField
   , render :: State form -> HTML pq cq cs form m }
 
 data Message pq
@@ -76,11 +77,12 @@ component =
   where
 
   initialState :: Input pq cq cs form m -> StateStore pq cq cs form m
-  initialState { form, render } = store render $
+  initialState { formSpec, render } = store render $
     { isValid: false
     , errors: 0
     , formResult: Nothing
-    , form
+    , formSpec -- This should be the original form spec from the user.
+    , form: formSpec -- TODO: formSpecToInputFields formSpec
     }
 
 

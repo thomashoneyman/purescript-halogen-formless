@@ -65,7 +65,7 @@ derive instance newtypeOutputField :: Newtype (OutputField i e o) _
 
 -- | A helper function that will automatically transform a record of FormSpec(s) into
 -- | a record of InputField(s).
-formSpecToInputField
+formSpecToInputFields
   :: ∀ row xs row' spec fields
    . RL.RowToList row xs
   => FormSpecToInputField xs row () row'
@@ -73,7 +73,7 @@ formSpecToInputField
   => Newtype fields (Record row')
   => spec
   -> fields
-formSpecToInputField r = wrap $ Builder.build builder {}
+formSpecToInputFields r = wrap $ Builder.build builder {}
   where
     builder = formSpecToInputFieldBuilder (RLProxy :: RLProxy xs) (unwrap r)
 
