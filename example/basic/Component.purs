@@ -101,7 +101,7 @@ formless state =
      ]
    , muted
        (show name.touched)
-       (maybe "not run" (either show show) name.result)
+       (maybe "Not run" (either ((<>) "Failed: " <<< show) ((<>) "Success: " <<< show)) name.result)
    , Input.textarea
      [ HP.value text.input
      , Formless.onBlurWith _text
@@ -109,7 +109,7 @@ formless state =
      ]
    , muted
        (show text.touched)
-       (maybe "not run" (either (const "void") show) text.result)
+       (maybe "Not run" (either ((<>) "Failed: " <<< show) ((<>) "Success: " <<< show)) text.result)
    ]
   where
     name = unwrap $ Record.get _name $ unwrap state.form
@@ -119,5 +119,5 @@ formless state =
         [ HP.classes Format.mutedClasses ]
         [ HH.text $ "Touched: " <> str0
         , HH.text " | "
-        , HH.text $ "Validated: " <> str1
+        , HH.text str1
         ]
