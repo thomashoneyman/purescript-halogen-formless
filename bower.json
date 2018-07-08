@@ -21,6 +21,6 @@
   },
   "devDependencies": {
     "purescript-ocelot": "git@github.com:citizennet/purescript-ocelot.git#v0.4.1",
-    "purescript-halogen-storybook": "^0.3.0"
+    "purescript-halogen-storybook": "^0.4.0"
   }
 }

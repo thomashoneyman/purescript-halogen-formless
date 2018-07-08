@@ -14,6 +14,9 @@ import Formless.Spec (FormSpec(..))
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
+import Ocelot.Block.Format (heading_, mutedClasses, p, subHeading_) as Format
+import Ocelot.Block.Input (input, textarea) as Input
+import Ocelot.HTML.Properties (css)
 import Record (get) as Record
 
 -----
@@ -64,19 +67,20 @@ component = H.parentComponent
 
   render :: Unit -> H.ParentHTML Query ChildQuery ChildSlot Aff
   render st =
-    HH.div_
-      [ HH.h2_
-        [ HH.text "Contact us."
-        , HH.br_
-        ]
-      , HH.slot
-          unit
-          Formless.component
-          { formSpec
-          , render: formless
-          }
-          (const Nothing)
-      ]
+    HH.div
+    [ css "flex-1 container p-12" ]
+    [ Format.heading_
+      [ HH.text "Formless" ]
+    , Format.subHeading_
+      [ HH.text "A basic contact form." ]
+    , HH.slot
+        unit
+        Formless.component
+        { formSpec
+        , render: formless
+        }
+        (const Nothing)
+    ]
 
   eval :: Query ~> H.ParentDSL Unit Query ChildQuery ChildSlot Void Aff
   eval (DoNothing a) = pure a
@@ -90,29 +94,30 @@ formless
   -> Formless.HTML Query (Const Void) Unit Form Aff
 formless state =
  HH.div_
-   [ HH.input
-     [ HP.attr (HH.AttrName "style") "border: 1px solid #c2c6cc;"
-     , HP.value name.input
+   [ Input.input
+     [ HP.value name.input
      , Formless.onBlurWith _name
      , Formless.onValueInputWith _name
      ]
-   , HH.br_
-   , HH.text $ "Touched: " <> show name.touched
-   , HH.br_
-   , HH.text $ "Result: " <> maybe "not run" (either show show) name.result
-   , HH.br_
-   , HH.br_
-   , HH.textarea
-     [ HP.attr (HH.AttrName "style") "border: 1px solid #c2c6cc;"
-     , HP.value text.input
+   , muted
+       (show name.touched)
+       (maybe "not run" (either show show) name.result)
+   , Input.textarea
+     [ HP.value text.input
      , Formless.onBlurWith _text
      , Formless.onValueInputWith _text
      ]
-   , HH.br_
-   , HH.text $ "Touched: " <> show text.touched
-   , HH.br_
-   , HH.text $ "Result: " <> maybe "not run" (either (const "void") show) text.result
+   , muted
+       (show text.touched)
+       (maybe "not run" (either (const "void") show) text.result)
    ]
   where
     name = unwrap $ Record.get _name $ unwrap state.form
     text = unwrap $ Record.get _text $ unwrap state.form
+    muted str0 str1 =
+      Format.p
+        [ HP.classes Format.mutedClasses ]
+        [ HH.text $ "Touched: " <> str0
+        , HH.text " | "
+        , HH.text $ "Validated: " <> str1
+        ]

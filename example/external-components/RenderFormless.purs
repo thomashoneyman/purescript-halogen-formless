@@ -24,14 +24,12 @@ import Record as Record
 
 -- | Our render function has access to anything in Formless' State type, plus
 -- | anything additional in your own state type.
-renderFormless
+formless
   :: Formless.State Form
   -> Formless.HTML Query FCQ FCS Form Aff
-renderFormless state =
+formless state =
   HH.div_
-    [ Format.subHeading_
-      [ HH.text "Fill out the form:" ]
-    , renderName state
+    [ renderName state
     , renderEmail state
     ]
 

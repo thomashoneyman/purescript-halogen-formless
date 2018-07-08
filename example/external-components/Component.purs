@@ -4,7 +4,7 @@ import Prelude
 
 import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
-import Example.ExternalComponents.RenderFormless (renderFormless)
+import Example.ExternalComponents.RenderFormless (formless)
 import Example.ExternalComponents.Spec (_email, formSpec)
 import Example.ExternalComponents.Types (ChildQuery, ChildSlot, Query(..), State)
 import Formless as Formless
@@ -14,6 +14,7 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Ocelot.Block.Format as Format
 import Ocelot.Components.Typeahead as TA
+import Ocelot.HTML.Properties (css)
 
 component :: H.Component HH.HTML Query Unit Void Aff
 component =
@@ -25,26 +26,22 @@ component =
     }
   where
 
-  css :: ∀ p i. String -> H.IProp ( "class" :: String | p ) i
-  css = HP.class_ <<< HH.ClassName
-
   render :: State -> H.ParentHTML Query ChildQuery ChildSlot Aff
-  render _ =
+  render st =
     HH.div
-      [ css "p-12 container mx-auto flex flex-1" ]
-      [ HH.div
-        [ css "flex-1 mx-10 mt-10" ]
-        [ Format.heading_
-          [ HH.text "Formless" ]
-        , HH.slot
-            unit
-            Formless.component
-              -- TODO: should be able to just pass the spec in...
-            { formSpec
-            , render: renderFormless }
-            ( HE.input HandleFormless )
-        ]
-      ]
+    [ css "flex-1 container p-12" ]
+    [ Format.heading_
+      [ HH.text "Formless" ]
+    , Format.subHeading_
+      [ HH.text "A form leveraging external components." ]
+    , HH.slot
+        unit
+        Formless.component
+        { formSpec
+        , render: formless
+        }
+        (const Nothing)
+    ]
 
   eval
     :: Query
