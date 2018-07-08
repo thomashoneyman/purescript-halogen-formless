@@ -10,7 +10,7 @@ import Data.String (null)
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Formless as Formless
-import Formless.Spec (FormSpec(..), formSpecToInputFields)
+import Formless.Spec (FormSpec(..))
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
@@ -25,8 +25,8 @@ newtype Form f = Form
   }
 derive instance newtypeForm :: Newtype (Form f) _
 
-form :: Form FormSpec
-form = Form
+formSpec :: Form FormSpec
+formSpec = Form
   { name: FormSpec
     { input: ""
     , validator: \s -> if null s then Left "Too short" else Right s
@@ -72,7 +72,7 @@ component = H.parentComponent
       , HH.slot
           unit
           Formless.component
-          { formSpec: formSpecToInputFields form
+          { formSpec
           , render: formless
           }
           (const Nothing)

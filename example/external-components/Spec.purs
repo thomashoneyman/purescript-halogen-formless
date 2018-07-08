@@ -23,8 +23,8 @@ _email = SProxy :: SProxy "email"
 -- | You are meant to provide a wrapper around `FormSpec` in order for
 -- | this to all work out. Validators could be written (should be written)
 -- | separately.
-form :: Form FormSpec
-form = Form
+formSpec :: Form FormSpec
+formSpec = Form
   { name: FormSpec
       { input: ""
       , validator: \str ->

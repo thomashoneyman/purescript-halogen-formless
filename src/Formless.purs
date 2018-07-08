@@ -8,20 +8,22 @@ import Prelude
 
 import Control.Comonad (extract)
 import Control.Comonad.Store (Store, store)
+import Data.Either (Either(..))
 import Data.Lens as Lens
 import Data.Lens.Iso.Newtype (_Newtype)
 import Data.Lens.Record (prop)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy)
-import Effect.Aff.Class (class MonadAff)
-import Formless.Spec (InputField, OutputField, _input, _result, _touched, _validator)
+import Formless.Record (class FormSpecToInputField, class ValidateInputFields, formSpecToInputFields, validateInputFields)
+import Formless.Spec (FormSpec, InputField, OutputField, _input, _result, _touched, _validator)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Prim.Row (class Cons)
-import Renderless.State (modifyState_, modifyStore_)
+import Prim.RowList (class RowToList) as RL
+import Renderless.State (getState, modifyState_, modifyStore_)
 import Web.Event.Event (Event)
 import Web.UIEvent.FocusEvent (FocusEvent)
 
@@ -40,7 +42,12 @@ type StateStore pq cq cs form m =
 
 -- | The component type
 type Component pq cq cs form m
-  = H.Component HH.HTML (Query pq cq cs form m) (Input pq cq cs form m) (Message pq) m
+  = H.Component
+      HH.HTML
+      (Query pq cq cs form m)
+      (Input pq cq cs form m)
+      (Message pq form)
+      m
 
 -- | The component's HTML type, the result of the render function.
 type HTML pq cq cs form m
@@ -48,28 +55,44 @@ type HTML pq cq cs form m
 
 -- | The component's DSL type, the result of the eval function.
 type DSL pq cq cs form m
-  = H.ParentDSL (StateStore pq cq cs form m) (Query pq cq cs form m) cq cs (Message pq) m
+  = H.ParentDSL
+      (StateStore pq cq cs form m)
+      (Query pq cq cs form m)
+      cq
+      cs
+      (Message pq form)
+      m
 
 -- | The component local state
 type State form =
   { isValid :: Boolean
   , formResult :: Maybe (form OutputField)
-  , errors :: Int -- Count of all error fields. Starts at 0. Validators increment / decrement.
-  , formSpec :: form InputField
+  -- Count of all error fields. Starts at 0. Validators increment / decrement.
+  , errors :: Int
+  , formSpec :: form FormSpec
   , form :: form InputField
   }
 
 -- | The component's input type
 type Input pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) m =
-  { formSpec :: form InputField
+  { formSpec :: form FormSpec
   , render :: State form -> HTML pq cq cs form m }
 
-data Message pq
-  = Submitted
+data Message pq form
+  = Submitted (Either (form InputField) (form OutputField))
   | Emit (pq Unit)
 
 -- | The component itself
-component :: ∀ pq cq cs form m. Ord cs => MonadAff m => Component pq cq cs form m
+component
+  :: ∀ pq cq cs form m spec specxs field fieldxs
+   . Ord cs
+  => RL.RowToList spec specxs
+  => RL.RowToList field fieldxs
+  => FormSpecToInputField specxs spec () field
+  => ValidateInputFields fieldxs field () field
+  => Newtype (form FormSpec) (Record spec)
+  => Newtype (form InputField) (Record field)
+  => Component pq cq cs form m
 component =
   H.parentComponent
     { initialState
@@ -84,10 +107,9 @@ component =
     { isValid: false
     , errors: 0
     , formResult: Nothing
-    , formSpec -- This should be the original form spec from the user.
-    , form: formSpec -- TODO: formSpecToInputFields formSpec
+    , formSpec
+    , form: formSpecToInputFields formSpec
     }
-
 
   eval :: Query pq cq cs form m ~> DSL pq cq cs form m
   eval = case _ of
@@ -100,12 +122,13 @@ component =
       pure a
 
     ValidateAll a -> do
-      -- traverse the record calling all validate functions
-      -- call any record-wide validation functions
+      modifyState_ \st -> st { form = validateInputFields st.form }
       pure a
 
     Submit a -> do
-      H.raise Submitted
+      _ <- eval $ ValidateAll a
+      st <- getState
+      H.raise $ maybe (Submitted $ Left st.form) (Submitted <<< Right) st.formResult
       pure a
 
     Raise query a -> do
@@ -115,6 +138,7 @@ component =
     Receive { render } a -> do
       modifyStore_ render (\s -> s)
       pure a
+
 
 ---------
 -- Helpers

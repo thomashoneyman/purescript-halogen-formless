@@ -5,10 +5,9 @@ import Prelude
 import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
 import Example.ExternalComponents.RenderFormless (renderFormless)
-import Example.ExternalComponents.Spec (_email, form)
+import Example.ExternalComponents.Spec (_email, formSpec)
 import Example.ExternalComponents.Types (ChildQuery, ChildSlot, Query(..), State)
 import Formless as Formless
-import Formless.Spec (formSpecToInputFields)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -41,7 +40,7 @@ component =
             unit
             Formless.component
               -- TODO: should be able to just pass the spec in...
-            { formSpec: formSpecToInputFields form
+            { formSpec
             , render: renderFormless }
             ( HE.input HandleFormless )
         ]
