@@ -2,6 +2,7 @@ module Formless.Record where
 
 import Prelude
 
+import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
@@ -12,6 +13,35 @@ import Record as Record
 import Record.Builder (Builder)
 import Record.Builder as Builder
 import Type.Data.RowList (RLProxy(..))
+
+-----
+-- Examples
+
+newtype Form f = Form
+  { name :: f String String String }
+derive instance newtypeForm :: Newtype (Form f) _
+
+newtype MaybeOutput e i o = MaybeOutput (Maybe o)
+derive instance newtypeMaybeOutput :: Newtype (MaybeOutput e i o) _
+
+formSpec :: Form FormSpec
+formSpec = Form
+  { name: FormSpec { input: "", validator: pure } }
+
+formInput :: Form InputField
+formInput = Form
+  { name: InputField { input: "", validator: pure, touched: false, result: Nothing } }
+
+formMaybeOutput :: Form MaybeOutput
+formMaybeOutput = Form
+  { name: MaybeOutput (Just "") }
+
+formSpecToInputFields' :: Form FormSpec -> Form InputField
+formSpecToInputFields' = formSpecToInputFields
+
+trim' :: Form InputField -> Form MaybeOutput
+trim' = trim
+
 
 -----
 -- Functions
@@ -43,6 +73,18 @@ formSpecToInputFields r = wrap $ Builder.build builder {}
   where
     builder = formSpecToInputFieldBuilder (RLProxy :: RLProxy xs) (unwrap r)
 
+trim
+  :: ∀ row xs row' form
+   . RL.RowToList row xs
+  => Trim xs row () row'
+  => Newtype (form InputField) (Record row)
+  => Newtype (form MaybeOutput) (Record row')
+  => form InputField
+  -> form MaybeOutput
+trim r = wrap $ Builder.build builder {}
+  where
+    builder = trimBuilder (RLProxy :: RLProxy xs) (unwrap r)
+
 
 -----
 -- Classes (Internal)
@@ -50,7 +92,7 @@ formSpecToInputFields r = wrap $ Builder.build builder {}
 -- | The class that provides the Builder implementation to efficiently apply validation
 -- | to inputs and produce results
 class ValidateInputFields (xs :: RL.RowList) (row :: # Type) (from :: # Type) (to :: # Type)
-  | xs -> row from to where
+  | xs -> from to where
   validateInputFieldsBuilder :: RLProxy xs -> Record row -> Builder { | from } { | to }
 
 instance validateInputFieldsNil :: ValidateInputFields RL.Nil row () () where
@@ -81,7 +123,7 @@ instance validateInputFieldsCons
 -- | The class that provides the Builder implementation to efficiently transform the record
 -- | of FormSpec to record of InputField.
 class FormSpecToInputField (xs :: RL.RowList) (row :: # Type) (from :: # Type) (to :: # Type)
-  | xs -> row from to where
+  | xs -> from to where
   formSpecToInputFieldBuilder :: RLProxy xs -> Record row -> Builder { | from } { | to }
 
 instance formSpecToInputFieldNil :: FormSpecToInputField RL.Nil row () () where
@@ -108,3 +150,33 @@ instance formSpecToInputFieldCons
         , validator
         , result: Nothing
         }
+
+
+-- | The class that provides the Builder implementation to efficiently transform the record
+-- | of FormSpec to record of InputField.
+class Trim (xs :: RL.RowList) (row :: # Type) (from :: # Type) (to :: # Type)
+  | xs -> from to where
+  trimBuilder :: RLProxy xs -> Record row -> Builder { | from } { | to }
+
+instance trimNil :: Trim RL.Nil row () () where
+  trimBuilder _ _ = identity
+
+instance trimCons
+  :: ( IsSymbol name
+     , Row.Cons name (InputField i e o) trash row
+     , Trim tail row from from'
+     , Row.Lacks name from'
+     , Row.Cons name (MaybeOutput i e o) from' to
+     )
+  => Trim (RL.Cons name (MaybeOutput i e o) tail) row from to where
+  trimBuilder _ r =
+    first <<< rest
+    where
+      _name = SProxy :: SProxy name
+      val = transform $ Record.get _name r
+      rest = trimBuilder (RLProxy :: RLProxy tail) r
+      first = Builder.insert _name val
+      transform (InputField { result }) = MaybeOutput
+        case result of
+          Just (Right v) -> Just v
+          _ -> Nothing
