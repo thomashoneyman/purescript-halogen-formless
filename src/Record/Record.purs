@@ -21,8 +21,8 @@ newtype Form f = Form
   { name :: f String String String }
 derive instance newtypeForm :: Newtype (Form f) _
 
-newtype MaybeOutput e i o = MaybeOutput (Maybe o)
-derive instance newtypeMaybeOutput :: Newtype (MaybeOutput e i o) _
+newtype MaybeOutput i e o = MaybeOutput (Maybe o)
+derive instance newtypeMaybeOutput :: Newtype (MaybeOutput i e o) _
 
 formSpec :: Form FormSpec
 formSpec = Form
@@ -32,15 +32,11 @@ formInput :: Form InputField
 formInput = Form
   { name: InputField { input: "", validator: pure, touched: false, result: Nothing } }
 
-formMaybeOutput :: Form MaybeOutput
-formMaybeOutput = Form
-  { name: MaybeOutput (Just "") }
-
 formSpecToInputFields' :: Form FormSpec -> Form InputField
 formSpecToInputFields' = formSpecToInputFields
 
-trim' :: Form InputField -> Form MaybeOutput
-trim' = trim
+inputFieldToMaybeOutput' :: Form InputField -> Form MaybeOutput
+inputFieldToMaybeOutput' = inputFieldToMaybeOutput
 
 
 -----
@@ -73,17 +69,17 @@ formSpecToInputFields r = wrap $ Builder.build builder {}
   where
     builder = formSpecToInputFieldBuilder (RLProxy :: RLProxy xs) (unwrap r)
 
-trim
+inputFieldToMaybeOutput
   :: ∀ row xs row' form
    . RL.RowToList row xs
-  => Trim xs row () row'
+  => InputFieldToMaybeOutput xs row () row'
   => Newtype (form InputField) (Record row)
   => Newtype (form MaybeOutput) (Record row')
   => form InputField
   -> form MaybeOutput
-trim r = wrap $ Builder.build builder {}
+inputFieldToMaybeOutput r = wrap $ Builder.build builder {}
   where
-    builder = trimBuilder (RLProxy :: RLProxy xs) (unwrap r)
+    builder = inputFieldToMaybeOutputBuilder (RLProxy :: RLProxy xs) (unwrap r)
 
 
 -----
@@ -151,30 +147,28 @@ instance formSpecToInputFieldCons
         , result: Nothing
         }
 
-
--- | The class that provides the Builder implementation to efficiently transform the record
--- | of FormSpec to record of InputField.
-class Trim (xs :: RL.RowList) (row :: # Type) (from :: # Type) (to :: # Type)
+-- |
+class InputFieldToMaybeOutput (xs :: RL.RowList) (row :: # Type) (from :: # Type) (to :: # Type)
   | xs -> from to where
-  trimBuilder :: RLProxy xs -> Record row -> Builder { | from } { | to }
+  inputFieldToMaybeOutputBuilder :: RLProxy xs -> Record row -> Builder { | from } { | to }
 
-instance trimNil :: Trim RL.Nil row () () where
-  trimBuilder _ _ = identity
+instance inputFieldToMaybeOutputNil :: InputFieldToMaybeOutput RL.Nil row () () where
+  inputFieldToMaybeOutputBuilder _ _ = identity
 
-instance trimCons
+instance inputFieldToMaybeOutputCons
   :: ( IsSymbol name
      , Row.Cons name (InputField i e o) trash row
-     , Trim tail row from from'
+     , InputFieldToMaybeOutput tail row from from'
      , Row.Lacks name from'
      , Row.Cons name (MaybeOutput i e o) from' to
      )
-  => Trim (RL.Cons name (MaybeOutput i e o) tail) row from to where
-  trimBuilder _ r =
+  => InputFieldToMaybeOutput (RL.Cons name (InputField i e o) tail) row from to where
+  inputFieldToMaybeOutputBuilder _ r =
     first <<< rest
     where
       _name = SProxy :: SProxy name
       val = transform $ Record.get _name r
-      rest = trimBuilder (RLProxy :: RLProxy tail) r
+      rest = inputFieldToMaybeOutputBuilder (RLProxy :: RLProxy tail) r
       first = Builder.insert _name val
       transform (InputField { result }) = MaybeOutput
         case result of
