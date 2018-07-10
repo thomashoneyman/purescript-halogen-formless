@@ -88,6 +88,7 @@ jobs:
           command: |
             rm -rf ../gh-pages/dist
             cp -r dist ../gh-pages/dist
+            rm ../gh-pages/dist/index.html
             cd ../gh-pages  # Moves into gh-pages branch using worktree
             git config --global user.email "admin@thomashoneyman.com"
             git config --global user.name "CircleCI"
