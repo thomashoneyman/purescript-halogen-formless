@@ -1,0 +1,109 @@
+version: 2
+
+defaults: &defaults
+  working_directory: ~/formless
+  docker:
+    - image: thomashoneyman/purescript:0.0.3
+
+jobs:
+  test:
+    <<: *defaults
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            - v0.0.1-yarn-cache-{{ .Branch }}-{{ checksum "package.json" }}
+            - v0.0.1-yarn-cache-{{ .Branch }}
+            - v0.0.1-yarn-cache
+
+      - restore_cache:
+          keys:
+            - v0.0.1-bower-cache-{{ .Branch }}-{{ checksum "bower.json" }}
+            - v0.0.1-bower-cache-{{ .Branch }}
+            - v0.0.1-bower-cache
+
+      - run:
+          name: Install Bower and Node dependencies
+          command: yarn # postinstall runs Bower
+
+      - run:
+          name: Verify the project and all components build successfully
+          command: yarn build-all
+
+      - run:
+          name: Verify tests complete successfully
+          command: yarn test
+
+      - save_cache:
+          key: v0.0.1-yarn-cache-{{ .Branch }}-{{ checksum "package.json" }}
+          paths:
+            - ~/formless/node_modules
+
+      - save_cache:
+          key: v0.0.1-bower-cache-{{ .Branch }}-{{ checksum "bower.json" }}
+          paths:
+            - ~/formless/bower_components
+            - ~/formless/output
+
+      # Persist generated JS into the workspace
+      - persist_to_workspace:
+          root: dist
+          paths:
+            .
+
+  docs:
+    <<: *defaults
+    steps:
+      - checkout
+
+      - run:
+          name: Prepare branches locally
+          command: |
+            git checkout gh-pages
+            git checkout master
+
+      - run:
+          name: Set up gh-pages in worktree for easy artifact copying
+          command: |
+            mkdir ../gh-pages
+            git worktree add ../gh-pages gh-pages
+
+      - attach_workspace:
+          at: dist
+
+      # Enable building docs with read/write SSH key
+      - add_ssh_keys:
+          fingerprints:
+            - "53:31:90:1f:78:25:11:3a:1b:5d:a6:2f:04:7c:cb:39"
+
+      - run:
+          name: Push files to gh-pages branch on GitHub
+          command: |
+            rm -rf ../gh-pages/dist
+            cp -r dist ../gh-pages/dist
+            cd ../gh-pages  # Moves into gh-pages branch using worktree
+            git config --global user.email "admin@thomashoneyman.com"
+            git config --global user.name "CircleCI"
+            git add .
+            git commit --allow-empty -m "Build triggered by CircleCI"
+            git push -u origin gh-pages
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - test:
+          filters:
+            branches:
+              ignore: gh-pages
+
+      # On master branch, rebuild documentation site
+      - docs:
+          filters:
+            branches:
+              only: master
+
+          requires:
+            - test
+
