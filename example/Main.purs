@@ -9,6 +9,7 @@ import Effect.Aff (Aff)
 import Example.Home as Home
 import Example.Basic.Component as Basic
 import Example.ExternalComponents.Component as ExternalComponents
+import Example.CustomBehavior.Component as CustomBehavior
 import Foreign.Object as Object
 import Halogen.Aff as HA
 import Halogen.HTML (text) as HH
@@ -19,6 +20,7 @@ stories = Object.fromFoldable
   [ Tuple "" $ proxy Home.component
   , Tuple "basic" $ proxy Basic.component
   , Tuple "external-components" $ proxy ExternalComponents.component
+  , Tuple "custom-behavior" $ proxy CustomBehavior.component
   ]
 
 main :: Effect Unit

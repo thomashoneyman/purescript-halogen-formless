@@ -1,4 +1,4 @@
-module Example.ExternalComponents.RenderFormless where
+module Example.ExternalComponents.RenderForm where
 
 import Prelude
 

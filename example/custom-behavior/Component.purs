@@ -1,4 +1,4 @@
-module Example.ExternalComponents.Component where
+module Example.CustomBehavior.Component where
 
 import Prelude
 
@@ -6,15 +6,15 @@ import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Debug.Trace (spy)
 import Effect.Aff (Aff)
-import Example.ExternalComponents.RenderForm (formless)
-import Example.ExternalComponents.Spec (_email, formSpec)
-import Example.ExternalComponents.Types (ChildQuery, ChildSlot, Query(..), State)
+import Example.CustomBehavior.RenderForm (formless)
+import Example.CustomBehavior.Spec (_color, _object, formSpec)
+import Example.CustomBehavior.Types (ChildQuery, ChildSlot, Query(..), State)
 import Formless as Formless
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Ocelot.Block.Format as Format
-import Ocelot.Components.Typeahead as TA
+import Ocelot.Components.Dropdown as Dropdown
 import Ocelot.HTML.Properties (css)
 
 component :: H.Component HH.HTML Query Unit Void Aff
@@ -62,28 +62,12 @@ component =
           let _ = spy "Form is valid!" v
           pure a
 
-    HandleTypeahead m a -> case m of
-      -- This is a renderless component, so we must handle the `Emit` case by recursively
-      -- calling `eval`
-      TA.Emit q -> eval q *> pure a
+    HandleColorDropdown (Dropdown.ItemSelected x) a -> do
+      _ <- H.query unit $ Formless.handleChange _color (Just x)
+      _ <- H.query unit $ Formless.handleBlur _color
+      pure a
 
-      -- We'll use the component output to handle validation and change events.
-      TA.SelectionsChanged s _ -> case s of
-        TA.ItemSelected x -> do
-          _ <- H.query unit $ Formless.handleChange _email (Just x)
-          _ <- H.query unit $ Formless.handleBlur _email
-          pure a
-        _ -> do
-          _ <- H.query unit $ Formless.handleChange _email Nothing
-          _ <- H.query unit $ Formless.handleBlur _email
-          pure a
-
-      -- Unfortunately, single-select typeaheads send blur events before
-      -- they send the selected value, which causes validation to run
-      -- before the new value is ready to be validated. Item selection
-      -- therefore serves as the blur event, too.
-      TA.VisibilityChanged _ -> pure a
-
-      -- We care about selections, not searches, so we'll ignore this message.
-      TA.Searched _ -> pure a
-
+    HandleObjectDropdown (Dropdown.ItemSelected x) a -> do
+      _ <- H.query unit $ Formless.handleChange _object (Just x)
+      _ <- H.query unit $ Formless.handleBlur _object
+      pure a
