@@ -1,5 +1,7 @@
 # Formless
 
+![CircleCI](https://img.shields.io/circleci/project/github/thomashoneyman/purescript-halogen-formless.svg) [![Maintainer: thomashoneyman](https://img.shields.io/badge/maintainer-thomashoneyman-lightgrey.svg)](http://github.com/thomashoneyman)
+
 Formless is a renderless component which helps you build forms in Halogen.
 
 Forms can be designed as data, but eventually you'll need to render an interactive form to the DOM. This is tedious and boilerplate-heavy in Halogen. Once you have a form spec, you can use Formless to handle all the wiring for validation, dirty states, field updates, and so on.
