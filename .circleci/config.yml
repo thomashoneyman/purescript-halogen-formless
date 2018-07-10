@@ -46,7 +46,13 @@ jobs:
             - ~/formless/bower_components
             - ~/formless/output
 
-      # Persist generated JS into the workspace
+      # Persist generated files into the workspace
+      - run:
+          name: Replace symlinks with actual files
+          command: |
+            mv ~/formless/bower_components/purescript-halogen-storybook/examples/src/Storybook.css ~/formless/dist/storybook.css
+            mv ~/formless/bower_components/purescript-ocelot/dist/cn-tailwind.min.css ~/formless/dist/cn-tailwind.min.css
+
       - persist_to_workspace:
           root: dist
           paths:
