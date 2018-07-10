@@ -34,7 +34,21 @@ component =
     [ Format.heading_
       [ HH.text "Formless" ]
     , Format.subHeading_
-      [ HH.text "A form leveraging external components." ]
+      [ HH.text "A form leveraging external components and custom form actions." ]
+    , Format.p_
+      [ HH.text $
+        "In Formless, you can freely leverage external components and embed them in the form. "
+        <> "This form shows how to use external typeaheads from the Ocelot design system from "
+        <> "CitizenNet. This form also demonstrates how you can manipulate forms in Formless. "
+        <> "Try selecting an email address, then a whiskey. You'll notice that changing your "
+        <> "whiskey selection also clears the selected email."
+      ]
+    , Format.p_
+      [ HH.text $
+        "Next, try opening the console. If you submit the form with invalid values, Formless will "
+        <> "show you your errors. If you submit a valid form, you'll see Formless just returns the "
+        <> "valid outputs for you to work with."
+      ]
     , HH.slot
         unit
         Formless.component
