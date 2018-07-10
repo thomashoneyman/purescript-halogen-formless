@@ -14,7 +14,7 @@ import Ocelot.Components.Typeahead as TA
 -- | things simple.
 data Query a
   = HandleFormless (Formless.Message Query Form) a
-  | HandleTypeahead (TA.Message Query String) a
+  | HandleTypeahead Slot (TA.Message Query String) a
 
 type State = Unit
 
@@ -33,7 +33,12 @@ type ChildSlot = Unit
 -- | FCQ: Formless ChildQuery
 -- | FCS: Formless ChildSlot
 type FCQ = TA.Query Query String String Aff
-type FCS = Unit
+type FCS = Slot
 
+data Slot
+  = EmailTypeahead
+  | WhiskeyTypeahead
+  | LanguageTypeahead
 
-
+derive instance eqSlot :: Eq Slot
+derive instance ordSlot :: Ord Slot

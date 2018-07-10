@@ -15,6 +15,7 @@ import Data.Lens.Record (prop)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy)
+import Debug.Trace (spy)
 import Formless.Record as FR
 import Formless.Spec (FormSpec, InputField, MaybeOutput, OutputField)
 import Formless.Spec as FSpec
@@ -33,6 +34,7 @@ data Query pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) m a
   | HandleChange (form InputField -> form InputField) a
   | ValidateAll a
   | Submit a
+  | Send cs (cq Unit) a
   | Raise (pq Unit) a
   | Receive (Input pq cq cs form m) a
 
@@ -139,6 +141,12 @@ component =
       _ <- eval $ ValidateAll a
       st <- getState
       H.raise $ maybe (Submitted $ Left st.form) (Submitted <<< Right) st.formResult
+      pure a
+
+    Send cs cq a -> do
+      let _ = spy "Received send childslot: " cs
+          _ = spy "Received send childquery: " cq
+      _ <- H.query cs cq
       pure a
 
     Raise query a -> do

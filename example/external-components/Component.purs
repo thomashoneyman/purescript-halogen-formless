@@ -7,8 +7,8 @@ import Data.Maybe (Maybe(..))
 import Debug.Trace (spy)
 import Effect.Aff (Aff)
 import Example.ExternalComponents.RenderForm (formless)
-import Example.ExternalComponents.Spec (_email, formSpec)
-import Example.ExternalComponents.Types (ChildQuery, ChildSlot, Query(..), State)
+import Example.ExternalComponents.Spec (_email, _language, _whiskey, formSpec)
+import Example.ExternalComponents.Types (ChildQuery, ChildSlot, Query(..), Slot(..), State)
 import Formless as Formless
 import Halogen as H
 import Halogen.HTML as HH
@@ -62,21 +62,46 @@ component =
           let _ = spy "Form is valid!" v
           pure a
 
-    HandleTypeahead m a -> case m of
+    HandleTypeahead slot m a -> case m of
       -- This is a renderless component, so we must handle the `Emit` case by recursively
       -- calling `eval`
       TA.Emit q -> eval q *> pure a
 
-      -- We'll use the component output to handle validation and change events.
+      -- We'll use the component output to handle validation and change events. This
+      -- is also a nice way to demonstrate how to support custom behavior: you can
+      -- send queries through the Formless component to a child, and have the results
+      -- raised back up to you.
       TA.SelectionsChanged s _ -> case s of
         TA.ItemSelected x -> do
-          _ <- H.query unit $ Formless.handleChange _email (Just x)
-          _ <- H.query unit $ Formless.handleBlur _email
-          pure a
+          case slot of
+            EmailTypeahead -> do
+              _ <- H.query unit $ Formless.handleChange _email (Just x)
+              _ <- H.query unit $ Formless.handleBlur _email
+              pure a
+            WhiskeyTypeahead -> do
+              _ <- H.query unit $ Formless.handleChange _whiskey (Just x)
+              _ <- H.query unit $ Formless.handleBlur _whiskey
+              _ <- H.query unit $ Formless.Send EmailTypeahead (TA.ReplaceSelections (TA.One Nothing) unit) unit
+              pure a
+            LanguageTypeahead -> do
+              _ <- H.query unit $ Formless.handleChange _language (Just x)
+              _ <- H.query unit $ Formless.handleBlur _language
+              _ <- H.query unit $ Formless.Send EmailTypeahead (TA.ReplaceSelections (TA.One Nothing) unit) unit
+              pure a
         _ -> do
-          _ <- H.query unit $ Formless.handleChange _email Nothing
-          _ <- H.query unit $ Formless.handleBlur _email
-          pure a
+          case slot of
+            EmailTypeahead -> do
+              _ <- H.query unit $ Formless.handleChange _email Nothing
+              _ <- H.query unit $ Formless.handleBlur _email
+              pure a
+            WhiskeyTypeahead -> do
+              _ <- H.query unit $ Formless.handleChange _whiskey Nothing
+              _ <- H.query unit $ Formless.handleBlur _whiskey
+              pure a
+            LanguageTypeahead -> do
+              _ <- H.query unit $ Formless.handleChange _language Nothing
+              _ <- H.query unit $ Formless.handleBlur _language
+              pure a
 
       -- Unfortunately, single-select typeaheads send blur events before
       -- they send the selected value, which causes validation to run
@@ -86,4 +111,3 @@ component =
 
       -- We care about selections, not searches, so we'll ignore this message.
       TA.Searched _ -> pure a
-

@@ -6,8 +6,8 @@ import Data.Either (either)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Effect.Aff (Aff)
-import Example.ExternalComponents.Spec (Form, _email, _name)
-import Example.ExternalComponents.Types (FCQ, FCS, Query(..))
+import Example.ExternalComponents.Spec (Form, _email, _name, _language, _whiskey)
+import Example.ExternalComponents.Types (FCQ, FCS, Query(..), Slot(..))
 import Formless as Formless
 import Halogen as H
 import Halogen.HTML as HH
@@ -29,6 +29,8 @@ formless state =
   HH.div_
     [ renderName state
     , renderEmail state
+    , renderWhiskey state
+    , renderLanguage state
     , Button.buttonPrimary
       [ HE.onClick $ HE.input_ Formless.Submit ]
       [ HH.text "Submit" ]
@@ -68,7 +70,7 @@ renderEmail state =
         , inputId: "email"
         }
         [ HH.slot
-            unit
+            EmailTypeahead
             TA.component
             ( TA.Input.defSingle
               [ HP.placeholder "Search email addresses..." ]
@@ -80,8 +82,70 @@ renderEmail state =
               ]
               TA.Input.renderItemString
             )
-            ( HE.input (Formless.Raise <<< H.action <<< HandleTypeahead) )
+            ( HE.input (Formless.Raise <<< H.action <<< HandleTypeahead EmailTypeahead) )
         ]
     ]
   where
     field = unwrap $ Record.get _email $ unwrap state.form
+
+renderWhiskey :: Formless.State Form -> Formless.HTML Query FCQ FCS Form Aff
+renderWhiskey state =
+  HH.div_
+    [ FormField.field_
+        { label: "Whiskey"
+        , helpText: Just "Select a favorite whiskey"
+        , error: join $ map (either Just (const Nothing)) field.result
+        , inputId: "whiskey"
+        }
+        [ HH.slot
+            WhiskeyTypeahead
+            TA.component
+            ( TA.Input.defSingle
+              [ HP.placeholder "Search whiskies..." ]
+              [ "Lagavulin 16"
+              , "Kilchoman Blue Label"
+              , "Laphroaig"
+              , "Ardbeg"
+              ]
+              TA.Input.renderItemString
+            )
+            ( HE.input (Formless.Raise <<< H.action <<< HandleTypeahead WhiskeyTypeahead) )
+        ]
+    ]
+  where
+    field = unwrap $ Record.get _whiskey $ unwrap state.form
+
+renderLanguage :: Formless.State Form -> Formless.HTML Query FCQ FCS Form Aff
+renderLanguage state =
+  HH.div_
+    [ FormField.field_
+        { label: "Language"
+        , helpText: Just "Select a favorite language"
+        , error: join $ map (either Just (const Nothing)) field.result
+        , inputId: "language"
+        }
+        [ HH.slot
+            LanguageTypeahead
+            TA.component
+            ( TA.Input.defSingle
+              [ HP.placeholder "Search lanugages..." ]
+              [ "Rust"
+              , "Python"
+              , "Haskell"
+              , "PureScript"
+              , "PHP"
+              , "JavaScript"
+              , "C"
+              , "C++"
+              , "C#"
+              , "C--"
+              , "Ruby"
+              , "APL"
+              ]
+              TA.Input.renderItemString
+            )
+            ( HE.input (Formless.Raise <<< H.action <<< HandleTypeahead LanguageTypeahead) )
+        ]
+    ]
+  where
+    field = unwrap $ Record.get _language $ unwrap state.form
