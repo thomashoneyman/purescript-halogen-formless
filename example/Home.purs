@@ -6,7 +6,7 @@ import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
 import Halogen as H
 import Halogen.HTML as HH
-import Halogen.HTML.Properties (classes, href) as HP
+import Halogen.HTML.Properties as HP
 import Ocelot.Block.Format as Format
 import Ocelot.HTML.Properties (css)
 

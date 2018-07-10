@@ -6,7 +6,6 @@ import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Debug.Trace (spy)
 import Effect.Aff (Aff)
-import Effect.Console (log) as Console
 import Example.ExternalComponents.RenderFormless (formless)
 import Example.ExternalComponents.Spec (_email, formSpec)
 import Example.ExternalComponents.Types (ChildQuery, ChildSlot, Query(..), State)
@@ -45,30 +44,46 @@ component =
         (HE.input HandleFormless)
     ]
 
-  eval
-    :: Query
-    ~> H.ParentDSL State Query ChildQuery ChildSlot Void Aff
+  eval :: Query ~> H.ParentDSL State Query ChildQuery ChildSlot Void Aff
   eval = case _ of
     -- Always have to handle the `Emit` case
     HandleFormless m a -> case m of
+      -- This is a renderless component, so we must handle the `Emit` case by recursively
+      -- calling `eval`
       Formless.Emit q -> eval q *> pure a
+
+      -- We'll just log the result here, but you could send this off to a server for
+      -- processing on success.
       Formless.Submitted result -> case result of
         Left f -> do
-          H.liftEffect $ Console.log "Form is not valid. Failed submission."
+          let _ = spy "Failed to validate form." f
           pure a
         Right v -> do
-          let x = spy "Form is valid!" v
+          let _ = spy "Form is valid!" v
           pure a
 
-    -- Always have to handle the `Emit` case. Because we aren't hooking directly
-    -- into the component's effects, we'll have to use its output to manage validation
-    -- and change events.
     HandleTypeahead m a -> case m of
+      -- This is a renderless component, so we must handle the `Emit` case by recursively
+      -- calling `eval`
       TA.Emit q -> eval q *> pure a
+
+      -- We'll use the component output to handle validation and change events.
       TA.SelectionsChanged s _ -> case s of
-        TA.ItemSelected x ->
-          (H.query unit $ Formless.handleChange _email x) *> pure a
-        _ -> pure a
-      TA.VisibilityChanged _ ->
-        (H.query unit $ Formless.handleBlur _email) *> pure a
-      _ -> pure a
+        TA.ItemSelected x -> do
+          _ <- H.query unit $ Formless.handleChange _email (Just x)
+          _ <- H.query unit $ Formless.handleBlur _email
+          pure a
+        _ -> do
+          _ <- H.query unit $ Formless.handleChange _email Nothing
+          _ <- H.query unit $ Formless.handleBlur _email
+          pure a
+
+      -- Unfortunately, single-select typeaheads send blur events before
+      -- they send the selected value, which causes validation to run
+      -- before the new value is ready to be validated. Item selection
+      -- therefore serves as the blur event, too.
+      TA.VisibilityChanged _ -> pure a
+
+      -- We care about selections, not searches, so we'll ignore this message.
+      TA.Searched _ -> pure a
+

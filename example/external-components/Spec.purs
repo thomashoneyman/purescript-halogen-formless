@@ -3,6 +3,7 @@ module Example.ExternalComponents.Spec where
 import Prelude
 
 import Data.Either (Either(..))
+import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Data.String as String
 import Data.Symbol (SProxy(..))
@@ -12,7 +13,7 @@ import Formless.Spec (FormSpec(..))
 -- | on the `InputField` type from Formless.
 newtype Form f = Form
   { name :: f String String String
-  , email :: f String String String
+  , email :: f (Maybe String) String String
   }
 derive instance newtypeForm :: Newtype (Form f) _
 
@@ -33,9 +34,10 @@ formSpec = Form
             else Right str
       }
   , email: FormSpec
-      { input: ""
-      , validator: \str ->
-          if String.contains (String.Pattern "_") str
+      { input: Nothing
+      , validator: case _ of
+          Nothing -> Left "This field is required."
+          Just str -> if String.contains (String.Pattern "_") str
             then Right str
             else Left "Email addresses must have underscores."
       }

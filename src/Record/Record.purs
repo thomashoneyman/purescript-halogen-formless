@@ -44,6 +44,8 @@ formSpecToInputFields r = wrap $ Builder.build builder {}
   where
     builder = formSpecToInputFieldBuilder (RLProxy :: RLProxy xs) (unwrap r)
 
+-- | An intermediate function that transforms a record of InputField into a record
+-- | of MaybeOutput as a step in producing output fields.
 inputFieldToMaybeOutput
   :: ∀ row xs row' form
    . RL.RowToList row xs
@@ -56,6 +58,9 @@ inputFieldToMaybeOutput r = wrap $ Builder.build builder {}
   where
     builder = inputFieldToMaybeOutputBuilder (RLProxy :: RLProxy xs) (unwrap r)
 
+-- | A function that, when used with `inputFieldToMaybeOutput`, turns a record of
+-- | InputField into a record of OutputField if all fields in the record are successfully
+-- | validated.
 maybeOutputToOutputField
   :: ∀ i e o row xs row' form
    . RL.RowToList row xs
@@ -137,7 +142,8 @@ instance formSpecToInputFieldCons
         , result: Nothing
         }
 
--- | Transform to the intermediate state, MaybeOutput
+-- | The class that provides the Builder implementation to efficiently transform the record
+-- | of InputField to record of MaybeOutput.
 class InputFieldToMaybeOutput
   (xs :: RL.RowList) (row :: # Type) (from :: # Type) (to :: # Type)
   | xs -> from to where
@@ -167,7 +173,9 @@ instance inputFieldToMaybeOutputCons
           _ -> Nothing
 
 
--- | Transform to the intermediate state, MaybeOutput
+-- | The class that provides the Builder implementation to efficiently transform the record
+-- | of MaybeOutput to a record of OutputField, but only if all fields were successfully
+-- | validated.
 class MaybeOutputToOutputField
   (xs :: RL.RowList) (row :: # Type) (from :: # Type) (to :: # Type)
   | xs -> from to where

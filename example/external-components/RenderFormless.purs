@@ -40,59 +40,48 @@ formless state =
 -- | A helper function to render a form text input
 renderName :: Formless.State Form -> Formless.HTML Query FCQ FCS Form Aff
 renderName state =
-  let field = unwrap $ Record.get sym $ unwrap state.form
-      sym = _name
-      label = "Name"
-   in
-      HH.div_
-        [ if field.touched
-            then HH.text "-- changed since form initialization --"
-            else HH.text ""
-        , FormField.field_
-            { label: label
-            , helpText: Just "Write your name."
-            , error: join $ map (either Just (const Nothing)) field.result
-            , inputId: label
-            }
-            [ Input.input
-              [ HP.placeholder "Dale"
-              , HP.id_ label
-              , HP.value field.input
-              , Formless.onBlurWith sym
-              , Formless.onValueInputWith sym
-              ]
-            ]
+  HH.div_
+    [ FormField.field_
+        { label: "Name"
+        , helpText: Just "Write your name."
+        , error: join $ map (either Just (const Nothing)) field.result
+        , inputId: "name"
+        }
+        [ Input.input
+          [ HP.placeholder "Dale"
+          , HP.value field.input
+          , Formless.onBlurWith _name
+          , Formless.onValueInputWith _name
+          ]
         ]
+    ]
+  where
+    field = unwrap $ Record.get _name $ unwrap state.form
 
 renderEmail :: Formless.State Form -> Formless.HTML Query FCQ FCS Form Aff
 renderEmail state =
-  let field = unwrap $ Record.get sym $ unwrap state.form
-      sym = _email
-      label = "Email"
-   in
-      HH.div_
-        [ if field.touched
-            then HH.text "-- changed since form initialization --"
-            else HH.text ""
-        , FormField.field_
-            { label: label
-            , helpText: Just "Write your name."
-            , error: join $ map (either Just (const Nothing)) field.result
-            , inputId: label
-            }
-            [ HH.slot
-                unit
-                TA.component
-                ( TA.Input.defSingle
-                  [ HP.placeholder "Search email addresses..." ]
-                  [ "not@anemail.org"
-                  , "snail@utopia.snailutopia"
-                  , "blue@jordans@blordans.pordens"
-                  , "yea_that_won't_work@email.com"
-                  , "standard@email.com"
-                  ]
-                  TA.Input.renderItemString
-                )
-                ( HE.input (Formless.Raise <<< H.action <<< HandleTypeahead) )
-            ]
+  HH.div_
+    [ FormField.field_
+        { label: "Email"
+        , helpText: Just "Select an email address"
+        , error: join $ map (either Just (const Nothing)) field.result
+        , inputId: "email"
+        }
+        [ HH.slot
+            unit
+            TA.component
+            ( TA.Input.defSingle
+              [ HP.placeholder "Search email addresses..." ]
+              [ "not@anemail.org"
+              , "snail@utopia.snailutopia"
+              , "blue@jordans@blordans.pordens"
+              , "yea_that_won't_work@email.com"
+              , "standard@email.com"
+              ]
+              TA.Input.renderItemString
+            )
+            ( HE.input (Formless.Raise <<< H.action <<< HandleTypeahead) )
         ]
+    ]
+  where
+    field = unwrap $ Record.get _email $ unwrap state.form
