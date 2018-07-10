@@ -9,6 +9,7 @@
     "clean": "rm -rf bower_components node_modules output",
     "build": "pulp build",
     "watch": "pulp -w build",
+    "test": "pulp test",
     "build-all": "pulp build -I example --to dist/app.js",
     "watch-all": "pulp -w build -I example --to dist/app.js"
   },
