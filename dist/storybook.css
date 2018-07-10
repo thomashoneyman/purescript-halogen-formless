@@ -1,0 +1,57 @@
+body {
+  margin: 0;
+  font-family: sans-serif;
+}
+
+.Storybook {
+  height: 100vh;
+  display: grid;
+  grid-template-areas:
+    "logo main"
+    "nav main";
+  grid-template-columns: 20rem 1fr;
+  grid-template-rows: 4rem 1fr;
+}
+
+.Storybook-logo {
+  grid-area: logo;
+  display: flex;
+  align-items: center;
+  padding-left: 2rem;
+  text-decoration: none;
+  background-color: #fafafa;
+  color: #282828;
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.Storybook-nav {
+  grid-area: nav;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  padding-top: 0.625rem;
+  overflow-y: auto;
+  font-size: 0.875rem;
+  background-color: #fafafa;
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.Storybook-link {
+  display: block;
+  text-decoration: none;
+  padding: 0.625rem 2rem;
+  word-wrap: break-word;
+  color: #282828;
+}
+
+.Storybook-link:hover,
+.Storybook-link.is-active {
+  color: #008cff;
+}
+
+.Storybook-main {
+  grid-area: main;
+  padding: 2rem;
+  overflow: auto;
+}
