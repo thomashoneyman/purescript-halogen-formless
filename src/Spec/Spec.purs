@@ -36,3 +36,9 @@ _result = SProxy :: SProxy "result"
 -- | form results at the end of validation.
 newtype OutputField input error output = OutputField output
 derive instance newtypeOutputField :: Newtype (OutputField i e o) _
+
+-- | Perhaps temporary; never exposed to the user, but used to
+-- | aid transformations
+newtype MaybeOutput i e o = MaybeOutput (Maybe o)
+derive instance newtypeMaybeOutput :: Newtype (MaybeOutput i e o) _
+
