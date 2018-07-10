@@ -2,11 +2,9 @@ module Example.ExternalComponents.RenderFormless where
 
 import Prelude
 
-import Data.Array (reverse)
-import Data.Either (Either(..))
+import Data.Either (either)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
-import Data.String.CodeUnits (fromCharArray, toCharArray)
 import Effect.Aff (Aff)
 import Example.ExternalComponents.Spec (Form, _email, _name)
 import Example.ExternalComponents.Types (FCQ, FCS, Query(..))
@@ -15,8 +13,8 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Ocelot.Block.Button as Button
 import Ocelot.Block.FormField as FormField
-import Ocelot.Block.Format as Format
 import Ocelot.Block.Input as Input
 import Ocelot.Components.Typeahead as TA
 import Ocelot.Components.Typeahead.Input as TA.Input
@@ -31,6 +29,9 @@ formless state =
   HH.div_
     [ renderName state
     , renderEmail state
+    , Button.buttonPrimary
+      [ HE.onClick $ HE.input_ Formless.Submit ]
+      [ HH.text "Submit" ]
     ]
 
 ----------
@@ -44,18 +45,13 @@ renderName state =
       label = "Name"
    in
       HH.div_
-        [ HH.code_
-          [ HH.text $ fromCharArray <<< reverse <<< toCharArray $ field.input ]
-        , HH.br_
-        , if field.touched
+        [ if field.touched
             then HH.text "-- changed since form initialization --"
             else HH.text ""
         , FormField.field_
             { label: label
             , helpText: Just "Write your name."
-            , error: case field.result of
-                Just (Left str) -> Just str
-                _ -> Nothing
+            , error: join $ map (either Just (const Nothing)) field.result
             , inputId: label
             }
             [ Input.input
@@ -75,18 +71,13 @@ renderEmail state =
       label = "Email"
    in
       HH.div_
-        [ HH.code_
-          [ HH.text $ fromCharArray <<< reverse <<< toCharArray $ field.input ]
-        , HH.br_
-        , if field.touched
+        [ if field.touched
             then HH.text "-- changed since form initialization --"
             else HH.text ""
         , FormField.field_
             { label: label
             , helpText: Just "Write your name."
-            , error: case field.result of
-                Just (Left str) -> Just str
-                _ -> Nothing
+            , error: join $ map (either Just (const Nothing)) field.result
             , inputId: label
             }
             [ HH.slot

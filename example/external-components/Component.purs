@@ -2,8 +2,11 @@ module Example.ExternalComponents.Component where
 
 import Prelude
 
+import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
+import Debug.Trace (spy)
 import Effect.Aff (Aff)
+import Effect.Console (log) as Console
 import Example.ExternalComponents.RenderFormless (formless)
 import Example.ExternalComponents.Spec (_email, formSpec)
 import Example.ExternalComponents.Types (ChildQuery, ChildSlot, Query(..), State)
@@ -11,7 +14,6 @@ import Formless as Formless
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
-import Halogen.HTML.Properties as HP
 import Ocelot.Block.Format as Format
 import Ocelot.Components.Typeahead as TA
 import Ocelot.HTML.Properties (css)
@@ -40,7 +42,7 @@ component =
         { formSpec
         , render: formless
         }
-        (const Nothing)
+        (HE.input HandleFormless)
     ]
 
   eval
@@ -50,7 +52,13 @@ component =
     -- Always have to handle the `Emit` case
     HandleFormless m a -> case m of
       Formless.Emit q -> eval q *> pure a
-      _ -> pure a
+      Formless.Submitted result -> case result of
+        Left f -> do
+          H.liftEffect $ Console.log "Form is not valid. Failed submission."
+          pure a
+        Right v -> do
+          let x = spy "Form is valid!" v
+          pure a
 
     -- Always have to handle the `Emit` case. Because we aren't hooking directly
     -- into the component's effects, we'll have to use its output to manage validation

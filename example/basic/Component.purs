@@ -4,7 +4,7 @@ import Prelude
 
 import Data.Const (Const)
 import Data.Either (Either(..), either)
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
 import Data.String (null)
 import Data.Symbol (SProxy(..))
@@ -13,11 +13,14 @@ import Formless as Formless
 import Formless.Spec (FormSpec(..))
 import Halogen as H
 import Halogen.HTML as HH
+import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Ocelot.Block.Format (heading_, mutedClasses, p, subHeading_) as Format
-import Ocelot.Block.Input (input, textarea) as Input
+import Ocelot.Block.Button as Button
+import Ocelot.Block.FormField as FormField
+import Ocelot.Block.Format as Format
+import Ocelot.Block.Input as Input
 import Ocelot.HTML.Properties (css)
-import Record (get) as Record
+import Record as Record
 
 -----
 -- Form spec
@@ -94,30 +97,34 @@ formless
   -> Formless.HTML Query (Const Void) Unit Form Aff
 formless state =
  HH.div_
-   [ Input.input
-     [ HP.value name.input
-     , Formless.onBlurWith _name
-     , Formless.onValueInputWith _name
+   [ FormField.field_
+     { label: "Name"
+     , helpText: Just $ "Write your name." <> (if name.touched then " (touched)" else "")
+     , error: join $ map (either Just (const Nothing)) name.result
+     , inputId: "name"
+     }
+     [ Input.input
+       [ HP.value name.input
+       , Formless.onBlurWith _name
+       , Formless.onValueInputWith _name
+       ]
      ]
-   , muted
-       (show name.touched)
-       (maybe "Not run" (either ((<>) "Failed: " <<< show) ((<>) "Success: " <<< show)) name.result)
-   , Input.textarea
-     [ HP.value text.input
-     , Formless.onBlurWith _text
-     , Formless.onValueInputWith _text
+   , FormField.field_
+     { label: "Message"
+     , helpText: Just $ "Write us a message!" <> (if text.touched then " (touched)" else "")
+     , error: Nothing -- Errors are impossible.
+     , inputId: "message"
+     }
+     [ Input.textarea
+       [ HP.value text.input
+       , Formless.onBlurWith _text
+       , Formless.onValueInputWith _text
+       ]
      ]
-   , muted
-       (show text.touched)
-       (maybe "Not run" (either ((<>) "Failed: " <<< show) ((<>) "Success: " <<< show)) text.result)
+   , Button.buttonPrimary
+     [ HE.onClick $ HE.input_ Formless.Submit ]
+     [ HH.text "Submit" ]
    ]
   where
     name = unwrap $ Record.get _name $ unwrap state.form
     text = unwrap $ Record.get _text $ unwrap state.form
-    muted str0 str1 =
-      Format.p
-        [ HP.classes Format.mutedClasses ]
-        [ HH.text $ "Touched: " <> str0
-        , HH.text " | "
-        , HH.text str1
-        ]
