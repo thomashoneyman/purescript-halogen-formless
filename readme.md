@@ -14,11 +14,34 @@ Install with Bower:
 bower i --save purescript-halogen-formless
 ```
 
-In general, Formless only requires that you provide a form data type, a render function, and a validation function. The component will handle all the wiring for updating fields on change or blur, running validation, managing dirty states, and the other tedious work of building a large form. On failed submission, see errors; on successful submission, see just the output values you care about. 
+In general, Formless only requires that you provide a form data type, a render function, and a validation function. The component will handle all the wiring for updating fields on change or blur, running validation, managing dirty states, and the other tedious work of building a large form. On failed submission, see errors; on successful submission, see just the output values you care about.
 
 Your render function and validation function can use any of the information that Formless preserves about the state of your form at any given moment. You are only expected to provide an initial value and validator, but Formless will generate a lot more information about the state of each field that you can use in rendering / validation.
 
 Since Formless is a renderless component, you can freely extend it with new behaviors with the Raise/Emit pattern. You can freely render and send queries to external components and they'll still work with Formless.
+
+### Validation
+
+Formless does not provide any validation for you. Instead, you can write your own validation based on `purescript-validation`'s `V` type, `purescript-polyform`'s monadic `Validation` type, stick with a traditional approach with `Either`, or whatever failure type you want. The only restriction Formless places on you is that your type can be transformed into what it uses to maintain errors under the hood:
+
+```purescript
+-- Maybe represents whether the field was validated in the first place
+-- Either represents failure or success
+{ result :: Maybe (Either error output) }
+
+-- Your validation function must have this type, in which you can freely perform monadic or applicative-style validation:
+validate :: MyForm InputField -> m (MyForm InputField)
+```
+
+If you use common libraries like `purescript-validation` or `purescript-polyform`, there are helper functions that will perform this transformation for you.
+
+For example, the `onInputField` function takes a function `i -> V e o` and converts it to work properly on Formless's underlying types.
+
+```purescript
+{ myField: (\i -> validateNonEmpty i *> validateMinimumLength i 7) `onInputField` myField }
+```
+
+See the examples for more.
 
 ## Examples
 
