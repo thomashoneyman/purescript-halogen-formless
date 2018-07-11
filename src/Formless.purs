@@ -15,7 +15,6 @@ import Data.Lens.Record (prop)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy)
-import Debug.Trace (spy)
 import Formless.Record as FR
 import Formless.Spec (FormSpec, InputField, MaybeOutput, OutputField)
 import Formless.Spec as FSpec
@@ -41,7 +40,7 @@ data Query pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) m a
 -- | The overall component state type, which contains the local state type
 -- | and also the render function
 type StateStore pq cq cs form m =
-  Store (State form) (HTML pq cq cs form m)
+  Store (State form m) (HTML pq cq cs form m)
 
 -- | The component type
 type Component pq cq cs form m
@@ -67,18 +66,21 @@ type DSL pq cq cs form m
       m
 
 -- | The component local state
-type State form =
+type State form m =
   { isValid :: Boolean
   , formResult :: Maybe (form OutputField)
   , errors :: Int
   , formSpec :: form FormSpec
+  , validator :: form InputField -> m (form InputField)
   , form :: form InputField
   }
 
 -- | The component's input type
 type Input pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) m =
   { formSpec :: form FormSpec
-  , render :: State form -> HTML pq cq cs form m }
+  , validator :: form InputField -> m (form InputField)
+  , render :: State form m -> HTML pq cq cs form m
+  }
 
 data Message pq form
   = Submitted (Either (form InputField) (form OutputField))
@@ -88,6 +90,7 @@ data Message pq form
 component
   :: ∀ pq cq cs form m spec specxs field fieldxs mboutput mboutputxs output
    . Ord cs
+  => Monad m
   => RL.RowToList spec specxs
   => RL.RowToList field fieldxs
   => RL.RowToList mboutput mboutputxs
@@ -110,11 +113,12 @@ component =
   where
 
   initialState :: Input pq cq cs form m -> StateStore pq cq cs form m
-  initialState { formSpec, render } = store render $
+  initialState { formSpec, validator, render } = store render $
     { isValid: false
     , errors: 0
     , formResult: Nothing
     , formSpec
+    , validator
     , form: FR.formSpecToInputFields formSpec
     }
 
@@ -130,7 +134,7 @@ component =
 
     ValidateAll a -> do
       st <- getState
-      let form = st.form -- FR.validateInputFields st.form
+      form <- H.lift $ st.validator st.form
       modifyState_ _
         { form = form
         , formResult = FR.maybeOutputToOutputField $ FR.inputFieldToMaybeOutput form
@@ -143,9 +147,8 @@ component =
       H.raise $ maybe (Submitted $ Left st.form) (Submitted <<< Right) st.formResult
       pure a
 
+    -- TODO:
     Send cs cq a -> do
-      let _ = spy "Received send childslot: " cs
-          _ = spy "Received send childquery: " cq
       _ <- H.query cs cq
       pure a
 
@@ -193,14 +196,9 @@ handleBlur' sym form = wrap <<< setTouched $ unwrap form
   where
     _sym :: Lens.Lens' (Record form) (InputField inp err out)
     _sym = prop sym
-    input =
-      Lens.view (_sym <<< _Newtype <<< prop FSpec._input) (unwrap form)
-    --  validator =
-    --    Lens.view (_sym <<< _Newtype <<< prop FSpec._validator) (unwrap form)
-    --  setResult =
-    --    Lens.set (_sym <<< _Newtype <<< prop FSpec._result) (Just $ validator input)
-    setTouched =
-      Lens.set (_sym <<< _Newtype <<< prop FSpec._touched) true
+
+    setTouched = Lens.set (_sym <<< _Newtype <<< prop FSpec._touched) true
+
 
 -- | Replace the value at a given field with a new value of the correct type.
 onValueInputWith

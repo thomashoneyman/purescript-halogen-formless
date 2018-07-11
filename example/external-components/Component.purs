@@ -53,6 +53,7 @@ component =
         unit
         Formless.component
         { formSpec
+        , validator: pure
         , render: formless
         }
         (HE.input HandleFormless)

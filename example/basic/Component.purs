@@ -73,6 +73,7 @@ component = H.parentComponent
         unit
         Formless.component
         { formSpec
+        , validator: pure
         , render: formless
         }
         (const Nothing)
@@ -86,7 +87,7 @@ component = H.parentComponent
 -- Formless
 
 formless
-  :: Formless.State Form
+  :: Formless.State Form Aff
   -> Formless.HTML Query (Const Void) Unit Form Aff
 formless state =
  HH.div_

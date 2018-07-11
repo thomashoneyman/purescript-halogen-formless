@@ -23,7 +23,7 @@ import Record as Record
 -- | Our render function has access to anything in Formless' State type, plus
 -- | anything additional in your own state type.
 formless
-  :: Formless.State Form
+  :: Formless.State Form Aff
   -> Formless.HTML Query FCQ FCS Form Aff
 formless state =
   HH.div_
@@ -40,7 +40,7 @@ formless state =
 -- Helpers
 
 -- | A helper function to render a form text input
-renderName :: Formless.State Form -> Formless.HTML Query FCQ FCS Form Aff
+renderName :: Formless.State Form Aff -> Formless.HTML Query FCQ FCS Form Aff
 renderName state =
   HH.div_
     [ FormField.field_
@@ -60,7 +60,7 @@ renderName state =
   where
     field = unwrap $ Record.get _name $ unwrap state.form
 
-renderEmail :: Formless.State Form -> Formless.HTML Query FCQ FCS Form Aff
+renderEmail :: Formless.State Form Aff -> Formless.HTML Query FCQ FCS Form Aff
 renderEmail state =
   HH.div_
     [ FormField.field_
@@ -88,7 +88,7 @@ renderEmail state =
   where
     field = unwrap $ Record.get _email $ unwrap state.form
 
-renderWhiskey :: Formless.State Form -> Formless.HTML Query FCQ FCS Form Aff
+renderWhiskey :: Formless.State Form Aff -> Formless.HTML Query FCQ FCS Form Aff
 renderWhiskey state =
   HH.div_
     [ FormField.field_
@@ -115,7 +115,7 @@ renderWhiskey state =
   where
     field = unwrap $ Record.get _whiskey $ unwrap state.form
 
-renderLanguage :: Formless.State Form -> Formless.HTML Query FCQ FCS Form Aff
+renderLanguage :: Formless.State Form Aff -> Formless.HTML Query FCQ FCS Form Aff
 renderLanguage state =
   HH.div_
     [ FormField.field_
