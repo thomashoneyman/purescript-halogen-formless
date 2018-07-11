@@ -4,12 +4,15 @@ import Prelude
 
 import Data.Const (Const)
 import Data.Either (either)
+import Data.List.NonEmpty (NonEmptyList)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
+import Example.Validation.Semigroup (InvalidPrimitive, validateNonEmpty)
 import Formless as Formless
-import Formless.Spec (FormSpec(..))
+import Formless.Spec (FormSpec(..), InputField)
+import Formless.Validation (onInputField)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -25,7 +28,7 @@ import Record as Record
 -- Form spec
 
 newtype Form f = Form
-  { name :: f String String String
+  { name :: f String (NonEmptyList InvalidPrimitive) String
   , text :: f String Void String
   }
 derive instance newtypeForm :: Newtype (Form f) _
@@ -34,6 +37,12 @@ formSpec :: Form FormSpec
 formSpec = Form
   { name: FormSpec ""
   , text: FormSpec ""
+  }
+
+validator :: Form InputField -> Form InputField
+validator (Form form) = Form
+  { name: validateNonEmpty `onInputField` form.name
+  , text: pure `onInputField` form.text
   }
 
 _name = SProxy :: SProxy "name"
@@ -73,7 +82,9 @@ component = H.parentComponent
         unit
         Formless.component
         { formSpec
-        , validator: pure
+        -- We wrote a pure function, so we'll need to map `pure` over it
+        -- to return in some monad
+        , validator: pure <$> validator
         , render: formless
         }
         (const Nothing)
@@ -94,7 +105,7 @@ formless state =
    [ FormField.field_
      { label: "Name"
      , helpText: Just $ "Write your name." <> (if name.touched then " (touched)" else "")
-     , error: join $ map (either Just (const Nothing)) name.result
+     , error: join $ map (either (Just <<< show) (const Nothing)) name.result
      , inputId: "name"
      }
      [ Input.input

@@ -2,12 +2,12 @@ module Example.ExternalComponents.RenderForm where
 
 import Prelude
 
-import Data.Either (either)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Effect.Aff (Aff)
 import Example.ExternalComponents.Spec (Form, _email, _name, _language, _whiskey)
 import Example.ExternalComponents.Types (FCQ, FCS, Query(..), Slot(..))
+import Example.Validation.Utils (showError)
 import Formless as Formless
 import Halogen as H
 import Halogen.HTML as HH
@@ -46,7 +46,7 @@ renderName state =
     [ FormField.field_
         { label: "Name"
         , helpText: Just "Write your name."
-        , error: join $ map (either Just (const Nothing)) field.result
+        , error: showError field
         , inputId: "name"
         }
         [ Input.input
@@ -66,7 +66,7 @@ renderEmail state =
     [ FormField.field_
         { label: "Email"
         , helpText: Just "Select an email address"
-        , error: join $ map (either Just (const Nothing)) field.result
+        , error: showError field
         , inputId: "email"
         }
         [ HH.slot
@@ -94,7 +94,7 @@ renderWhiskey state =
     [ FormField.field_
         { label: "Whiskey"
         , helpText: Just "Select a favorite whiskey"
-        , error: join $ map (either Just (const Nothing)) field.result
+        , error: showError field
         , inputId: "whiskey"
         }
         [ HH.slot
@@ -121,7 +121,7 @@ renderLanguage state =
     [ FormField.field_
         { label: "Language"
         , helpText: Just "Select a favorite language"
-        , error: join $ map (either Just (const Nothing)) field.result
+        , error: showError field
         , inputId: "language"
         }
         [ HH.slot

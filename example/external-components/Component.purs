@@ -7,7 +7,7 @@ import Data.Maybe (Maybe(..))
 import Debug.Trace (spy)
 import Effect.Aff (Aff)
 import Example.ExternalComponents.RenderForm (formless)
-import Example.ExternalComponents.Spec (_email, _language, _whiskey, formSpec)
+import Example.ExternalComponents.Spec (_email, _language, _whiskey, formSpec, formValidation)
 import Example.ExternalComponents.Types (ChildQuery, ChildSlot, Query(..), Slot(..), State)
 import Formless as Formless
 import Halogen as H
@@ -53,7 +53,7 @@ component =
         unit
         Formless.component
         { formSpec
-        , validator: pure
+        , validator: pure <$> formValidation
         , render: formless
         }
         (HE.input HandleFormless)

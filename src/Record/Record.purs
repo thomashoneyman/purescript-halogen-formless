@@ -17,18 +17,18 @@ import Type.Data.RowList (RLProxy(..))
 -----
 -- Functions
 
--- | A helper function that will run and apply all validation functions to current
--- | inputs to produce the same record, this time with results.
---  validateInputFields
---    :: ∀ row xs form
---     . RL.RowToList row xs
---    => ValidateInputFields xs row () row
---    => Newtype (form InputField) (Record row)
---    => form InputField
---    -> form InputField
---  validateInputFields r = wrap $ Builder.build builder {}
---    where
---      builder = validateInputFieldsBuilder (RLProxy :: RLProxy xs) (unwrap r)
+-- | A helper function that will set all input fields to 'touched = true'. This ensures
+-- | subsequent validations apply to all fields even if not edited by the user.
+setInputFieldsTouched
+  :: ∀ row xs form
+   . RL.RowToList row xs
+  => SetInputFieldsTouched xs row () row
+  => Newtype (form InputField) (Record row)
+  => form InputField
+  -> form InputField
+setInputFieldsTouched r = wrap $ Builder.build builder {}
+  where
+    builder = setInputFieldsTouchedBuilder (RLProxy :: RLProxy xs) (unwrap r)
 
 -- | A helper function that will automatically transform a record of FormSpec(s) into
 -- | a record of InputField(s).
@@ -78,36 +78,31 @@ maybeOutputToOutputField r = map wrap $ Builder.build <@> {} <$> builder
 -----
 -- Classes (Internal)
 
--- | The class that provides the Builder implementation to efficiently apply validation
--- | to inputs and produce results
---  class ValidateInputFields
---    (xs :: RL.RowList) (row :: # Type) (from :: # Type) (to :: # Type)
---    | xs -> from to where
---    validateInputFieldsBuilder :: RLProxy xs -> Record row -> Builder { | from } { | to }
---
---  instance validateInputFieldsNil :: ValidateInputFields RL.Nil row () () where
---    validateInputFieldsBuilder _ _ = identity
---
---  instance validateInputFieldsCons
---    :: ( IsSymbol name
---       , Row.Cons name (InputField i e o) trash row
---       , ValidateInputFields tail row from from'
---       , Row.Lacks name from'
---       , Row.Cons name (InputField i e o) from' to
---       )
---    => ValidateInputFields (RL.Cons name (InputField i e o) tail) row from to where
---    validateInputFieldsBuilder _ r =
---      first <<< rest
---      where
---        _name = SProxy :: SProxy name
---        val = transform $ Record.get _name r
---        rest = validateInputFieldsBuilder (RLProxy :: RLProxy tail) r
---        first = Builder.insert _name val
---        transform (InputField { input, touched }) = InputField
---          { input
---          , touched
---          , result: Just $ validator input
---          }
+-- |
+class SetInputFieldsTouched
+  (xs :: RL.RowList) (row :: # Type) (from :: # Type) (to :: # Type)
+  | xs -> from to where
+  setInputFieldsTouchedBuilder :: RLProxy xs -> Record row -> Builder { | from } { | to }
+
+instance setInputFieldsTouchedNil :: SetInputFieldsTouched RL.Nil row () () where
+  setInputFieldsTouchedBuilder _ _ = identity
+
+instance setInputFieldsTouchedCons
+  :: ( IsSymbol name
+     , Row.Cons name (InputField i e o) trash row
+     , SetInputFieldsTouched tail row from from'
+     , Row.Lacks name from'
+     , Row.Cons name (InputField i e o) from' to
+     )
+  => SetInputFieldsTouched (RL.Cons name (InputField i e o) tail) row from to where
+  setInputFieldsTouchedBuilder _ r =
+    first <<< rest
+    where
+      _name = SProxy :: SProxy name
+      val = transform $ Record.get _name r
+      rest = setInputFieldsTouchedBuilder (RLProxy :: RLProxy tail) r
+      first = Builder.insert _name val
+      transform (InputField i) = InputField i { touched = true }
 
 -- | The class that provides the Builder implementation to efficiently transform the record
 -- | of FormSpec to record of InputField.

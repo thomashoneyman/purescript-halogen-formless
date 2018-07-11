@@ -31,7 +31,7 @@ import Web.UIEvent.FocusEvent (FocusEvent)
 data Query pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) m a
   = HandleBlur (form InputField -> form InputField) a
   | HandleChange (form InputField -> form InputField) a
-  | ValidateAll a
+  | Validate a
   | Submit a
   | Send cs (cq Unit) a
   | Raise (pq Unit) a
@@ -95,7 +95,7 @@ component
   => RL.RowToList field fieldxs
   => RL.RowToList mboutput mboutputxs
   => FR.FormSpecToInputField specxs spec () field
-  --  => FR.ValidateInputFields fieldxs field () field
+  => FR.SetInputFieldsTouched fieldxs field () field
   => FR.InputFieldToMaybeOutput fieldxs field () mboutput
   => FR.MaybeOutputToOutputField mboutputxs mboutput () output
   => Newtype (form FormSpec) (Record spec)
@@ -126,13 +126,13 @@ component =
   eval = case _ of
     HandleBlur fs a -> do
       modifyState_ \st -> st { form = fs st.form }
-      pure a
+      eval $ Validate a
 
     HandleChange fs a -> do
       modifyState_ \st -> st { form = fs st.form }
       pure a
 
-    ValidateAll a -> do
+    Validate a -> do
       st <- getState
       form <- H.lift $ st.validator st.form
       modifyState_ _
@@ -142,12 +142,14 @@ component =
       pure a
 
     Submit a -> do
-      _ <- eval $ ValidateAll a
+      -- Set all fields to 'touched' so validation is forced
+      modifyState_ \st -> st { form = FR.setInputFieldsTouched st.form }
+      _ <- eval $ Validate a
       st <- getState
       H.raise $ maybe (Submitted $ Left st.form) (Submitted <<< Right) st.formResult
       pure a
 
-    -- TODO:
+    -- Only allows actions; always returns nothing.
     Send cs cq a -> do
       _ <- H.query cs cq
       pure a
