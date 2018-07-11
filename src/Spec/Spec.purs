@@ -9,10 +9,7 @@ import Data.Symbol (SProxy(..))
 -- | create the spec form that we'll compare against to measure
 -- | 'touched' states, etc. This is what the user is responsible
 -- | for providing.
-newtype FormSpec input error output = FormSpec
-  { input :: input
-  , validator :: input -> Either error output
-  }
+newtype FormSpec input error output = FormSpec input
 derive instance newtypeFormSpec :: Newtype (FormSpec i e o) _
 
 -- | The type that we need to record state across the form, but
@@ -21,8 +18,7 @@ derive instance newtypeFormSpec :: Newtype (FormSpec i e o) _
 newtype InputField input error output = InputField
   { input :: input
   , touched :: Boolean
-  , validator :: input -> Either error output
-  , result :: Maybe (Either error output)
+  , result :: Maybe (Either error output) -- force the user to end up in Either?
   }
 derive instance newtypeInputField :: Newtype (InputField i e o) _
 

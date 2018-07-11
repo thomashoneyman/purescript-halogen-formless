@@ -3,10 +3,9 @@ module Example.Basic.Component where
 import Prelude
 
 import Data.Const (Const)
-import Data.Either (Either(..), either)
+import Data.Either (either)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
-import Data.String (null)
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Formless as Formless
@@ -33,14 +32,8 @@ derive instance newtypeForm :: Newtype (Form f) _
 
 formSpec :: Form FormSpec
 formSpec = Form
-  { name: FormSpec
-    { input: ""
-    , validator: \s -> if null s then Left "Too short" else Right s
-    }
-  , text: FormSpec
-    { input: ""
-    , validator: pure
-    }
+  { name: FormSpec ""
+  , text: FormSpec ""
   }
 
 _name = SProxy :: SProxy "name"

@@ -1,11 +1,7 @@
 module Example.ExternalComponents.Spec where
 
-import Prelude
-
-import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
-import Data.String as String
 import Data.Symbol (SProxy(..))
 import Formless.Spec (FormSpec(..))
 
@@ -30,37 +26,8 @@ _language = SProxy :: SProxy "language"
 -- | separately.
 formSpec :: Form FormSpec
 formSpec = Form
-  { name: FormSpec
-      { input: ""
-      , validator: \str ->
-          if String.length str < 3
-            then Left "Must be 3 characters or more."
-            else Right str
-      }
-  , email: FormSpec
-      { input: Nothing
-      , validator: case _ of
-          Nothing -> Left "This field is required."
-          Just str -> if String.contains (String.Pattern "_") str
-            then Right str
-            else Left "Email addresses must have underscores."
-      }
-  , whiskey: FormSpec
-      { input: Nothing
-      , validator: case _ of
-          Nothing -> Left "This field is required."
-          Just str ->
-            if String.contains (String.Pattern "abel") str
-              then Right str
-              else Left "Only Kilchoman is allowed here!"
-      }
-  , language: FormSpec
-      { input: Nothing
-      , validator: case _ of
-          Nothing -> Left "This field is required."
-          Just str ->
-            if String.contains (String.Pattern "PHP") str
-              then Right str
-              else Left "Only PHP is allowed here!"
-      }
+  { name: FormSpec ""
+  , email: FormSpec Nothing
+  , whiskey: FormSpec Nothing
+  , language: FormSpec Nothing
   }

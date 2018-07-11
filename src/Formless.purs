@@ -92,7 +92,7 @@ component
   => RL.RowToList field fieldxs
   => RL.RowToList mboutput mboutputxs
   => FR.FormSpecToInputField specxs spec () field
-  => FR.ValidateInputFields fieldxs field () field
+  --  => FR.ValidateInputFields fieldxs field () field
   => FR.InputFieldToMaybeOutput fieldxs field () mboutput
   => FR.MaybeOutputToOutputField mboutputxs mboutput () output
   => Newtype (form FormSpec) (Record spec)
@@ -130,7 +130,7 @@ component =
 
     ValidateAll a -> do
       st <- getState
-      let form = FR.validateInputFields st.form
+      let form = st.form -- FR.validateInputFields st.form
       modifyState_ _
         { form = form
         , formResult = FR.maybeOutputToOutputField $ FR.inputFieldToMaybeOutput form
@@ -189,16 +189,16 @@ handleBlur'
   => SProxy sym
   -> form'
   -> form'
-handleBlur' sym form = wrap <<< setResult <<< setTouched $ unwrap form
+handleBlur' sym form = wrap <<< setTouched $ unwrap form
   where
     _sym :: Lens.Lens' (Record form) (InputField inp err out)
     _sym = prop sym
     input =
       Lens.view (_sym <<< _Newtype <<< prop FSpec._input) (unwrap form)
-    validator =
-      Lens.view (_sym <<< _Newtype <<< prop FSpec._validator) (unwrap form)
-    setResult =
-      Lens.set (_sym <<< _Newtype <<< prop FSpec._result) (Just $ validator input)
+    --  validator =
+    --    Lens.view (_sym <<< _Newtype <<< prop FSpec._validator) (unwrap form)
+    --  setResult =
+    --    Lens.set (_sym <<< _Newtype <<< prop FSpec._result) (Just $ validator input)
     setTouched =
       Lens.set (_sym <<< _Newtype <<< prop FSpec._touched) true
 
