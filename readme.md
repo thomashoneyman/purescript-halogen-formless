@@ -1,6 +1,7 @@
 # Formless
 
-![CircleCI](https://img.shields.io/circleci/project/github/thomashoneyman/purescript-halogen-formless.svg) [![Maintainer: thomashoneyman](https://img.shields.io/badge/maintainer-thomashoneyman-lightgrey.svg)](http://github.com/thomashoneyman)
+[![CircleCI](https://circleci.com/gh/thomashoneyman/purescript-halogen-formless/tree/master.svg?style=shield)](https://circleci.com/gh/thomashoneyman/purescript-halogen-formless/tree/master)
+[![Maintainer: thomashoneyman](https://img.shields.io/badge/maintainer-thomashoneyman-lightgrey.svg)](http://github.com/thomashoneyman)
 
 Formless is a renderless component which helps you build forms in Halogen. Its goal is to abstract away the tedious, dirty bits of building forms without imposing any particular rendering or validation strategies on your design.
 
