@@ -24,7 +24,7 @@
     "purescript-halogen-storybook": "^0.4.0",
     "purescript-debug": "^4.0.0",
     "purescript-validation": "^4.0.0",
-    "purescript-polyform": "^0.7.0",
-    "purescript-test-unit": "^14.0.0"
+    "purescript-test-unit": "^14.0.0",
+    "purescript-read": "^1.0.1"
   }
 }

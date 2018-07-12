@@ -1,7 +1,7 @@
 -- | Credit: Joe Kachmar's 2018 presentation at LambdaConf:
 -- | https://github.com/jkachmar/lc2018
 -- |
--- | Code here is untouched from the section 'Exercise 4'
+-- | Code here is largely untouched from the section 'Exercise 4'
 
 module Example.Validation.Semigroup where
 
@@ -20,6 +20,9 @@ import Data.String.Regex.Flags (noFlags)
 import Data.Validation.Semigroup (V, invalid, unV)
 import Global.Unsafe (unsafeStringify)
 import Partial.Unsafe (unsafePartial)
+
+-- | A type synonym for purescript-validation semigroup errors
+type Errs = NonEmptyList InvalidPrimitive
 
 --------------------------------------------------------------------------------
 -- TYPES AND FUNCTIONS FOR FIELD VALIDATIONS

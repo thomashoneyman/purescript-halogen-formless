@@ -4,7 +4,7 @@ import Prelude
 
 import Data.List (List)
 import Data.Map (Map)
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe(..))
 import Data.Monoid (class MonoidRecord)
 import Data.Tuple (Tuple(..))
 import Prim.RowList (class RowToList) as RL
@@ -37,8 +37,8 @@ instance initialString :: Initial String where
 instance initialOrdering :: Initial Ordering where
   initial = mempty
 
-instance initialMaybe :: Semigroup a => Initial (Maybe a) where
-  initial = mempty
+instance initialMaybe :: Initial (Maybe a) where
+  initial = Nothing
 
 instance initialArray :: Initial (Array a) where
   initial = mempty
