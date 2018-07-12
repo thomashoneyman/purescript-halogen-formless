@@ -3,13 +3,13 @@ module Example.Basic.Component where
 import Prelude
 
 import Data.Const (Const)
-import Data.Either (either)
 import Data.List.NonEmpty (NonEmptyList)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Example.Validation.Semigroup (InvalidPrimitive, validateNonEmpty)
+import Example.Validation.Utils (showError)
 import Formless as Formless
 import Formless.Spec (FormSpec, InputField, mkFormSpec)
 import Formless.Validation (onInputField)
@@ -105,7 +105,7 @@ formless state =
    [ FormField.field_
      { label: "Name"
      , helpText: Just $ "Write your name." <> (if name.touched then " (touched)" else "")
-     , error: join $ map (either (Just <<< show) (const Nothing)) name.result
+     , error: showError name
      , inputId: "name"
      }
      [ Input.input
