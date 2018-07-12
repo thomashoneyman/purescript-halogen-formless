@@ -185,7 +185,7 @@ instance mkFormSpecCons
 -- | -- To retrieve input types only, use the Input type synonym
 -- | formSpec :: Form FormSpec
 -- | formSpec = mkFormSpecFromRow (RProxy :: RProxy (MyRow Input))
-
+-- | ```
 mkFormSpecFromRow
   :: ∀ row xs row' form
    . RL.RowToList row xs
