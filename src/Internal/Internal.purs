@@ -78,7 +78,7 @@ maybeOutputToOutputField r = map wrap $ Builder.build <@> {} <$> builder
 -----
 -- Classes (Internal)
 
--- |
+-- | A class to set all input fields to touched for validation purposes
 class SetInputFieldsTouched
   (xs :: RL.RowList) (row :: # Type) (from :: # Type) (to :: # Type)
   | xs -> from to where

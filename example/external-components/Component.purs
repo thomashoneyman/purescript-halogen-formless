@@ -4,12 +4,13 @@ import Prelude
 
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
-import Debug.Trace (spy)
 import Effect.Aff (Aff)
+import Effect.Console (log) as Console
 import Example.ExternalComponents.RenderForm (formless)
-import Example.ExternalComponents.Spec (_email, _language, _whiskey, formSpec, formValidation)
+import Example.ExternalComponents.Spec (FormRow, _email, _language, _whiskey, formSpec, formValidation)
 import Example.ExternalComponents.Types (ChildQuery, ChildSlot, Query(..), Slot(..), State)
 import Formless as Formless
+import Formless.Spec as FSpec
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -71,10 +72,17 @@ component =
       -- processing on success.
       Formless.Submitted result -> case result of
         Left f -> do
-          let _ = spy "Failed to validate form." f
+          H.liftEffect $ Console.log "Failed to validate form."
           pure a
         Right v -> do
-          let _ = spy "Form is valid!" v
+          -- Now we have just a simple record of successful output!
+          let form :: Record (FormRow FSpec.Output)
+              form = FSpec.unwrapOutput v
+
+          H.liftEffect $ do
+             Console.log "Successfully validated form."
+             Console.log $ "Whiskey: " <> form.whiskey
+
           pure a
 
     HandleTypeahead slot m a -> case m of

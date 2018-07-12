@@ -4,7 +4,7 @@ import Prelude
 
 import Data.Either (Either)
 import Data.Maybe (Maybe)
-import Data.Newtype (class Newtype, wrap)
+import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Formless.Class.Initial (class Initial, initial)
 import Prim.Row as Row
@@ -63,9 +63,61 @@ type Error input error output = error
 -- | your form row.
 type Output input error output = output
 
-
 ----------
 -- Class
+
+-- | A function to unwrap a record of successful results into an equivalent record without
+-- | any newtypes.
+-- |
+-- | ```purescript
+-- | eval (Formless.Submitted result) a = do
+-- |   case result of
+-- |     Left err -> ...
+-- |     Right vals ->
+-- |       -- Now you have just your form labels with their success values and nothing else.
+-- |       let form = unwrapOutput vals
+-- |           email :: Email
+-- |           email = form.email
+-- |       ...
+-- |   pure a
+-- | ```
+unwrapOutput
+  :: ∀ row xs row' form
+   . RL.RowToList row xs
+  => UnwrapOutput xs row () row'
+  => Newtype (form OutputField) (Record row)
+  => form OutputField
+  -> Record row'
+unwrapOutput r = Builder.build builder {}
+  where
+    builder = unwrapOutputBuilder (RLProxy :: RLProxy xs) (unwrap r)
+
+-- | The class that provides the Builder implementation to efficiently unpack a record of
+-- | output fields into a simple record of only the values.
+class UnwrapOutput
+  (xs :: RL.RowList) (row :: # Type) (from :: # Type) (to :: # Type)
+  | xs -> from to where
+  unwrapOutputBuilder :: RLProxy xs -> Record row -> Builder { | from } { | to }
+
+instance unwrapOutputNil :: UnwrapOutput RL.Nil row () () where
+  unwrapOutputBuilder _ _ = identity
+
+instance unwrapOutputCons
+  :: ( IsSymbol name
+     , Row.Cons name (OutputField i e o) trash row
+     , UnwrapOutput tail row from from'
+     , Row.Lacks name from'
+     , Row.Cons name o from' to
+     )
+  => UnwrapOutput (RL.Cons name (OutputField i e o) tail) row from to where
+  unwrapOutputBuilder _ r =
+    first <<< rest
+    where
+      _name = SProxy :: SProxy name
+      val = unwrap $ Record.get _name r
+      rest = unwrapOutputBuilder (RLProxy :: RLProxy tail) r
+      first = Builder.insert _name val
+
 
 -- | A function to transform a record of initial values into a FormSpec. Exists to save
 -- | you from too many redundant key strokes.
