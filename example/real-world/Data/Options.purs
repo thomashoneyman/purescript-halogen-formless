@@ -13,6 +13,7 @@ import Data.Newtype (class Newtype)
 import Data.String.Read (class Read)
 import Data.Symbol (SProxy(..))
 import Example.Validation.Semigroup (Errs)
+import Formless.Class.Initial (class Initial)
 import Formless.Spec as FSpec
 
 -----
@@ -33,6 +34,7 @@ data Metric
 derive instance genericMetric :: Generic Metric _
 derive instance eqMetric :: Eq Metric
 derive instance ordMetric :: Ord Metric
+
 instance showMetric :: Show Metric where
   show = genericShow
 
@@ -42,6 +44,23 @@ instance readMetric :: Read Metric where
   read "InstallCost" = Just InstallCost
   read _ = Nothing
 
+-- | This data type will be used in radio buttons, and so if we
+-- | want to generate an initial form from our row, we'll need an
+-- | instance of the Initial type class
+data Speed
+  = Low
+  | Medium
+  | Fast
+derive instance genericSpeed :: Generic Speed _
+derive instance eqSpeed :: Eq Speed
+derive instance ordSpeed :: Ord Speed
+
+instance showSpeed :: Show Speed where
+  show = genericShow
+
+instance initialSpeed :: Initial Speed where
+  initial = Low
+
 -----
 -- Our primary data type
 
@@ -50,13 +69,14 @@ instance readMetric :: Read Metric where
 -- | closed row. In the case of the 'enable' option, we know there's no validation
 -- | for it, so we'll use `Void` as the error type.
 type OptionsRow f =
-  ( enable       :: f Boolean        Void  Boolean
+  ( enable       :: f Boolean        Void Boolean
   , metric       :: f (Maybe String) Errs Metric
   , viewCost     :: f String         Errs (Maybe Dollars)
   , clickCost    :: f String         Errs (Maybe Dollars)
   , installCost  :: f String         Errs (Maybe Dollars)
   , size         :: f String         Errs Number
   , dimensions   :: f String         Errs Number
+  , speed        :: f Speed          Void Speed
   )
 
 _enable = SProxy :: SProxy "enable"

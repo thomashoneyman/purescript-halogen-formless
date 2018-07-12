@@ -40,20 +40,20 @@ component =
     [ Format.heading_
       [ HH.text "Formless" ]
     , Format.subHeading_
-      [ HH.text "A form leveraging external components and custom form actions." ]
+      [ HH.text "A complex form inspired by real-world use cases." ]
     , Format.p_
       [ HH.text $
-        "In Formless, you can freely leverage external components and embed them in the form. "
-        <> "This form shows how to use external typeaheads from the Ocelot design system from "
-        <> "CitizenNet. This form also demonstrates how you can manipulate forms in Formless. "
-        <> "Try selecting an email address, then a whiskey. You'll notice that changing your "
-        <> "whiskey selection also clears the selected email."
+        "This component demonstrates building a large form with complex rendering and validation "
+        <> "requirements. Notice how both tabs end up unifying to a single output type after the "
+        <> "two forms are combined, how various dropdowns determine the contents (and visibility) "
+        <> "of other form elements, the assorted external components, and how validation for many "
+        <> "fields depends on the values of other fields in the form."
       ]
     , Format.p_
       [ HH.text $
-        "Next, try opening the console. If you submit the form with invalid values, Formless will "
-        <> "show you your errors. If you submit a valid form, you'll see Formless just returns the "
-        <> "valid outputs for you to work with."
+        "Next, review the source code. You'll notice that all of the complex types and state necessary "
+        <> "to run this form can be generated from a pair of row types. All that's left for you to handle "
+        <> "is to write the validation (with helper functions) and the render function."
       ]
     , HH.slot'
         CP.cp1
