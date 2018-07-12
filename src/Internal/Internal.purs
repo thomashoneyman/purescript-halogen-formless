@@ -1,4 +1,4 @@
-module Formless.Record where
+module Formless.Internal where
 
 import Prelude
 

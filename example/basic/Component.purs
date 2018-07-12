@@ -11,7 +11,7 @@ import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Example.Validation.Semigroup (InvalidPrimitive, validateNonEmpty)
 import Formless as Formless
-import Formless.Spec (FormSpec(..), InputField)
+import Formless.Spec (FormSpec, InputField, mkFormSpec)
 import Formless.Validation (onInputField)
 import Halogen as H
 import Halogen.HTML as HH
@@ -34,9 +34,9 @@ newtype Form f = Form
 derive instance newtypeForm :: Newtype (Form f) _
 
 formSpec :: Form FormSpec
-formSpec = Form
-  { name: FormSpec ""
-  , text: FormSpec ""
+formSpec = mkFormSpec
+  { name: ""
+  , text: ""
   }
 
 validator :: Form InputField -> Form InputField

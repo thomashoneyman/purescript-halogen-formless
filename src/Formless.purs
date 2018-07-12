@@ -15,7 +15,7 @@ import Data.Lens.Record (prop)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy)
-import Formless.Record as FR
+import Formless.Internal as Internal
 import Formless.Spec (FormSpec, InputField, MaybeOutput, OutputField)
 import Formless.Spec as FSpec
 import Halogen as H
@@ -94,10 +94,10 @@ component
   => RL.RowToList spec specxs
   => RL.RowToList field fieldxs
   => RL.RowToList mboutput mboutputxs
-  => FR.FormSpecToInputField specxs spec () field
-  => FR.SetInputFieldsTouched fieldxs field () field
-  => FR.InputFieldToMaybeOutput fieldxs field () mboutput
-  => FR.MaybeOutputToOutputField mboutputxs mboutput () output
+  => Internal.FormSpecToInputField specxs spec () field
+  => Internal.SetInputFieldsTouched fieldxs field () field
+  => Internal.InputFieldToMaybeOutput fieldxs field () mboutput
+  => Internal.MaybeOutputToOutputField mboutputxs mboutput () output
   => Newtype (form FormSpec) (Record spec)
   => Newtype (form InputField) (Record field)
   => Newtype (form MaybeOutput) (Record mboutput)
@@ -119,7 +119,7 @@ component =
     , formResult: Nothing
     , formSpec
     , validator
-    , form: FR.formSpecToInputFields formSpec
+    , form: Internal.formSpecToInputFields formSpec
     }
 
   eval :: Query pq cq cs form m ~> DSL pq cq cs form m
@@ -137,13 +137,13 @@ component =
       form <- H.lift $ st.validator st.form
       modifyState_ _
         { form = form
-        , formResult = FR.maybeOutputToOutputField $ FR.inputFieldToMaybeOutput form
+        , formResult = Internal.maybeOutputToOutputField $ Internal.inputFieldToMaybeOutput form
         }
       pure a
 
     Submit a -> do
       -- Set all fields to 'touched' so validation is forced
-      modifyState_ \st -> st { form = FR.setInputFieldsTouched st.form }
+      modifyState_ \st -> st { form = Internal.setInputFieldsTouched st.form }
       _ <- eval $ Validate a
       st <- getState
       H.raise $ maybe (Submitted $ Left st.form) (Submitted <<< Right) st.formResult
