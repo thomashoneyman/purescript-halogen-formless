@@ -29,12 +29,15 @@ import Ocelot.HTML.Properties (css)
 import Prim.Row (class Cons)
 import Record (get) as Record
 
+-- | A convenience synonym for the group Formless state
 type FormlessState
   = Formless.State G.GroupForm Aff
 
+-- | A convenience synonym for the group Formless HTML type
 type FormlessHTML
   = Formless.HTML Query GroupCQ GroupCS G.GroupForm Aff
 
+-- | The form, grouped by sections.
 render :: FormlessState -> FormlessHTML
 render state =
   HH.div_
@@ -60,10 +63,133 @@ render state =
       ]
     ]
 
-
-
 -----
 -- Built fields
+
+renderName :: FormlessState -> FormlessHTML
+renderName =
+  Field.text
+  { label: "Name"
+  , placeholder: Just "January Cohort"
+  , helpText: "Give the group a name."
+  , field: G._name
+  }
+
+renderSecretKey1 :: FormlessState -> FormlessHTML
+renderSecretKey1 =
+  Field.text
+  { label: "Secret Key"
+  , placeholder: Just "au,#OK#F48i$"
+  , helpText: "Give the group a secret identifier"
+  , field: G._secretKey1
+  }
+
+renderSecretKey2 :: FormlessState -> FormlessHTML
+renderSecretKey2 =
+  Field.text
+  { label: "Secret Key (Confirm)"
+  , placeholder: Just "au,#OK#F48i$"
+  , helpText: "Enter the same secret identifier to confirm."
+  , field: G._secretKey2
+  }
+
+renderAdmin :: FormlessState -> FormlessHTML
+renderAdmin state =
+  HH.div_
+    [ Field.formField state
+      { label: "Admin (Optional)"
+      , placeholder: Nothing
+      , helpText: "Choose an admin id to include."
+      , field: G._admin
+      }
+      \admin ->
+        HH.slot'
+          CP.cp2
+          unit
+          Dropdown.dropdown
+          { selectedItem: Nothing
+          , items
+          , label: "Select an admin"
+          , toString: \(Admin { id }) -> maybe "None" show id
+          , disabled: false
+          }
+          ( HE.input
+            ( Formless.Raise
+              <<< H.action
+              <<< HandleAdminDropdown
+            )
+          )
+    ]
+  where
+    items =
+      [ Admin { id: Nothing }
+      , Admin { id: Just $ GroupId 10 }
+      , Admin { id: Just $ GroupId 15 }
+      , Admin { id: Just $ GroupId 20 }
+      , Admin { id: Just $ GroupId 25 }
+      , Admin { id: Just $ GroupId 30 }
+      , Admin { id: Just $ GroupId 35 }
+      ]
+
+renderWhiskey :: FormlessState -> FormlessHTML
+renderWhiskey state =
+  HH.div_
+    [ Field.formField state
+      { label: "Whiskey"
+      , placeholder: Nothing
+      , helpText: "Select one whiskey you'd like in the group."
+      , field: G._whiskey
+      }
+      $ \whiskey ->
+        HH.slot'
+          CP.cp1
+          WhiskeyTypeahead
+          TA.component
+          ( TA.Input.defSingle
+            [ HP.placeholder "Hakushu" ]
+            [ "Laphroiag 10"
+            , "Lagavulin 12"
+            , "Lagavulin 16"
+            , "Oban 16"
+            , "Kilchoman Blue Label"
+            ]
+            TA.Input.renderItemString
+          )
+          ( HE.input
+            ( Formless.Raise
+             <<< H.action
+             <<< HandleGroupTypeahead WhiskeyTypeahead
+            )
+          )
+    ]
+
+renderPixels :: FormlessState -> FormlessHTML
+renderPixels =
+  multiTypeahead
+    PixelsTypeahead
+    HandleGroupTypeahead
+    { label: "Pixels"
+    , placeholder: Just "My unique pixel"
+    , helpText: "Select one or more tracking pixels for the group."
+    , field: G._name
+    }
+    [ "My favorite pixel"
+    , "Your favorite pixel"
+    , "Application main pixel"
+    , "A pixel for you is a pixel for me"
+    ]
+
+renderApplications :: FormlessState -> FormlessHTML
+renderApplications =
+ multiTypeahead
+   ApplicationsTypeahead
+   HandleGroupTypeahead
+   { label: "Applications"
+   , placeholder: Just "Facebook"
+   , helpText: "Select one or more applications for the group."
+   , field: G._name
+   }
+   [ "Facebook", "Google", "Twitter", "Pinterest" ]
 
 renderMinMaxBudget :: FormlessState -> FormlessHTML
 renderMinMaxBudget state =
@@ -102,138 +228,9 @@ renderMinMaxBudget state =
     minBudget = unwrap $ Record.get _minBudget $ unwrap state.form
     maxBudget = unwrap $ Record.get _maxBudget $ unwrap state.form
 
-renderApplications :: FormlessState -> FormlessHTML
-renderApplications =
- multiTypeahead
-   ApplicationsTypeahead
-   HandleGroupTypeahead
-   { label: "Applications"
-   , placeholder: Just "Facebook"
-   , helpText: "Select one or more applications for the group."
-   , field: G._name
-   }
-   [ "Facebook", "Google", "Twitter", "Pinterest" ]
-
-renderPixels :: FormlessState -> FormlessHTML
-renderPixels =
-  multiTypeahead
-    PixelsTypeahead
-    HandleGroupTypeahead
-    { label: "Pixels"
-    , placeholder: Just "My unique pixel"
-    , helpText: "Select one or more tracking pixels for the group."
-    , field: G._name
-    }
-    [ "My favorite pixel"
-    , "Your favorite pixel"
-    , "Application main pixel"
-    , "A pixel for you is a pixel for me"
-    ]
-
-renderWhiskey :: FormlessState -> FormlessHTML
-renderWhiskey state =
-  HH.div_
-    [ Field.formField state
-      { label: "Whiskey"
-      , placeholder: Nothing
-      , helpText: "Select one whiskey you'd like in the group."
-      , field: G._whiskey
-      }
-      $ \whiskey ->
-        HH.slot'
-          CP.cp1
-          WhiskeyTypeahead
-          TA.component
-          ( TA.Input.defSingle
-            [ HP.placeholder "Hakushu" ]
-            [ "Laphroiag 10"
-            , "Lagavulin 12"
-            , "Lagavulin 16"
-            , "Oban 16"
-            , "Kilchoman Blue Label"
-            ]
-            TA.Input.renderItemString
-          )
-          ( HE.input ( Formless.Raise
-                       <<< H.action
-                       <<< HandleGroupTypeahead WhiskeyTypeahead
-                      )
-          )
-    ]
-
-renderAdmin :: FormlessState -> FormlessHTML
-renderAdmin state =
-  HH.div_
-    [ Field.formField state
-      { label: "Admin (Optional)"
-      , placeholder: Nothing
-      , helpText: "Choose an admin id to include."
-      , field: G._admin
-      }
-      \admin ->
-        HH.slot'
-          CP.cp2
-          unit
-          Dropdown.dropdown
-          { selectedItem: Nothing
-          , items
-          , label: "Select an admin"
-          , toString: \(Admin { id }) -> maybe "None" show id
-          , disabled: false
-          }
-          ( HE.input
-            ( Formless.Raise
-              <<< H.action
-              <<< HandleAdminDropdown
-            )
-          )
-    ]
-
-  where
-    items =
-      [ Admin { id: Nothing }
-      , Admin { id: Just $ GroupId 10 }
-      , Admin { id: Just $ GroupId 15 }
-      , Admin { id: Just $ GroupId 20 }
-      , Admin { id: Just $ GroupId 25 }
-      , Admin { id: Just $ GroupId 30 }
-      , Admin { id: Just $ GroupId 35 }
-      ]
-
-renderSecretKey2 :: FormlessState -> FormlessHTML
-renderSecretKey2 =
-  Field.text
-  { label: "Secret Key (Confirm)"
-  , placeholder: Just "au,#OK#F48i$"
-  , helpText: "Enter the same secret identifier to confirm."
-  , field: G._secretKey2
-  }
-
-renderSecretKey1 :: FormlessState -> FormlessHTML
-renderSecretKey1 =
-  Field.text
-  { label: "Secret Key"
-  , placeholder: Just "au,#OK#F48i$"
-  , helpText: "Give the group a secret identifier"
-  , field: G._secretKey1
-  }
-
-renderName :: FormlessState -> FormlessHTML
-renderName =
-  Field.text
-  { label: "Name"
-  , placeholder: Just "January Cohort"
-  , helpText: "Give the group a name."
-  , field: G._name
-  }
 
 -----
 -- Helper functions
-
-data Amount
-  = Single
-  | Multi
-derive instance eqAmount :: Eq Amount
 
 multiTypeahead
   :: ∀ sym e o t0 fields
