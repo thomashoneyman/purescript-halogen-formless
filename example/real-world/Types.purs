@@ -19,8 +19,10 @@ data Query a
   = HandleGroupForm (Formless.Message Query GroupForm) a
   | HandleOptionsForm (Formless.Message Query OptionsForm) a
   | HandleTypeahead TypeaheadSlot (TA.Message Query String) a
+  | Select Tab a
 
-type State = Unit
+type State =
+  { focus :: Tab }
 
 -- | Now we can create _this_ component's child query and child slot pairing.
 type ChildQuery = Coproduct2
@@ -52,3 +54,13 @@ data TypeaheadSlot
 
 derive instance eqTypeaheadSlot :: Eq TypeaheadSlot
 derive instance ordTypeaheadSlot :: Ord TypeaheadSlot
+
+
+----------
+-- Navigation
+
+data Tab
+  = GroupFormTab
+  | OptionsFormTab
+derive instance eqTab :: Eq Tab
+derive instance ordTab :: Ord Tab

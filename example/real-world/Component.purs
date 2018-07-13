@@ -9,10 +9,11 @@ import Effect.Console as Console
 import Example.RealWorld.Data.Group (GroupFormRow)
 import Example.RealWorld.Data.Options (OptionsRow)
 import Example.RealWorld.Render.GroupForm (render) as GroupForm
+import Example.RealWorld.Render.Nav (tabs) as Nav
 import Example.RealWorld.Render.OptionsForm (render) as OptionsForm
 import Example.RealWorld.Spec.GroupForm (groupFormSpec, groupFormValidation)
 import Example.RealWorld.Spec.OptionsForm (optionsFormSpec, optionsFormValidation)
-import Example.RealWorld.Types (ChildQuery, ChildSlot, Query(..), State)
+import Example.RealWorld.Types (ChildQuery, ChildSlot, Query(..), State, Tab(..))
 import Formless as Formless
 import Formless.Spec as FSpec
 import Halogen as H
@@ -26,7 +27,7 @@ import Ocelot.HTML.Properties (css)
 component :: H.Component HH.HTML Query Unit Void Aff
 component =
   H.parentComponent
-    { initialState: const unit
+  { initialState: const { focus: GroupFormTab }
     , render
     , eval
     , receiver: const Nothing
@@ -55,29 +56,36 @@ component =
         <> "to run this form can be generated from a pair of row types. All that's left for you to handle "
         <> "is to write the validation (with helper functions) and the render function."
       ]
-    , HH.slot'
-        CP.cp1
-        unit
-        Formless.component
-        { formSpec: groupFormSpec
-        , validator: pure <$> groupFormValidation
-        , render: GroupForm.render
-        }
-        (HE.input HandleGroupForm)
-    , HH.slot'
-        CP.cp2
-        unit
-        Formless.component
-        { formSpec: optionsFormSpec
-        , validator: pure <$> optionsFormValidation
-        , render: OptionsForm.render
-        }
-        (HE.input HandleOptionsForm)
+    , Nav.tabs st
+    , case st.focus of
+        GroupFormTab ->
+          HH.slot'
+            CP.cp1
+            unit
+            Formless.component
+            { formSpec: groupFormSpec
+            , validator: pure <$> groupFormValidation
+            , render: GroupForm.render
+            }
+            (HE.input HandleGroupForm)
+        OptionsFormTab ->
+          HH.slot'
+            CP.cp2
+            unit
+            Formless.component
+            { formSpec: optionsFormSpec
+            , validator: pure <$> optionsFormValidation
+            , render: OptionsForm.render
+            }
+            (HE.input HandleOptionsForm)
     ]
 
   eval :: Query ~> H.ParentDSL State Query ChildQuery ChildSlot Void Aff
   eval = case _ of
-    -- Always have to handle the `Emit` case
+    Select tab a -> do
+      H.modify_ _ { focus = tab }
+      pure a
+
     HandleGroupForm m a -> case m of
       Formless.Emit q -> eval q *> pure a
 
