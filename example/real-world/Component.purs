@@ -21,6 +21,7 @@ import Halogen.Component.ChildPath as CP
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Ocelot.Block.Format as Format
+import Ocelot.Components.Dropdown (Message(..)) as Dropdown
 import Ocelot.Components.Typeahead as TA
 import Ocelot.HTML.Properties (css)
 
@@ -86,6 +87,9 @@ component =
       H.modify_ _ { focus = tab }
       pure a
 
+    -----
+    -- Group Form
+
     HandleGroupForm m a -> case m of
       Formless.Emit q -> eval q *> pure a
 
@@ -102,6 +106,19 @@ component =
              Console.log "Successfully validated form."
              Console.log $ "Whiskey: " <> form.whiskey
           pure a
+
+    HandleGroupTypeahead slot m a -> case m of
+      TA.Emit q -> eval q *> pure a
+      TA.SelectionsChanged s _ -> pure a
+      TA.VisibilityChanged _ -> pure a
+      TA.Searched _ -> pure a
+
+    HandleAdminDropdown m a -> case m of
+      Dropdown.ItemSelected x -> pure a
+
+
+    -----
+    -- Options Form
 
     HandleOptionsForm m a -> case m of
       Formless.Emit q -> eval q *> pure a
@@ -120,8 +137,9 @@ component =
              Console.log $ "Enabled: " <> show form.enable
           pure a
 
-    HandleTypeahead slot m a -> case m of
+    HandleOptionsTypeahead m a -> case m of
       TA.Emit q -> eval q *> pure a
       TA.SelectionsChanged s _ -> pure a
       TA.VisibilityChanged _ -> pure a
       TA.Searched _ -> pure a
+

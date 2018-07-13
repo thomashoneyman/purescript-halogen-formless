@@ -5,9 +5,10 @@ import Prelude
 import Data.Either.Nested (Either2)
 import Data.Functor.Coproduct.Nested (Coproduct2)
 import Effect.Aff (Aff)
-import Example.RealWorld.Data.Group (GroupForm)
+import Example.RealWorld.Data.Group (Admin, GroupForm)
 import Example.RealWorld.Data.Options (OptionsForm)
 import Formless as Formless
+import Ocelot.Components.Dropdown as Dropdown
 import Ocelot.Components.Typeahead as TA
 
 ----------
@@ -18,7 +19,9 @@ import Ocelot.Components.Typeahead as TA
 data Query a
   = HandleGroupForm (Formless.Message Query GroupForm) a
   | HandleOptionsForm (Formless.Message Query OptionsForm) a
-  | HandleTypeahead TypeaheadSlot (TA.Message Query String) a
+  | HandleGroupTypeahead GroupTASlot (TA.Message Query String) a
+  | HandleAdminDropdown (Dropdown.Message Admin) a
+  | HandleOptionsTypeahead (TA.Message Query String) a
   | Select Tab a
 
 type State =
@@ -37,24 +40,27 @@ type ChildSlot = Either2
 -- Formless
 
 -- | Types for the group form
-type GroupCQ = TA.Query Query String String Aff
-type GroupCS = TypeaheadSlot
+type GroupCQ = Coproduct2
+  (TA.Query Query String String Aff)
+  (Dropdown.Query Admin)
+
+type GroupCS = Either2
+  GroupTASlot
+  Unit
 
 -- | Types for the options form
 type OptionsCQ = TA.Query Query String String Aff
-type OptionsCS = TypeaheadSlot
+type OptionsCS = Unit
 
 ----------
 -- Slots
 
-data TypeaheadSlot
-  = EmailTypeahead
+data GroupTASlot
+  = ApplicationsTypeahead
+  | PixelsTypeahead
   | WhiskeyTypeahead
-  | LanguageTypeahead
-
-derive instance eqTypeaheadSlot :: Eq TypeaheadSlot
-derive instance ordTypeaheadSlot :: Ord TypeaheadSlot
-
+derive instance eqGroupTASlot :: Eq GroupTASlot
+derive instance ordGroupTASlot :: Ord GroupTASlot
 
 ----------
 -- Navigation
