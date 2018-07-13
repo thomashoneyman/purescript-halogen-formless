@@ -15,7 +15,7 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Ocelot.Block.Button as Button
 import Ocelot.Block.FormField as FormField
-import Ocelot.Block.Input as Input
+import Ocelot.Block.Input (input) as Input
 import Ocelot.Components.Typeahead as TA
 import Ocelot.Components.Typeahead.Input as TA.Input
 import Record as Record
