@@ -9,7 +9,8 @@ import Type.Row (RProxy(..))
 -- | mkFormSpecFromRow can produce a valid input form spec from your row
 -- | without you having to type anything.
 groupFormSpec :: GroupForm FSpec.FormSpec
-groupFormSpec = FSpec.mkFormSpecFromRow $ RProxy :: RProxy (GroupFormRow FSpec.Input)
+groupFormSpec =
+  FSpec.mkFormSpecFromRow $ RProxy :: RProxy (GroupFormRow FSpec.Input)
 
 -- | You should provide your own validation. This example uses the PureScript
 -- | standard, `purescript-validation`.

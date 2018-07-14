@@ -95,6 +95,7 @@ renderEnabled state =
 		[ Toggle.toggle
 			[ HP.checked enable.input
       , Formless.onChangeWith _enable (not enable.input)
+      , Formless.onBlurWith _enable
       ]
 		]
   where
@@ -184,16 +185,19 @@ renderSpeed state =
     [ Radio.radio_
       [ HP.name "speed"
 			, HP.checked $ speed.input == Low
+      , Formless.onClickWith _speed Low
 			]
       [ HH.text $ show Low ]
     , Radio.radio_
       [ HP.name "speed"
 			, HP.checked $ speed.input == Medium
+      , Formless.onClickWith _speed Medium
       ]
       [ HH.text $ show Medium ]
     , Radio.radio_
       [ HP.name "speed"
 			, HP.checked $ speed.input == Fast
+      , Formless.onClickWith _speed Fast
 		  ]
       [ HH.text $ show Fast ]
     ]

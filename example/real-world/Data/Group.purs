@@ -55,8 +55,8 @@ type GroupRow f r =
   , admin        :: f (Maybe Admin)  Errs Admin
   , applications :: f (Array String) Errs (Array String)
   , pixels       :: f (Array String) Errs (Array String)
-  , maxBudget    :: f (Maybe String) Errs (Maybe Int)
-  , minBudget    :: f (Maybe String) Errs Int
+  , maxBudget    :: f String         Errs (Maybe Int)
+  , minBudget    :: f String         Errs Int
   , whiskey      :: f (Maybe String) Errs String
   | r
   )

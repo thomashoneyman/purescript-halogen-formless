@@ -11,7 +11,8 @@ import Example.RealWorld.Data.Group
 import Example.RealWorld.Data.Group as G
 import Example.RealWorld.Render.Field (FieldConfig)
 import Example.RealWorld.Render.Field as Field
-import Example.RealWorld.Types (GroupCQ, GroupCS, GroupTASlot(..), Query(..))
+import Example.RealWorld.Types
+  (GroupCQ, GroupCS, GroupTASlot(..), Query(..))
 import Formless as Formless
 import Formless.Spec (InputField)
 import Halogen as H
@@ -202,16 +203,18 @@ renderMinMaxBudget state =
             [ css "py-3" ]
             [ HH.text "Max Budget (Optional)" ]
         , Input.percentage_
-            [ Formless.onBlurWith _minBudget
-            , HP.value $ fromMaybe "" minBudget.input
+            [ Formless.onValueChangeWith _minBudget
+            , Formless.onBlurWith _minBudget
+            , HP.value minBudget.input
             ]
         ]
     , Range.range
         [ css "px-4 flex-4 self-end my-5"
         , HP.min 0.0
         , HP.max 100.0
-        --  , HE.onValueChange $ Formless.handleChange _minBudget
-        , HP.value $ fromMaybe "0.0" minBudget.input
+        , Formless.onValueChangeWith _minBudget
+        , Formless.onBlurWith _minBudget
+        , HP.value minBudget.input
         ]
     , HH.label
         [ css "flex-1 block text-center" ]
@@ -219,8 +222,9 @@ renderMinMaxBudget state =
             [ css "py-3" ]
             [ HH.text "Max Budget (Optional)"
             , Input.percentage_
-                [ Formless.onBlurWith _maxBudget
-                , HP.value $ fromMaybe "" maxBudget.input
+                [ Formless.onValueInputWith _maxBudget
+                , Formless.onBlurWith _maxBudget
+                , HP.value maxBudget.input
                 ]
             ]
         ]

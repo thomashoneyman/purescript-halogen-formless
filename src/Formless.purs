@@ -27,6 +27,7 @@ import Prim.RowList (class RowToList) as RL
 import Renderless.State (getState, modifyState_, modifyStore_)
 import Web.Event.Event (Event)
 import Web.UIEvent.FocusEvent (FocusEvent)
+import Web.UIEvent.MouseEvent (MouseEvent)
 
 data Query pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) m a
   = HandleBlur (form InputField -> form InputField) a
@@ -242,6 +243,16 @@ onValueInputWith
 onValueInputWith sym =
   HE.onValueInput \str -> Just (handleChange sym str)
 
+onValueChangeWith
+  :: ∀ pq cq cs m sym form' form err out r props
+   . IsSymbol sym
+  => Cons sym (InputField String err out) r form
+  => Newtype (form' InputField) (Record form)
+  => SProxy sym
+  -> HP.IProp (onChange :: Event, value :: String | props) (Query pq cq cs form' m Unit)
+onValueChangeWith sym =
+  HE.onValueChange \str -> Just (handleChange sym str)
+
 onChangeWith
   :: ∀ pq cq cs m sym form' form i err out r props
    . IsSymbol sym
@@ -252,6 +263,17 @@ onChangeWith
   -> HP.IProp (onChange :: Event | props) (Query pq cq cs form' m Unit)
 onChangeWith sym i =
   HE.onChange \_ -> Just (handleChange sym i)
+
+onClickWith
+  :: ∀ pq cq cs m sym form' form i err out r props
+   . IsSymbol sym
+  => Cons sym (InputField i err out) r form
+  => Newtype (form' InputField) (Record form)
+  => SProxy sym
+  -> i
+  -> HP.IProp (onClick :: MouseEvent | props) (Query pq cq cs form' m Unit)
+onClickWith sym i =
+  HE.onClick \_ -> Just (handleChange sym i)
 
 handleChange
   :: ∀ pq cq cs m sym form' form inp err out r
