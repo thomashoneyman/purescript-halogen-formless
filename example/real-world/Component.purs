@@ -6,15 +6,14 @@ import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
 import Effect.Console as Console
-import Example.RealWorld.Data.Group (_admin, _applications, _pixels, _whiskey)
+import Example.RealWorld.Data.Group (_admin, _applications, _pixels, _secretKey1, _secretKey2, _whiskey)
 import Example.RealWorld.Data.Options (_metric)
 import Example.RealWorld.Render.GroupForm as GroupForm
 import Example.RealWorld.Render.Nav as Nav
 import Example.RealWorld.Render.OptionsForm as OptionsForm
 import Example.RealWorld.Spec.GroupForm (groupFormSpec, groupFormValidation)
 import Example.RealWorld.Spec.OptionsForm (optionsFormSpec, optionsFormValidation)
-import Example.RealWorld.Types
-  (ChildQuery, ChildSlot, GroupTASlot(..), Query(..), State, Tab(..))
+import Example.RealWorld.Types (ChildQuery, ChildSlot, GroupTASlot(..), Query(..), State, Tab(..))
 import Formless as Formless
 import Halogen as H
 import Halogen.Component.ChildPath as CP
@@ -150,28 +149,39 @@ component =
       TA.Emit q -> eval q *> pure a
       TA.SelectionsChanged s v -> do
         let v' = TA.unpackSelections v
-        case s of
-          TA.ItemSelected x -> case slot of
-            ApplicationsTypeahead -> do
-              _ <- H.query' CP.cp1 unit $ Formless.handleChange _applications v'
-              _ <- H.query' CP.cp1 unit $ Formless.handleBlur _applications
-              pure a
-            PixelsTypeahead -> do
-              _ <- H.query' CP.cp1 unit $ Formless.handleChange _pixels v'
-              _ <- H.query' CP.cp1 unit $ Formless.handleBlur _pixels
-              pure a
-            WhiskeyTypeahead -> do
+        case slot of
+          ApplicationsTypeahead -> do
+            _ <- H.query' CP.cp1 unit $ Formless.handleChange _applications v'
+            _ <- H.query' CP.cp1 unit $ Formless.handleBlur _applications
+            pure a
+          PixelsTypeahead -> do
+            _ <- H.query' CP.cp1 unit $ Formless.handleChange _pixels v'
+            _ <- H.query' CP.cp1 unit $ Formless.handleBlur _pixels
+            pure a
+          WhiskeyTypeahead -> case s of
+            TA.ItemSelected x -> do
               _ <- H.query' CP.cp1 unit $ Formless.handleChange _whiskey (Just x)
               _ <- H.query' CP.cp1 unit $ Formless.handleBlur _whiskey
               pure a
-          _ -> pure a
+            _ -> do
+              _ <- H.query' CP.cp1 unit $ Formless.handleChange _whiskey Nothing
+              _ <- H.query' CP.cp1 unit $ Formless.handleBlur _whiskey
+              pure a
       TA.VisibilityChanged _ -> pure a
       TA.Searched _ -> pure a
 
     HandleAdminDropdown m a -> case m of
       Dropdown.ItemSelected x -> do
-        _ <- H.query' CP.cp1 unit $ Formless.handleChange _admin (Just x)
-        _ <- H.query' CP.cp1 unit $ Formless.handleBlur _admin
+        _ <- H.query' CP.cp1 unit
+          $ Formless.handleChange _admin (Just x)
+        _ <- H.query' CP.cp1 unit
+          $ Formless.handleBlur _admin
+
+        -- Changing this field should also clear the secret keys
+        _ <- H.query' CP.cp1 unit
+          $ Formless.handleChange _secretKey1 ""
+        _ <- H.query' CP.cp1 unit
+          $ Formless.handleChange _secretKey2 ""
         pure a
 
 

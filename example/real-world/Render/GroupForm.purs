@@ -201,7 +201,7 @@ renderMinMaxBudget state =
         [ css "flex-1 block text-center" ]
         [ HH.div
             [ css "py-3" ]
-            [ HH.text "Max Budget (Optional)" ]
+            [ HH.text "Min Budget (Optional)" ]
         , Input.percentage_
             [ Formless.onValueChangeWith _minBudget
             , Formless.onBlurWith _minBudget

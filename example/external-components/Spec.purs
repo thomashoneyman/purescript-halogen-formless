@@ -2,11 +2,9 @@ module Example.ExternalComponents.Spec where
 
 import Prelude
 
-import Data.List.NonEmpty (singleton)
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe, fromMaybe)
 import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
-import Data.Validation.Semigroup (V, invalid)
 import Example.Validation.Semigroup as V
 import Formless.Spec as FSpec
 import Formless.Validation (onInputField)
@@ -44,13 +42,8 @@ formSpec = FSpec.mkFormSpecFromRow $ RProxy :: RProxy (FormRow FSpec.Input)
 formValidation :: Form FSpec.InputField -> Form FSpec.InputField
 formValidation (Form form) = Form
   { name: (\i -> V.validateNonEmpty i *> V.validateMinimumLength i 7) `onInputField` form.name
-  , email: (\i -> validateMaybe i *> V.validateEmailRegex (fromMaybe "" i)) `onInputField` form.email
-  , whiskey: validateMaybe `onInputField` form.whiskey
-  , language: validateMaybe `onInputField` form.language
+  , email: (\i -> V.validateMaybe i *> V.validateEmailRegex (fromMaybe "" i)) `onInputField` form.email
+  , whiskey: V.validateMaybe `onInputField` form.whiskey
+  , language: V.validateMaybe `onInputField` form.language
   }
-
--- | A custom validator that verifies a value is not Nothing
-validateMaybe :: ∀ a. Maybe a -> V V.Errs a
-validateMaybe Nothing = invalid (singleton V.EmptyField)
-validateMaybe (Just a) = pure a
 

@@ -70,7 +70,7 @@ instance initialSpeed :: Initial Speed where
 -- | for it, so we'll use `Void` as the error type.
 type OptionsRow f =
   ( enable       :: f Boolean        Void Boolean
-  , metric       :: f (Maybe Metric) Void Metric
+  , metric       :: f (Maybe Metric) Errs Metric
   , viewCost     :: f String         Errs (Maybe Dollars)
   , clickCost    :: f String         Errs (Maybe Dollars)
   , installCost  :: f String         Errs (Maybe Dollars)

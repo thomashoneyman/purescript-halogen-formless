@@ -87,7 +87,7 @@ newtype Group = Group
     ( GroupRow FSpec.Output
       ( id :: GroupId
       , secretKey :: String
-      , options :: Options
+      , options :: Maybe Options
       )
     )
   )

@@ -10,9 +10,13 @@ import Prelude
 import Data.Array (fromFoldable)
 import Data.Bifunctor (bimap)
 import Data.Either (fromRight)
+import Data.Foldable (class Foldable)
+import Data.Foldable (length) as Foldable
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
+import Data.Int (fromString) as Int
 import Data.List.NonEmpty (NonEmptyList, singleton)
+import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
 import Data.String (null, length, toLower, toUpper)
 import Data.String.Regex (Regex, regex, test)
@@ -23,6 +27,33 @@ import Partial.Unsafe (unsafePartial)
 
 -- | A type synonym for purescript-validation semigroup errors
 type Errs = NonEmptyList InvalidPrimitive
+
+-- | A custom validator that verifies a value is not Nothing
+validateMaybe :: ∀ a. Maybe a -> V Errs a
+validateMaybe Nothing = invalid (singleton EmptyField)
+validateMaybe (Just a) = pure a
+
+-- | A custom validator that verifies a value is not Nothing
+validateEqual :: String -> String -> V Errs String
+validateEqual a b
+  | a == b = pure b
+  | otherwise = invalid (singleton $ NotEqual a b)
+
+validateInt :: String -> V Errs Int
+validateInt str = case Int.fromString str of
+  Nothing -> invalid (singleton $ InvalidInt str)
+  Just v -> pure v
+
+-- | Validate that an input string is not empty
+validateNonEmptyF
+  :: ∀ f a
+   . Foldable f
+  => f a
+  -> V (NonEmptyList InvalidPrimitive) (f a)
+validateNonEmptyF input
+  | Foldable.length input >= 1 = pure input
+  | otherwise = invalid (singleton EmptyField)
+
 
 --------------------------------------------------------------------------------
 -- TYPES AND FUNCTIONS FOR FIELD VALIDATIONS
@@ -36,7 +67,7 @@ newtype Password = Password String
 -- | Type of validation errors encountered when validating form fields
 data InvalidField
   = InvalidEmailAddress (NonEmptyList InvalidPrimitive)
-   | InvalidPassword     (NonEmptyList InvalidPrimitive)
+  | InvalidPassword     (NonEmptyList InvalidPrimitive)
 
 validateEmailAddress
   :: String
@@ -70,6 +101,8 @@ data InvalidPrimitive
   | TooLong Int Int
   | NoLowercase String
   | NoUppercase String
+  | InvalidInt String
+  | NotEqual String String
 
 -- | Validate that an input string is not empty
 validateNonEmpty :: String -> V (NonEmptyList InvalidPrimitive) String
