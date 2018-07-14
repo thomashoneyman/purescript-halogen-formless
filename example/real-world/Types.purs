@@ -23,7 +23,7 @@ data Query a
   | HandleAdminDropdown (Dropdown.Message Admin) a
   | HandleMetricDropdown (Dropdown.Message Metric) a
   | Select Tab a
-	| Submit a
+  | Submit a
 
 type State =
   { focus :: Tab

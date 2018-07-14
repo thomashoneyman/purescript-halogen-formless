@@ -36,7 +36,7 @@ newtype Password = Password String
 -- | Type of validation errors encountered when validating form fields
 data InvalidField
   = InvalidEmailAddress (NonEmptyList InvalidPrimitive)
- 	| InvalidPassword     (NonEmptyList InvalidPrimitive)
+   | InvalidPassword     (NonEmptyList InvalidPrimitive)
 
 validateEmailAddress
   :: String
@@ -45,7 +45,7 @@ validateEmailAddress input =
       let result =
                validateNonEmpty input
             *> validateEmailRegex input
-  	  in bimap (singleton <<< InvalidEmailAddress) EmailAddress result
+      in bimap (singleton <<< InvalidEmailAddress) EmailAddress result
 
 validatePassword
   :: String

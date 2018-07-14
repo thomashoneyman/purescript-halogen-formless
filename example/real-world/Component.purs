@@ -94,8 +94,8 @@ component =
   eval :: Query ~> H.ParentDSL State Query ChildQuery ChildSlot Void Aff
   eval = case _ of
 
-		-----
-		-- Parent
+  	-----
+  	-- Parent
 
     Select tab a -> do
       H.modify_ _ { focus = tab }
@@ -136,8 +136,8 @@ component =
 
     HandleGroupForm m a -> case m of
       Formless.Emit q -> eval q *> pure a
-			-- We are manually querying Formless to get form submissions
-			-- so we can safely ignore this.
+  		-- We are manually querying Formless to get form submissions
+  		-- so we can safely ignore this.
       Formless.Submitted _ -> pure a
 
       -- We don't care about the failed form result, but we do want

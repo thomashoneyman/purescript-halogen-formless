@@ -38,47 +38,47 @@ render :: FormlessState -> FormlessHTML
 render state =
   HH.div_
     [ Card.card_
-				[ Format.subHeading_
-					[ HH.text "Overview" ]
-				, renderEnabled state
-				]
+  			[ Format.subHeading_
+  				[ HH.text "Overview" ]
+  			, renderEnabled state
+  			]
     , HH.div
         [ if enable.input then css "" else css "hidden" ]
         [ renderMetrics state
         , renderOthers state
         ]
-		]
+  	]
   where
-		enable = unwrap $ Record.get _enable $ unwrap state.form
+  	enable = unwrap $ Record.get _enable $ unwrap state.form
 
 -----
 -- Form parts
 
 renderMetrics :: FormlessState -> FormlessHTML
 renderMetrics state =
-	Card.card_
-		[ Format.subHeading_
-			[ HH.text "Metrics" ]
-		, renderMetric state
-		,	renderMetricField metric.input
-		]
-	where
-		metric = unwrap $ Record.get _metric $ unwrap state.form
-		renderMetricField = case _ of
-			Just ViewCost -> renderViewCost state
-			Just ClickCost -> renderClickCost state
-			Just InstallCost -> renderInstallCost state
-			Nothing -> HH.div_ []
+  Card.card_
+  	[ Format.subHeading_
+  		[ HH.text "Metrics" ]
+  	, renderMetric state
+  	,	renderMetricField metric.input
+  	]
+  where
+  	metric = unwrap $ Record.get _metric $ unwrap state.form
+  	renderMetricField = case _ of
+  		Just ViewCost -> renderViewCost state
+  		Just ClickCost -> renderClickCost state
+  		Just InstallCost -> renderInstallCost state
+  		Nothing -> HH.div_ []
 
 renderOthers :: FormlessState -> FormlessHTML
 renderOthers state =
-	Card.card_
-		[ Format.subHeading_
-			[ HH.text "Other Settings" ]
-		,	renderSize state
-		, renderDimensions state
-		, renderSpeed state
-		]
+  Card.card_
+  	[ Format.subHeading_
+  		[ HH.text "Other Settings" ]
+  	,	renderSize state
+  	, renderDimensions state
+  	, renderSpeed state
+  	]
 
 
 -----
@@ -87,19 +87,19 @@ renderOthers state =
 renderEnabled :: FormlessState -> FormlessHTML
 renderEnabled state =
   FormField.field_
-		{ label: "Enable"
-		, helpText: Just "Do you want to enable this set of options?"
-		, error: showError enable
-		, inputId: "enable"
-		}
-		[ Toggle.toggle
-			[ HP.checked enable.input
+  	{ label: "Enable"
+  	, helpText: Just "Do you want to enable this set of options?"
+  	, error: showError enable
+  	, inputId: "enable"
+  	}
+  	[ Toggle.toggle
+  		[ HP.checked enable.input
       , Formless.onChangeWith _enable (not enable.input)
       , Formless.onBlurWith _enable
       ]
-		]
+  	]
   where
-		enable = unwrap $ Record.get _enable $ unwrap state.form
+  	enable = unwrap $ Record.get _enable $ unwrap state.form
 
 renderMetric :: FormlessState -> FormlessHTML
 renderMetric state =
@@ -184,21 +184,21 @@ renderSpeed state =
   [ HH.div_
     [ Radio.radio_
       [ HP.name "speed"
-			, HP.checked $ speed.input == Low
+  		, HP.checked $ speed.input == Low
       , Formless.onClickWith _speed Low
-			]
+  		]
       [ HH.text $ show Low ]
     , Radio.radio_
       [ HP.name "speed"
-			, HP.checked $ speed.input == Medium
+  		, HP.checked $ speed.input == Medium
       , Formless.onClickWith _speed Medium
       ]
       [ HH.text $ show Medium ]
     , Radio.radio_
       [ HP.name "speed"
-			, HP.checked $ speed.input == Fast
+  		, HP.checked $ speed.input == Fast
       , Formless.onClickWith _speed Fast
-		  ]
+  	  ]
       [ HH.text $ show Fast ]
     ]
   ]
