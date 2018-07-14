@@ -36,8 +36,16 @@ tabs state =
   where
     group f = f
       [ HE.onClick $ HE.input_ $ Select GroupFormTab ]
-      [ HH.text "Group Form" ]
+      [ HH.text $ "Group Form" <>
+          if state.groupFormErrors > 0
+            then " (" <> show state.groupFormErrors  <> ")"
+            else ""
+      ]
 
     options f = f
       [ HE.onClick $ HE.input_ $ Select OptionsFormTab ]
-      [ HH.text "Options Form" ]
+      [ HH.text $ "Options Form" <>
+          if state.optionsFormErrors > 0
+            then " (" <> show state.optionsFormErrors  <> ")"
+            else ""
+      ]

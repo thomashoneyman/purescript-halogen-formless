@@ -68,6 +68,13 @@ component =
       -- calling `eval`
       Formless.Emit q -> eval q *> pure a
 
+      -- When the form is validated, Formless will show the current status of all
+      -- fields and will report the total number of errors across fields. Only
+      -- validated fields report errors.
+      Formless.Validated form errors -> do
+        H.liftEffect $ Console.log $ "Validated! Errors: " <> show errors
+        pure a
+
       -- We'll just log the result here, but you could send this off to a server for
       -- processing on success.
       Formless.Submitted result -> case result of

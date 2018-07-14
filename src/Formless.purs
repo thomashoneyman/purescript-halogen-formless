@@ -13,6 +13,7 @@ import Data.Lens as Lens
 import Data.Lens.Iso.Newtype (_Newtype)
 import Data.Lens.Record (prop)
 import Data.Maybe (Maybe(..))
+import Data.Monoid.Additive (Additive)
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy)
 import Formless.Internal as Internal
@@ -88,20 +89,24 @@ type Input pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) m =
 
 data Message pq form
   = Submitted (Either (form InputField) (form OutputField))
+  | Validated (form InputField) Int
   | Emit (pq Unit)
 
 -- | The component itself
 component
-  :: ∀ pq cq cs form m spec specxs field fieldxs mboutput mboutputxs output
+  :: ∀ pq cq cs form m spec specxs field fieldxs mboutput mboutputxs output countxs count
    . Ord cs
   => Monad m
   => RL.RowToList spec specxs
   => RL.RowToList field fieldxs
   => RL.RowToList mboutput mboutputxs
+  => RL.RowToList count countxs
   => Internal.FormSpecToInputField specxs spec () field
   => Internal.SetInputFieldsTouched fieldxs field () field
   => Internal.InputFieldToMaybeOutput fieldxs field () mboutput
   => Internal.MaybeOutputToOutputField mboutputxs mboutput () output
+  => Internal.CountErrors fieldxs field () count
+  => Internal.SumRecord countxs count (Additive Int)
   => Newtype (form FormSpec) (Record spec)
   => Newtype (form InputField) (Record field)
   => Newtype (form MaybeOutput) (Record mboutput)
@@ -146,8 +151,10 @@ component =
             Internal.maybeOutputToOutputField
             $ Internal.inputFieldToMaybeOutput
             $ form
+        , errors = Internal.countErrors form
         }
-
+      st' <- getState
+      H.raise $ Validated st'.form st'.errors
       pure a
 
     -- | Set all fields to true, then set allTouched to true to
@@ -228,7 +235,6 @@ handleBlur' sym form = wrap <<< setTouched $ unwrap form
   where
     _sym :: Lens.Lens' (Record form) (InputField inp err out)
     _sym = prop sym
-
     setTouched = Lens.set (_sym <<< _Newtype <<< prop FSpec._touched) true
 
 

@@ -13,7 +13,8 @@ import Example.RealWorld.Render.Nav as Nav
 import Example.RealWorld.Render.OptionsForm as OptionsForm
 import Example.RealWorld.Spec.GroupForm (groupFormSpec, groupFormValidation)
 import Example.RealWorld.Spec.OptionsForm (optionsFormSpec, optionsFormValidation)
-import Example.RealWorld.Types (ChildQuery, ChildSlot, GroupTASlot(..), Query(..), State, Tab(..))
+import Example.RealWorld.Types
+  (ChildQuery, ChildSlot, GroupTASlot(..), Query(..), State, Tab(..))
 import Formless as Formless
 import Halogen as H
 import Halogen.Component.ChildPath as CP
@@ -27,12 +28,19 @@ import Ocelot.HTML.Properties (css)
 component :: H.Component HH.HTML Query Unit Void Aff
 component =
   H.parentComponent
-		{ initialState: const { focus: GroupFormTab }
+    { initialState: const initialState
     , render
     , eval
     , receiver: const Nothing
     }
   where
+
+  initialState :: State
+  initialState =
+    { focus: GroupFormTab
+    , groupFormErrors: 0
+    , optionsFormErrors: 0
+    }
 
   render :: State -> H.ParentHTML Query ChildQuery ChildSlot Aff
   render st =
@@ -132,6 +140,12 @@ component =
 			-- so we can safely ignore this.
       Formless.Submitted _ -> pure a
 
+      -- We don't care about the failed form result, but we do want
+      -- to collect errors on validation.
+      Formless.Validated _ errors -> do
+        H.modify_ _ { groupFormErrors = errors }
+        pure a
+
     HandleGroupTypeahead slot m a -> case m of
       TA.Emit q -> eval q *> pure a
       TA.SelectionsChanged s v -> do
@@ -167,6 +181,9 @@ component =
     HandleOptionsForm m a -> case m of
       Formless.Emit q -> eval q *> pure a
       Formless.Submitted _ -> pure a
+      Formless.Validated _ errors -> do
+        H.modify_ _ { optionsFormErrors = errors }
+        pure a
 
     HandleMetricDropdown m a -> case m of
       Dropdown.ItemSelected x -> do

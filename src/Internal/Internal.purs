@@ -4,6 +4,7 @@ import Prelude
 
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
+import Data.Monoid.Additive (Additive(..))
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Formless.Spec (FormSpec(..), InputField(..), MaybeOutput(..), OutputField(..))
@@ -16,6 +17,28 @@ import Type.Data.RowList (RLProxy(..))
 
 -----
 -- Functions
+
+-- | A helper function that will count all errors in a record
+countErrors
+  :: ∀ form row xs row' xs'
+   . RL.RowToList row xs
+  => RL.RowToList row' xs'
+  => CountErrors xs row () row'
+  => SumRecord xs' row' (Additive Int)
+  => Newtype (form InputField) (Record row)
+  => form InputField
+  -> Int
+countErrors = unwrap <<< sumRecord <<< countErrors' <<< unwrap
+
+-- | A helper function that sums a monoidal record
+sumRecord
+  :: ∀ r rl a
+   . SumRecord rl r a
+  => RL.RowToList r rl
+  => Monoid a
+  => Record r
+  -> a
+sumRecord r = sumImpl (RLProxy :: RLProxy rl) r
 
 -- | A helper function that will set all input fields to 'touched = true'. This ensures
 -- | subsequent validations apply to all fields even if not edited by the user.
@@ -202,3 +225,67 @@ instance maybeOutputToOutputFieldCons
         -> Builder { | from } { | from' }
         -> Builder { | from } { | to }
       transform v builder' = Builder.insert _name v <<< builder'
+
+
+-- | A class to sum a monoidal record
+class SumRecord (rl :: RL.RowList) (r :: # Type) a | rl -> a where
+  sumImpl :: RLProxy rl -> Record r -> a
+
+instance nilSumRecord :: Monoid a => SumRecord RL.Nil r a where
+  sumImpl _ _ = mempty
+
+instance consSumRecord
+  :: ( IsSymbol name
+     , Monoid a
+     , Row.Cons name a t0 r
+     , SumRecord tail r a
+     )
+  => SumRecord (RL.Cons name a tail) r a
+  where
+    sumImpl _ r =
+      -- This has to be defined in a variable for some reason; it won't
+      -- compile otherwise, but I don't know why not.
+      let tail' = sumImpl (RLProxy :: RLProxy tail) r
+          val = Record.get (SProxy :: SProxy name) r
+       in val <> tail'
+
+-- | Gets out ints
+class CountErrors
+  (xs :: RL.RowList) (row :: # Type) (from :: # Type) (to :: # Type)
+  | xs -> from to where
+  countErrorsBuilder :: RLProxy xs -> Record row -> Builder { | from } { | to }
+
+instance countErrorsNil :: CountErrors RL.Nil row () () where
+  countErrorsBuilder _ _ = identity
+
+instance countErrorsCons
+  :: ( IsSymbol name
+     , Row.Cons name (InputField i e o) trash row
+     , CountErrors tail row from from'
+     , Row.Lacks name from'
+     , Row.Cons name (Additive Int) from' to
+     )
+  => CountErrors (RL.Cons name (InputField i e o) tail) row from to where
+  countErrorsBuilder _ r =
+    first <<< rest
+    where
+      _name = SProxy :: SProxy name
+      val = transform $ Record.get _name r
+      rest = countErrorsBuilder (RLProxy :: RLProxy tail) r
+      first = Builder.insert _name val
+      transform (InputField { result }) =
+        case result of
+          Just (Left _) -> Additive 1
+          _ -> Additive 0
+
+-- Intermediate function for countErrors
+countErrors'
+  :: ∀ row xs row'
+   . RL.RowToList row xs
+  => CountErrors xs row () row'
+  => Record row
+  -> Record row'
+countErrors' r = Builder.build builder {}
+  where
+    builder = countErrorsBuilder (RLProxy :: RLProxy xs) r
+

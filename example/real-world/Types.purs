@@ -26,7 +26,10 @@ data Query a
 	| Submit a
 
 type State =
-  { focus :: Tab }
+  { focus :: Tab
+  , groupFormErrors :: Int
+  , optionsFormErrors :: Int
+  }
 
 -- | Now we can create _this_ component's child query and child slot pairing.
 type ChildQuery = Coproduct2
