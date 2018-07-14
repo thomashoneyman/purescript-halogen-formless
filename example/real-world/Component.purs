@@ -4,10 +4,11 @@ import Prelude
 
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
+import Debug.Trace (spy)
 import Effect.Aff (Aff)
 import Effect.Console as Console
-import Example.RealWorld.Data.Group (_admin, _applications, _pixels, _secretKey1, _secretKey2, _whiskey)
-import Example.RealWorld.Data.Options (_metric)
+import Example.RealWorld.Data.Group (Group(..), GroupId(..), _admin, _applications, _pixels, _secretKey1, _secretKey2, _whiskey)
+import Example.RealWorld.Data.Options (Options(..), _metric)
 import Example.RealWorld.Render.GroupForm as GroupForm
 import Example.RealWorld.Render.Nav as Nav
 import Example.RealWorld.Render.OptionsForm as OptionsForm
@@ -15,6 +16,7 @@ import Example.RealWorld.Spec.GroupForm (groupFormSpec, groupFormValidation)
 import Example.RealWorld.Spec.OptionsForm (optionsFormSpec, optionsFormValidation)
 import Example.RealWorld.Types (ChildQuery, ChildSlot, GroupTASlot(..), Query(..), State, Tab(..))
 import Formless as Formless
+import Formless.Spec (unwrapOutput)
 import Halogen as H
 import Halogen.Component.ChildPath as CP
 import Halogen.HTML as HH
@@ -39,6 +41,7 @@ component =
     { focus: GroupFormTab
     , groupFormErrors: 0
     , optionsFormErrors: 0
+    , group: Nothing
     }
 
   render :: State -> H.ParentHTML Query ChildQuery ChildSlot Aff
@@ -104,30 +107,54 @@ component =
     -- can use the `SubmitReply` query to have submission return
     -- the result directly, rather than via independent messages.
     Submit a -> do
-      groupForm <- H.query' CP.cp1 unit $ H.request Formless.SubmitReply
-      optionsForm <- H.query' CP.cp2 unit $ H.request Formless.SubmitReply
-      H.liftEffect case groupForm, optionsForm of
+      mbGroupForm <- H.query' CP.cp1 unit $ H.request Formless.SubmitReply
+      mbOptionsForm <- H.query' CP.cp2 unit $ H.request Formless.SubmitReply
+      group <- H.liftEffect case mbGroupForm, mbOptionsForm of
         Just (Left _), Just (Left _) -> do
           Console.error "Neither form validated successfully."
+          pure Nothing
 
         Just (Left _), Just (Right _) -> do
           Console.warn "Only the options form validated successfully."
+          pure Nothing
 
         Just (Right _), Just (Left _) -> do
           Console.warn "Only the group form validated successfully."
+          pure Nothing
 
-        Just (Right _), Just (Right _) -> do
+        Just (Right groupRaw), Just (Right optionsRaw) -> do
           Console.info "Both forms validated successfully."
+          let groupForm = unwrapOutput groupRaw
+              optionsForm = unwrapOutput optionsRaw
+              group = Group
+                { name: groupForm.name
+                , id: GroupId 10
+                , secretKey: groupForm.secretKey1
+                , options: Just $ Options optionsForm
+                , admin: groupForm.admin
+                , applications: groupForm.applications
+                , pixels: groupForm.pixels
+                , maxBudget: groupForm.maxBudget
+                , minBudget: groupForm.minBudget
+                , whiskey: groupForm.whiskey
+                }
+          pure $ Just group
 
         Nothing, Just v -> do
           Console.error "The group form doesn't exist at that slot."
+          pure Nothing
 
         Just v, Nothing -> do
           Console.error "The options form doesn't exist at that slot."
+          pure Nothing
 
         Nothing, Nothing -> do
           Console.error "Something went wrong with the both forms."
+          pure Nothing
 
+      -- Now we can set our group -- if successful.
+      H.modify_ _ { group = group }
+      let _ = spy "Trying to set group..." group
       pure a
 
     -----

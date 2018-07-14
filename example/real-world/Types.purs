@@ -4,8 +4,9 @@ import Prelude
 
 import Data.Either.Nested (Either2)
 import Data.Functor.Coproduct.Nested (Coproduct2)
+import Data.Maybe (Maybe)
 import Effect.Aff (Aff)
-import Example.RealWorld.Data.Group (Admin, GroupForm)
+import Example.RealWorld.Data.Group (Admin, Group, GroupForm)
 import Example.RealWorld.Data.Options (Metric, OptionsForm)
 import Formless as Formless
 import Ocelot.Components.Dropdown as Dropdown
@@ -25,10 +26,14 @@ data Query a
   | Select Tab a
   | Submit a
 
+-- | We'll keep track of both form errors so we can show them in tabs
+-- | and our ultimate goal is to result in a Group we can send to the
+-- | server.
 type State =
   { focus :: Tab
   , groupFormErrors :: Int
   , optionsFormErrors :: Int
+  , group :: Maybe Group
   }
 
 -- | Now we can create _this_ component's child query and child slot pairing.
