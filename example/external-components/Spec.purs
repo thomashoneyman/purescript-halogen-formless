@@ -2,22 +2,27 @@ module Example.ExternalComponents.Spec where
 
 import Prelude
 
-import Data.Either (Either(..))
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe, fromMaybe)
 import Data.Newtype (class Newtype)
-import Data.String as String
 import Data.Symbol (SProxy(..))
-import Formless.Spec (FormSpec(..))
+import Example.Validation.Semigroup as V
+import Formless.Spec as FSpec
+import Formless.Validation (onInputField)
+import Type.Row (RProxy(..))
 
--- | Form inputs are expected to have this particular shape and rely
--- | on the `InputField` type from Formless.
-newtype Form f = Form
-  { name :: f String String String
-  , email :: f (Maybe String) String String
-  , whiskey :: f (Maybe String) String String
-  , language :: f (Maybe String) String String
-  }
+-- | You must provide a newtype around your form record in this format. Here,
+-- | rather than a record accepting `f`, we're just providing a row.
+newtype Form f = Form (Record (FormRow f))
 derive instance newtypeForm :: Newtype (Form f) _
+
+-- | We'll use this row to generate our form spec, but also to represent the
+-- | available fields in the record.
+type FormRow f =
+  ( name     :: f String         V.Errs String
+  , email    :: f (Maybe String) V.Errs String
+  , whiskey  :: f (Maybe String) V.Errs String
+  , language :: f (Maybe String) V.Errs String
+  )
 
 -- | You'll usually want symbol proxies for convenience
 _name = SProxy :: SProxy "name"
@@ -25,42 +30,20 @@ _email = SProxy :: SProxy "email"
 _whiskey = SProxy :: SProxy "whiskey"
 _language = SProxy :: SProxy "language"
 
--- | You are meant to provide a wrapper around `FormSpec` in order for
--- | this to all work out. Validators could be written (should be written)
--- | separately.
-formSpec :: Form FormSpec
-formSpec = Form
-  { name: FormSpec
-      { input: ""
-      , validator: \str ->
-          if String.length str < 3
-            then Left "Must be 3 characters or more."
-            else Right str
-      }
-  , email: FormSpec
-      { input: Nothing
-      , validator: case _ of
-          Nothing -> Left "This field is required."
-          Just str -> if String.contains (String.Pattern "_") str
-            then Right str
-            else Left "Email addresses must have underscores."
-      }
-  , whiskey: FormSpec
-      { input: Nothing
-      , validator: case _ of
-          Nothing -> Left "This field is required."
-          Just str ->
-            if String.contains (String.Pattern "abel") str
-              then Right str
-              else Left "Only Kilchoman is allowed here!"
-      }
-  , language: FormSpec
-      { input: Nothing
-      , validator: case _ of
-          Nothing -> Left "This field is required."
-          Just str ->
-            if String.contains (String.Pattern "PHP") str
-              then Right str
-              else Left "Only PHP is allowed here!"
-      }
+-- | mkFormSpecFromRow can produce a valid input form spec from your row
+-- | without you having to type anything. This is useful for especially
+-- | large forms where you don't want to have to stick newtypes everywhere.
+-- | If you already have a record of values, use `mkFormSpec` instead.
+formSpec :: Form FSpec.FormSpec
+formSpec = FSpec.mkFormSpecFromRow $ RProxy :: RProxy (FormRow FSpec.Input)
+
+-- | You should provide your own validation. This example uses the PureScript
+-- | standard, `purescript-validation`.
+formValidation :: Form FSpec.InputField -> Form FSpec.InputField
+formValidation (Form form) = Form
+  { name: (\i -> V.validateNonEmpty i *> V.validateMinimumLength i 7) `onInputField` form.name
+  , email: (\i -> V.validateMaybe i *> V.validateEmailRegex (fromMaybe "" i)) `onInputField` form.email
+  , whiskey: V.validateMaybe `onInputField` form.whiskey
+  , language: V.validateMaybe `onInputField` form.language
   }
+

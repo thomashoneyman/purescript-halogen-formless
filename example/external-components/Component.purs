@@ -4,12 +4,13 @@ import Prelude
 
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
-import Debug.Trace (spy)
 import Effect.Aff (Aff)
+import Effect.Console (log) as Console
 import Example.ExternalComponents.RenderForm (formless)
-import Example.ExternalComponents.Spec (_email, _language, _whiskey, formSpec)
+import Example.ExternalComponents.Spec (FormRow, _email, _language, _whiskey, formSpec, formValidation)
 import Example.ExternalComponents.Types (ChildQuery, ChildSlot, Query(..), Slot(..), State)
 import Formless as Formless
+import Formless.Spec as FSpec
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -53,6 +54,7 @@ component =
         unit
         Formless.component
         { formSpec
+        , validator: pure <$> formValidation
         , render: formless
         }
         (HE.input HandleFormless)
@@ -66,14 +68,28 @@ component =
       -- calling `eval`
       Formless.Emit q -> eval q *> pure a
 
+      -- When the form is validated, Formless will show the current status of all
+      -- fields and will report the total number of errors across fields. Only
+      -- validated fields report errors.
+      Formless.Validated form errors -> do
+        H.liftEffect $ Console.log $ "Validated! Errors: " <> show errors
+        pure a
+
       -- We'll just log the result here, but you could send this off to a server for
       -- processing on success.
       Formless.Submitted result -> case result of
         Left f -> do
-          let _ = spy "Failed to validate form." f
+          H.liftEffect $ Console.log "Failed to validate form."
           pure a
         Right v -> do
-          let _ = spy "Form is valid!" v
+          -- Now we have just a simple record of successful output!
+          let form :: Record (FormRow FSpec.Output)
+              form = FSpec.unwrapOutput v
+
+          H.liftEffect $ do
+             Console.log "Successfully validated form."
+             Console.log $ "Whiskey: " <> form.whiskey
+
           pure a
 
     HandleTypeahead slot m a -> case m of

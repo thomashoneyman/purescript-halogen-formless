@@ -1,9 +1,13 @@
 module Test.Main where
 
 import Prelude
+
 import Effect (Effect)
-import Effect.Console (log)
+import Test.Unit (suite, test)
+import Test.Unit.Main (runTest)
 
 main :: Effect Unit
-main = do
-  log "You should add some tests."
+main = runTest do
+  suite "pure form validation" do
+    test "validates" do
+      pure unit

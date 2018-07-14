@@ -1,9 +1,10 @@
-module Formless.Record where
+module Formless.Internal where
 
 import Prelude
 
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
+import Data.Monoid.Additive (Additive(..))
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Formless.Spec (FormSpec(..), InputField(..), MaybeOutput(..), OutputField(..))
@@ -17,18 +18,40 @@ import Type.Data.RowList (RLProxy(..))
 -----
 -- Functions
 
--- | A helper function that will run and apply all validation functions to current
--- | inputs to produce the same record, this time with results.
-validateInputFields
+-- | A helper function that will count all errors in a record
+countErrors
+  :: ∀ form row xs row' xs'
+   . RL.RowToList row xs
+  => RL.RowToList row' xs'
+  => CountErrors xs row () row'
+  => SumRecord xs' row' (Additive Int)
+  => Newtype (form InputField) (Record row)
+  => form InputField
+  -> Int
+countErrors = unwrap <<< sumRecord <<< countErrors' <<< unwrap
+
+-- | A helper function that sums a monoidal record
+sumRecord
+  :: ∀ r rl a
+   . SumRecord rl r a
+  => RL.RowToList r rl
+  => Monoid a
+  => Record r
+  -> a
+sumRecord r = sumImpl (RLProxy :: RLProxy rl) r
+
+-- | A helper function that will set all input fields to 'touched = true'. This ensures
+-- | subsequent validations apply to all fields even if not edited by the user.
+setInputFieldsTouched
   :: ∀ row xs form
    . RL.RowToList row xs
-  => ValidateInputFields xs row () row
+  => SetInputFieldsTouched xs row () row
   => Newtype (form InputField) (Record row)
   => form InputField
   -> form InputField
-validateInputFields r = wrap $ Builder.build builder {}
+setInputFieldsTouched r = wrap $ Builder.build builder {}
   where
-    builder = validateInputFieldsBuilder (RLProxy :: RLProxy xs) (unwrap r)
+    builder = setInputFieldsTouchedBuilder (RLProxy :: RLProxy xs) (unwrap r)
 
 -- | A helper function that will automatically transform a record of FormSpec(s) into
 -- | a record of InputField(s).
@@ -78,37 +101,31 @@ maybeOutputToOutputField r = map wrap $ Builder.build <@> {} <$> builder
 -----
 -- Classes (Internal)
 
--- | The class that provides the Builder implementation to efficiently apply validation
--- | to inputs and produce results
-class ValidateInputFields
+-- | A class to set all input fields to touched for validation purposes
+class SetInputFieldsTouched
   (xs :: RL.RowList) (row :: # Type) (from :: # Type) (to :: # Type)
   | xs -> from to where
-  validateInputFieldsBuilder :: RLProxy xs -> Record row -> Builder { | from } { | to }
+  setInputFieldsTouchedBuilder :: RLProxy xs -> Record row -> Builder { | from } { | to }
 
-instance validateInputFieldsNil :: ValidateInputFields RL.Nil row () () where
-  validateInputFieldsBuilder _ _ = identity
+instance setInputFieldsTouchedNil :: SetInputFieldsTouched RL.Nil row () () where
+  setInputFieldsTouchedBuilder _ _ = identity
 
-instance validateInputFieldsCons
+instance setInputFieldsTouchedCons
   :: ( IsSymbol name
      , Row.Cons name (InputField i e o) trash row
-     , ValidateInputFields tail row from from'
+     , SetInputFieldsTouched tail row from from'
      , Row.Lacks name from'
      , Row.Cons name (InputField i e o) from' to
      )
-  => ValidateInputFields (RL.Cons name (InputField i e o) tail) row from to where
-  validateInputFieldsBuilder _ r =
+  => SetInputFieldsTouched (RL.Cons name (InputField i e o) tail) row from to where
+  setInputFieldsTouchedBuilder _ r =
     first <<< rest
     where
       _name = SProxy :: SProxy name
       val = transform $ Record.get _name r
-      rest = validateInputFieldsBuilder (RLProxy :: RLProxy tail) r
+      rest = setInputFieldsTouchedBuilder (RLProxy :: RLProxy tail) r
       first = Builder.insert _name val
-      transform (InputField { input, touched, validator }) = InputField
-        { input
-        , touched
-        , validator
-        , result: Just $ validator input
-        }
+      transform (InputField i) = InputField i { touched = true }
 
 -- | The class that provides the Builder implementation to efficiently transform the record
 -- | of FormSpec to record of InputField.
@@ -135,10 +152,9 @@ instance formSpecToInputFieldCons
       val = transform $ Record.get _name r
       rest = formSpecToInputFieldBuilder (RLProxy :: RLProxy tail) r
       first = Builder.insert _name val
-      transform (FormSpec { input, validator }) = InputField
+      transform (FormSpec input) = InputField
         { input
         , touched: false
-        , validator
         , result: Nothing
         }
 
@@ -209,3 +225,67 @@ instance maybeOutputToOutputFieldCons
         -> Builder { | from } { | from' }
         -> Builder { | from } { | to }
       transform v builder' = Builder.insert _name v <<< builder'
+
+
+-- | A class to sum a monoidal record
+class SumRecord (rl :: RL.RowList) (r :: # Type) a | rl -> a where
+  sumImpl :: RLProxy rl -> Record r -> a
+
+instance nilSumRecord :: Monoid a => SumRecord RL.Nil r a where
+  sumImpl _ _ = mempty
+
+instance consSumRecord
+  :: ( IsSymbol name
+     , Monoid a
+     , Row.Cons name a t0 r
+     , SumRecord tail r a
+     )
+  => SumRecord (RL.Cons name a tail) r a
+  where
+    sumImpl _ r =
+      -- This has to be defined in a variable for some reason; it won't
+      -- compile otherwise, but I don't know why not.
+      let tail' = sumImpl (RLProxy :: RLProxy tail) r
+          val = Record.get (SProxy :: SProxy name) r
+       in val <> tail'
+
+-- | Gets out ints
+class CountErrors
+  (xs :: RL.RowList) (row :: # Type) (from :: # Type) (to :: # Type)
+  | xs -> from to where
+  countErrorsBuilder :: RLProxy xs -> Record row -> Builder { | from } { | to }
+
+instance countErrorsNil :: CountErrors RL.Nil row () () where
+  countErrorsBuilder _ _ = identity
+
+instance countErrorsCons
+  :: ( IsSymbol name
+     , Row.Cons name (InputField i e o) trash row
+     , CountErrors tail row from from'
+     , Row.Lacks name from'
+     , Row.Cons name (Additive Int) from' to
+     )
+  => CountErrors (RL.Cons name (InputField i e o) tail) row from to where
+  countErrorsBuilder _ r =
+    first <<< rest
+    where
+      _name = SProxy :: SProxy name
+      val = transform $ Record.get _name r
+      rest = countErrorsBuilder (RLProxy :: RLProxy tail) r
+      first = Builder.insert _name val
+      transform (InputField { result }) =
+        case result of
+          Just (Left _) -> Additive 1
+          _ -> Additive 0
+
+-- Intermediate function for countErrors
+countErrors'
+  :: ∀ row xs row'
+   . RL.RowToList row xs
+  => CountErrors xs row () row'
+  => Record row
+  -> Record row'
+countErrors' r = Builder.build builder {}
+  where
+    builder = countErrorsBuilder (RLProxy :: RLProxy xs) r
+

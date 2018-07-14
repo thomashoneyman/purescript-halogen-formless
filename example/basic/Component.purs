@@ -3,14 +3,16 @@ module Example.Basic.Component where
 import Prelude
 
 import Data.Const (Const)
-import Data.Either (Either(..), either)
+import Data.List.NonEmpty (NonEmptyList)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
-import Data.String (null)
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
+import Example.Validation.Semigroup (InvalidPrimitive, validateNonEmpty)
+import Example.Validation.Utils (showError)
 import Formless as Formless
-import Formless.Spec (FormSpec(..))
+import Formless.Spec (FormSpec, InputField, mkFormSpec)
+import Formless.Validation (onInputField)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -26,21 +28,21 @@ import Record as Record
 -- Form spec
 
 newtype Form f = Form
-  { name :: f String String String
+  { name :: f String (NonEmptyList InvalidPrimitive) String
   , text :: f String Void String
   }
 derive instance newtypeForm :: Newtype (Form f) _
 
 formSpec :: Form FormSpec
-formSpec = Form
-  { name: FormSpec
-    { input: ""
-    , validator: \s -> if null s then Left "Too short" else Right s
-    }
-  , text: FormSpec
-    { input: ""
-    , validator: pure
-    }
+formSpec = mkFormSpec
+  { name: ""
+  , text: ""
+  }
+
+validator :: Form InputField -> Form InputField
+validator (Form form) = Form
+  { name: validateNonEmpty `onInputField` form.name
+  , text: pure `onInputField` form.text
   }
 
 _name = SProxy :: SProxy "name"
@@ -80,6 +82,9 @@ component = H.parentComponent
         unit
         Formless.component
         { formSpec
+        -- We wrote a pure function, so we'll need to map `pure` over it
+        -- to return in some monad
+        , validator: pure <$> validator
         , render: formless
         }
         (const Nothing)
@@ -93,14 +98,14 @@ component = H.parentComponent
 -- Formless
 
 formless
-  :: Formless.State Form
+  :: Formless.State Form Aff
   -> Formless.HTML Query (Const Void) Unit Form Aff
 formless state =
  HH.div_
    [ FormField.field_
      { label: "Name"
      , helpText: Just $ "Write your name." <> (if name.touched then " (touched)" else "")
-     , error: join $ map (either Just (const Nothing)) name.result
+     , error: showError name
      , inputId: "name"
      }
      [ Input.input

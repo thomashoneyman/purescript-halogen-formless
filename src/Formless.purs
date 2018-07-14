@@ -8,15 +8,15 @@ import Prelude
 
 import Control.Comonad (extract)
 import Control.Comonad.Store (Store, store)
-import Data.Either (Either(..))
+import Data.Either (Either, note)
 import Data.Lens as Lens
 import Data.Lens.Iso.Newtype (_Newtype)
 import Data.Lens.Record (prop)
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..))
+import Data.Monoid.Additive (Additive)
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy)
-import Debug.Trace (spy)
-import Formless.Record as FR
+import Formless.Internal as Internal
 import Formless.Spec (FormSpec, InputField, MaybeOutput, OutputField)
 import Formless.Spec as FSpec
 import Halogen as H
@@ -28,11 +28,14 @@ import Prim.RowList (class RowToList) as RL
 import Renderless.State (getState, modifyState_, modifyStore_)
 import Web.Event.Event (Event)
 import Web.UIEvent.FocusEvent (FocusEvent)
+import Web.UIEvent.MouseEvent (MouseEvent)
 
 data Query pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) m a
   = HandleBlur (form InputField -> form InputField) a
   | HandleChange (form InputField -> form InputField) a
-  | ValidateAll a
+  | TouchAll a
+  | RunValidation a
+  | SubmitReply (Either (form InputField) (form OutputField) -> a)
   | Submit a
   | Send cs (cq Unit) a
   | Raise (pq Unit) a
@@ -41,7 +44,7 @@ data Query pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) m a
 -- | The overall component state type, which contains the local state type
 -- | and also the render function
 type StateStore pq cq cs form m =
-  Store (State form) (HTML pq cq cs form m)
+  Store (State form m) (HTML pq cq cs form m)
 
 -- | The component type
 type Component pq cq cs form m
@@ -67,34 +70,43 @@ type DSL pq cq cs form m
       m
 
 -- | The component local state
-type State form =
+type State form m =
   { isValid :: Boolean
+  , allTouched :: Boolean
   , formResult :: Maybe (form OutputField)
   , errors :: Int
   , formSpec :: form FormSpec
+  , validator :: form InputField -> m (form InputField)
   , form :: form InputField
   }
 
 -- | The component's input type
 type Input pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) m =
   { formSpec :: form FormSpec
-  , render :: State form -> HTML pq cq cs form m }
+  , validator :: form InputField -> m (form InputField)
+  , render :: State form m -> HTML pq cq cs form m
+  }
 
 data Message pq form
   = Submitted (Either (form InputField) (form OutputField))
+  | Validated (form InputField) Int
   | Emit (pq Unit)
 
 -- | The component itself
 component
-  :: ∀ pq cq cs form m spec specxs field fieldxs mboutput mboutputxs output
+  :: ∀ pq cq cs form m spec specxs field fieldxs mboutput mboutputxs output countxs count
    . Ord cs
+  => Monad m
   => RL.RowToList spec specxs
   => RL.RowToList field fieldxs
   => RL.RowToList mboutput mboutputxs
-  => FR.FormSpecToInputField specxs spec () field
-  => FR.ValidateInputFields fieldxs field () field
-  => FR.InputFieldToMaybeOutput fieldxs field () mboutput
-  => FR.MaybeOutputToOutputField mboutputxs mboutput () output
+  => RL.RowToList count countxs
+  => Internal.FormSpecToInputField specxs spec () field
+  => Internal.SetInputFieldsTouched fieldxs field () field
+  => Internal.InputFieldToMaybeOutput fieldxs field () mboutput
+  => Internal.MaybeOutputToOutputField mboutputxs mboutput () output
+  => Internal.CountErrors fieldxs field () count
+  => Internal.SumRecord countxs count (Additive Int)
   => Newtype (form FormSpec) (Record spec)
   => Newtype (form InputField) (Record field)
   => Newtype (form MaybeOutput) (Record mboutput)
@@ -110,42 +122,72 @@ component =
   where
 
   initialState :: Input pq cq cs form m -> StateStore pq cq cs form m
-  initialState { formSpec, render } = store render $
+  initialState { formSpec, validator, render } = store render $
     { isValid: false
+    , allTouched: false
     , errors: 0
     , formResult: Nothing
     , formSpec
-    , form: FR.formSpecToInputFields formSpec
+    , validator
+    , form: Internal.formSpecToInputFields formSpec
     }
 
   eval :: Query pq cq cs form m ~> DSL pq cq cs form m
   eval = case _ of
     HandleBlur fs a -> do
       modifyState_ \st -> st { form = fs st.form }
-      pure a
+      eval $ RunValidation a
 
     HandleChange fs a -> do
       modifyState_ \st -> st { form = fs st.form }
       pure a
 
-    ValidateAll a -> do
+    RunValidation a -> do
       st <- getState
-      let form = FR.validateInputFields st.form
+      form <- H.lift $ st.validator st.form
       modifyState_ _
         { form = form
-        , formResult = FR.maybeOutputToOutputField $ FR.inputFieldToMaybeOutput form
+        , formResult =
+            Internal.maybeOutputToOutputField
+            $ Internal.inputFieldToMaybeOutput
+            $ form
+        , errors = Internal.countErrors form
         }
+      st' <- getState
+      H.raise $ Validated st'.form st'.errors
       pure a
 
-    Submit a -> do
-      _ <- eval $ ValidateAll a
+    -- | Set all fields to true, then set allTouched to true to
+    -- | avoid recomputing
+    TouchAll a -> do
       st <- getState
-      H.raise $ maybe (Submitted $ Left st.form) (Submitted <<< Right) st.formResult
+      if st.allTouched
+        then pure a
+        else do
+          modifyState_ _
+           { form = Internal.setInputFieldsTouched st.form
+           , allTouched = true }
+          pure a
+
+    -- | Should not raise a submit message, because it returns
+    -- | the value directly.
+    SubmitReply reply -> do
+      _ <- eval $ TouchAll unit
+      _ <- eval $ RunValidation unit
+      st <- getState
+      pure $ reply $ note st.form st.formResult
+
+    -- | Should raise a submit message, because this does not
+    -- | return the result values to the parent.
+    Submit a -> do
+      _ <- eval $ TouchAll unit
+      _ <- eval $ RunValidation unit
+      st <- getState
+      H.raise $ Submitted $ note st.form st.formResult
       pure a
 
+    -- Only allows actions; always returns nothing.
     Send cs cq a -> do
-      let _ = spy "Received send childslot: " cs
-          _ = spy "Received send childquery: " cq
       _ <- H.query cs cq
       pure a
 
@@ -189,18 +231,12 @@ handleBlur'
   => SProxy sym
   -> form'
   -> form'
-handleBlur' sym form = wrap <<< setResult <<< setTouched $ unwrap form
+handleBlur' sym form = wrap <<< setTouched $ unwrap form
   where
     _sym :: Lens.Lens' (Record form) (InputField inp err out)
     _sym = prop sym
-    input =
-      Lens.view (_sym <<< _Newtype <<< prop FSpec._input) (unwrap form)
-    validator =
-      Lens.view (_sym <<< _Newtype <<< prop FSpec._validator) (unwrap form)
-    setResult =
-      Lens.set (_sym <<< _Newtype <<< prop FSpec._result) (Just $ validator input)
-    setTouched =
-      Lens.set (_sym <<< _Newtype <<< prop FSpec._touched) true
+    setTouched = Lens.set (_sym <<< _Newtype <<< prop FSpec._touched) true
+
 
 -- | Replace the value at a given field with a new value of the correct type.
 onValueInputWith
@@ -211,7 +247,39 @@ onValueInputWith
   => SProxy sym
   -> HP.IProp (onInput :: Event, value :: String | props) (Query pq cq cs form' m Unit)
 onValueInputWith sym =
-  HE.onValueInput $ \str -> Just (handleChange sym str)
+  HE.onValueInput \str -> Just (handleChange sym str)
+
+onValueChangeWith
+  :: ∀ pq cq cs m sym form' form err out r props
+   . IsSymbol sym
+  => Cons sym (InputField String err out) r form
+  => Newtype (form' InputField) (Record form)
+  => SProxy sym
+  -> HP.IProp (onChange :: Event, value :: String | props) (Query pq cq cs form' m Unit)
+onValueChangeWith sym =
+  HE.onValueChange \str -> Just (handleChange sym str)
+
+onChangeWith
+  :: ∀ pq cq cs m sym form' form i err out r props
+   . IsSymbol sym
+  => Cons sym (InputField i err out) r form
+  => Newtype (form' InputField) (Record form)
+  => SProxy sym
+  -> i
+  -> HP.IProp (onChange :: Event | props) (Query pq cq cs form' m Unit)
+onChangeWith sym i =
+  HE.onChange \_ -> Just (handleChange sym i)
+
+onClickWith
+  :: ∀ pq cq cs m sym form' form i err out r props
+   . IsSymbol sym
+  => Cons sym (InputField i err out) r form
+  => Newtype (form' InputField) (Record form)
+  => SProxy sym
+  -> i
+  -> HP.IProp (onClick :: MouseEvent | props) (Query pq cq cs form' m Unit)
+onClickWith sym i =
+  HE.onClick \_ -> Just (handleChange sym i)
 
 handleChange
   :: ∀ pq cq cs m sym form' form inp err out r
