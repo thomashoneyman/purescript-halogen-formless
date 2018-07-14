@@ -8,11 +8,11 @@ import Prelude
 
 import Control.Comonad (extract)
 import Control.Comonad.Store (Store, store)
-import Data.Either (Either(..))
+import Data.Either (Either, note)
 import Data.Lens as Lens
 import Data.Lens.Iso.Newtype (_Newtype)
 import Data.Lens.Record (prop)
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy)
 import Formless.Internal as Internal
@@ -31,7 +31,9 @@ import Web.UIEvent.FocusEvent (FocusEvent)
 data Query pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) m a
   = HandleBlur (form InputField -> form InputField) a
   | HandleChange (form InputField -> form InputField) a
-  | Validate a
+  | TouchAll a
+  | RunValidation a
+  | SubmitReply (Either (form InputField) (form OutputField) -> a)
   | Submit a
   | Send cs (cq Unit) a
   | Raise (pq Unit) a
@@ -68,6 +70,7 @@ type DSL pq cq cs form m
 -- | The component local state
 type State form m =
   { isValid :: Boolean
+  , allTouched :: Boolean
   , formResult :: Maybe (form OutputField)
   , errors :: Int
   , formSpec :: form FormSpec
@@ -115,6 +118,7 @@ component =
   initialState :: Input pq cq cs form m -> StateStore pq cq cs form m
   initialState { formSpec, validator, render } = store render $
     { isValid: false
+    , allTouched: false
     , errors: 0
     , formResult: Nothing
     , formSpec
@@ -126,27 +130,52 @@ component =
   eval = case _ of
     HandleBlur fs a -> do
       modifyState_ \st -> st { form = fs st.form }
-      eval $ Validate a
+      eval $ RunValidation a
 
     HandleChange fs a -> do
       modifyState_ \st -> st { form = fs st.form }
       pure a
 
-    Validate a -> do
+    RunValidation a -> do
       st <- getState
       form <- H.lift $ st.validator st.form
       modifyState_ _
         { form = form
-        , formResult = Internal.maybeOutputToOutputField $ Internal.inputFieldToMaybeOutput form
+        , formResult =
+            Internal.maybeOutputToOutputField
+            $ Internal.inputFieldToMaybeOutput
+            $ form
         }
+
       pure a
 
-    Submit a -> do
-      -- Set all fields to 'touched' so validation is forced
-      modifyState_ \st -> st { form = Internal.setInputFieldsTouched st.form }
-      _ <- eval $ Validate a
+    -- | Set all fields to true, then set allTouched to true to
+    -- | avoid recomputing
+    TouchAll a -> do
       st <- getState
-      H.raise $ maybe (Submitted $ Left st.form) (Submitted <<< Right) st.formResult
+      if st.allTouched
+        then pure a
+        else do
+          modifyState_ _
+           { form = Internal.setInputFieldsTouched st.form
+           , allTouched = true }
+          pure a
+
+    -- | Should not raise a submit message, because it returns
+    -- | the value directly.
+    SubmitReply reply -> do
+      _ <- eval $ TouchAll unit
+      _ <- eval $ RunValidation unit
+      st <- getState
+      pure $ reply $ note st.form st.formResult
+
+    -- | Should raise a submit message, because this does not
+    -- | return the result values to the parent.
+    Submit a -> do
+      _ <- eval $ TouchAll unit
+      _ <- eval $ RunValidation unit
+      st <- getState
+      H.raise $ Submitted $ note st.form st.formResult
       pure a
 
     -- Only allows actions; always returns nothing.
@@ -211,7 +240,18 @@ onValueInputWith
   => SProxy sym
   -> HP.IProp (onInput :: Event, value :: String | props) (Query pq cq cs form' m Unit)
 onValueInputWith sym =
-  HE.onValueInput $ \str -> Just (handleChange sym str)
+  HE.onValueInput \str -> Just (handleChange sym str)
+
+onChangeWith
+  :: ∀ pq cq cs m sym form' form i err out r props
+   . IsSymbol sym
+  => Cons sym (InputField i err out) r form
+  => Newtype (form' InputField) (Record form)
+  => SProxy sym
+  -> i
+  -> HP.IProp (onChange :: Event | props) (Query pq cq cs form' m Unit)
+onChangeWith sym i =
+  HE.onChange \_ -> Just (handleChange sym i)
 
 handleChange
   :: ∀ pq cq cs m sym form' form inp err out r

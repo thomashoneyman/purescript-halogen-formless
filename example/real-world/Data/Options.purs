@@ -70,7 +70,7 @@ instance initialSpeed :: Initial Speed where
 -- | for it, so we'll use `Void` as the error type.
 type OptionsRow f =
   ( enable       :: f Boolean        Void Boolean
-  , metric       :: f (Maybe String) Errs Metric
+  , metric       :: f (Maybe Metric) Void Metric
   , viewCost     :: f String         Errs (Maybe Dollars)
   , clickCost    :: f String         Errs (Maybe Dollars)
   , installCost  :: f String         Errs (Maybe Dollars)
@@ -86,6 +86,7 @@ _clickCost = SProxy :: SProxy "clickCost"
 _installCost = SProxy :: SProxy "installCost"
 _size = SProxy :: SProxy "size"
 _dimensions = SProxy :: SProxy "dimensions"
+_speed = SProxy :: SProxy "speed"
 
 -- | This is the data type used throughout the application. In this case, it's the same
 -- | as the form and the underlying row.

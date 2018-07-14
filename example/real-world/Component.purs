@@ -6,29 +6,28 @@ import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
 import Effect.Console as Console
-import Example.RealWorld.Data.Group (GroupFormRow)
-import Example.RealWorld.Data.Options (OptionsRow)
-import Example.RealWorld.Render.GroupForm (render) as GroupForm
-import Example.RealWorld.Render.Nav (tabs) as Nav
-import Example.RealWorld.Render.OptionsForm (render) as OptionsForm
+import Example.RealWorld.Data.Group (_admin, _applications, _pixels, _whiskey)
+import Example.RealWorld.Data.Options (_metric)
+import Example.RealWorld.Render.GroupForm as GroupForm
+import Example.RealWorld.Render.Nav as Nav
+import Example.RealWorld.Render.OptionsForm as OptionsForm
 import Example.RealWorld.Spec.GroupForm (groupFormSpec, groupFormValidation)
 import Example.RealWorld.Spec.OptionsForm (optionsFormSpec, optionsFormValidation)
-import Example.RealWorld.Types (ChildQuery, ChildSlot, Query(..), State, Tab(..))
+import Example.RealWorld.Types (ChildQuery, ChildSlot, GroupTASlot(..), Query(..), State, Tab(..))
 import Formless as Formless
-import Formless.Spec as FSpec
 import Halogen as H
 import Halogen.Component.ChildPath as CP
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Ocelot.Block.Format as Format
-import Ocelot.Components.Dropdown (Message(..)) as Dropdown
+import Ocelot.Components.Dropdown as Dropdown
 import Ocelot.Components.Typeahead as TA
 import Ocelot.HTML.Properties (css)
 
 component :: H.Component HH.HTML Query Unit Void Aff
 component =
   H.parentComponent
-  { initialState: const { focus: GroupFormTab }
+		{ initialState: const { focus: GroupFormTab }
     , render
     , eval
     , receiver: const Nothing
@@ -38,7 +37,7 @@ component =
   render :: State -> H.ParentHTML Query ChildQuery ChildSlot Aff
   render st =
     HH.div
-    [ css "flex-1 container p-12" ]
+    [ css "p-12 w-full container" ]
     [ Format.heading_
       [ HH.text "Formless" ]
     , Format.subHeading_
@@ -58,33 +57,70 @@ component =
         <> "is to write the validation (with helper functions) and the render function."
       ]
     , Nav.tabs st
-    , case st.focus of
-        GroupFormTab ->
-          HH.slot'
-            CP.cp1
-            unit
-            Formless.component
-            { formSpec: groupFormSpec
-            , validator: pure <$> groupFormValidation
-            , render: GroupForm.render
-            }
-            (HE.input HandleGroupForm)
-        OptionsFormTab ->
-          HH.slot'
-            CP.cp2
-            unit
-            Formless.component
-            { formSpec: optionsFormSpec
-            , validator: pure <$> optionsFormValidation
-            , render: OptionsForm.render
-            }
-            (HE.input HandleOptionsForm)
+    , HH.div
+      [ if st.focus == GroupFormTab then css "" else css "hidden" ]
+      [ HH.slot'
+          CP.cp1
+          unit
+          Formless.component
+          { formSpec: groupFormSpec
+          , validator: pure <$> groupFormValidation
+          , render: GroupForm.render
+          }
+          (HE.input HandleGroupForm)
+      ]
+    , HH.div
+      [ if st.focus == OptionsFormTab then css "" else css "hidden" ]
+      [ HH.slot'
+          CP.cp2
+          unit
+          Formless.component
+          { formSpec: optionsFormSpec
+          , validator: pure <$> optionsFormValidation
+          , render: OptionsForm.render
+          }
+          (HE.input HandleOptionsForm)
+      ]
     ]
 
   eval :: Query ~> H.ParentDSL State Query ChildQuery ChildSlot Void Aff
   eval = case _ of
+
+		-----
+		-- Parent
+
     Select tab a -> do
       H.modify_ _ { focus = tab }
+      pure a
+
+    -- On submit, we need to make sure both forms are run. We
+    -- can use the `SubmitReply` query to have submission return
+    -- the result directly, rather than via independent messages.
+    Submit a -> do
+      groupForm <- H.query' CP.cp1 unit $ H.request Formless.SubmitReply
+      optionsForm <- H.query' CP.cp2 unit $ H.request Formless.SubmitReply
+      H.liftEffect case groupForm, optionsForm of
+        Just (Left _), Just (Left _) -> do
+          Console.error "Neither form validated successfully."
+
+        Just (Left _), Just (Right _) -> do
+          Console.warn "Only the options form validated successfully."
+
+        Just (Right _), Just (Left _) -> do
+          Console.warn "Only the group form validated successfully."
+
+        Just (Right _), Just (Right _) -> do
+          Console.info "Both forms validated successfully."
+
+        Nothing, Just v -> do
+          Console.error "The group form doesn't exist at that slot."
+
+        Just v, Nothing -> do
+          Console.error "The options form doesn't exist at that slot."
+
+        Nothing, Nothing -> do
+          Console.error "Something went wrong with the both forms."
+
       pure a
 
     -----
@@ -92,29 +128,37 @@ component =
 
     HandleGroupForm m a -> case m of
       Formless.Emit q -> eval q *> pure a
-
-      Formless.Submitted result -> case result of
-        Left f -> do
-          H.liftEffect $ Console.log "Failed to validate form."
-          pure a
-        Right v -> do
-          -- Now we have just a simple record of successful output!
-          let form :: Record (GroupFormRow FSpec.Output)
-              form = FSpec.unwrapOutput v
-
-          H.liftEffect $ do
-             Console.log "Successfully validated form."
-             Console.log $ "Whiskey: " <> form.whiskey
-          pure a
+			-- We are manually querying Formless to get form submissions
+			-- so we can safely ignore this.
+      Formless.Submitted _ -> pure a
 
     HandleGroupTypeahead slot m a -> case m of
       TA.Emit q -> eval q *> pure a
-      TA.SelectionsChanged s _ -> pure a
+      TA.SelectionsChanged s v -> do
+        let v' = TA.unpackSelections v
+        case s of
+          TA.ItemSelected x -> case slot of
+            ApplicationsTypeahead -> do
+              _ <- H.query' CP.cp1 unit $ Formless.handleChange _applications v'
+              _ <- H.query' CP.cp1 unit $ Formless.handleBlur _applications
+              pure a
+            PixelsTypeahead -> do
+              _ <- H.query' CP.cp1 unit $ Formless.handleChange _pixels v'
+              _ <- H.query' CP.cp1 unit $ Formless.handleBlur _pixels
+              pure a
+            WhiskeyTypeahead -> do
+              _ <- H.query' CP.cp1 unit $ Formless.handleChange _whiskey (Just x)
+              _ <- H.query' CP.cp1 unit $ Formless.handleBlur _whiskey
+              pure a
+          _ -> pure a
       TA.VisibilityChanged _ -> pure a
       TA.Searched _ -> pure a
 
     HandleAdminDropdown m a -> case m of
-      Dropdown.ItemSelected x -> pure a
+      Dropdown.ItemSelected x -> do
+        _ <- H.query' CP.cp1 unit $ Formless.handleChange _admin (Just x)
+        _ <- H.query' CP.cp1 unit $ Formless.handleBlur _admin
+        pure a
 
 
     -----
@@ -122,24 +166,10 @@ component =
 
     HandleOptionsForm m a -> case m of
       Formless.Emit q -> eval q *> pure a
+      Formless.Submitted _ -> pure a
 
-      Formless.Submitted result -> case result of
-        Left f -> do
-          H.liftEffect $ Console.log "Failed to validate form."
-          pure a
-        Right v -> do
-          -- Now we have just a simple record of successful output!
-          let form :: Record (OptionsRow FSpec.Output)
-              form = FSpec.unwrapOutput v
-
-          H.liftEffect $ do
-             Console.log "Successfully validated form."
-             Console.log $ "Enabled: " <> show form.enable
-          pure a
-
-    HandleOptionsTypeahead m a -> case m of
-      TA.Emit q -> eval q *> pure a
-      TA.SelectionsChanged s _ -> pure a
-      TA.VisibilityChanged _ -> pure a
-      TA.Searched _ -> pure a
-
+    HandleMetricDropdown m a -> case m of
+      Dropdown.ItemSelected x -> do
+        _ <- H.query' CP.cp2 unit $ Formless.handleChange _metric (Just x)
+        _ <- H.query' CP.cp2 unit $ Formless.handleBlur _metric
+        pure a

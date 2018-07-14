@@ -6,7 +6,7 @@ import Data.Either.Nested (Either2)
 import Data.Functor.Coproduct.Nested (Coproduct2)
 import Effect.Aff (Aff)
 import Example.RealWorld.Data.Group (Admin, GroupForm)
-import Example.RealWorld.Data.Options (OptionsForm)
+import Example.RealWorld.Data.Options (Metric, OptionsForm)
 import Formless as Formless
 import Ocelot.Components.Dropdown as Dropdown
 import Ocelot.Components.Typeahead as TA
@@ -21,8 +21,9 @@ data Query a
   | HandleOptionsForm (Formless.Message Query OptionsForm) a
   | HandleGroupTypeahead GroupTASlot (TA.Message Query String) a
   | HandleAdminDropdown (Dropdown.Message Admin) a
-  | HandleOptionsTypeahead (TA.Message Query String) a
+  | HandleMetricDropdown (Dropdown.Message Metric) a
   | Select Tab a
+	| Submit a
 
 type State =
   { focus :: Tab }
@@ -49,7 +50,7 @@ type GroupCS = Either2
   Unit
 
 -- | Types for the options form
-type OptionsCQ = TA.Query Query String String Aff
+type OptionsCQ = Dropdown.Query Metric
 type OptionsCS = Unit
 
 ----------

@@ -30,25 +30,36 @@ type FieldConfig sym =
 -----
 -- Common field rendering
 
-text
+data FieldType
+  = Currency
+  | Percentage
+  | Text
+
+input
   :: ∀ form sym e o t0 fields m pq cq cs
    . IsSymbol sym
   => Show e
   => Newtype (form InputField) (Record fields)
   => Cons sym (InputField String e o) t0 fields
   => FieldConfig sym
+  -> FieldType
   -> Formless.State form m
   -> Formless.HTML pq cq cs form m
-text config state =
+input config ft state =
   HH.div_
     [ formField state config $ \field ->
-        Input.input
-          [ HP.placeholder $ fromMaybe "" config.placeholder
-          , HP.value field.input
-          , Formless.onBlurWith config.field
-          , Formless.onValueInputWith config.field
-          ]
+        case ft of
+          Text -> Input.input (props field)
+          Currency -> Input.currency_ (props field)
+          Percentage -> Input.percentage_ (props field)
     ]
+  where
+    props field =
+      [ HP.placeholder $ fromMaybe "" config.placeholder
+      , HP.value field.input
+      , Formless.onBlurWith config.field
+      , Formless.onValueInputWith config.field
+      ]
 
 
 -- | A utility to help create form fields using an unwrapped

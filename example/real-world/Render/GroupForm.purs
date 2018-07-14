@@ -6,23 +6,24 @@ import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Newtype (class Newtype, unwrap)
 import Data.Symbol (class IsSymbol)
 import Effect.Aff (Aff)
-import Example.RealWorld.Data.Group (Admin(..), GroupId(..), _maxBudget, _minBudget)
+import Example.RealWorld.Data.Group
+  (Admin(..), GroupId(..), _maxBudget, _minBudget)
 import Example.RealWorld.Data.Group as G
 import Example.RealWorld.Render.Field (FieldConfig)
-import Example.RealWorld.Render.Field (formField, text) as Field
+import Example.RealWorld.Render.Field as Field
 import Example.RealWorld.Types (GroupCQ, GroupCS, GroupTASlot(..), Query(..))
 import Formless as Formless
 import Formless.Spec (InputField)
 import Halogen as H
-import Halogen.Component.ChildPath (cp1, cp2) as CP
+import Halogen.Component.ChildPath as CP
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Ocelot.Block.Card (card_) as Card
-import Ocelot.Block.Format (subHeading_) as Format
-import Ocelot.Block.Input (percentage_) as Input
-import Ocelot.Block.Range (range) as Range
-import Ocelot.Components.Dropdown (dropdown) as Dropdown
+import Ocelot.Block.Card as Card
+import Ocelot.Block.Format as Format
+import Ocelot.Block.Input as Input
+import Ocelot.Block.Range as Range
+import Ocelot.Components.Dropdown as Dropdown
 import Ocelot.Components.Typeahead as TA
 import Ocelot.Components.Typeahead.Input as TA.Input
 import Ocelot.HTML.Properties (css)
@@ -68,30 +69,30 @@ render state =
 
 renderName :: FormlessState -> FormlessHTML
 renderName =
-  Field.text
+  Field.input
   { label: "Name"
   , placeholder: Just "January Cohort"
   , helpText: "Give the group a name."
   , field: G._name
-  }
+  } Field.Text
 
 renderSecretKey1 :: FormlessState -> FormlessHTML
 renderSecretKey1 =
-  Field.text
+  Field.input
   { label: "Secret Key"
   , placeholder: Just "au,#OK#F48i$"
   , helpText: "Give the group a secret identifier"
   , field: G._secretKey1
-  }
+  } Field.Text
 
 renderSecretKey2 :: FormlessState -> FormlessHTML
 renderSecretKey2 =
-  Field.text
+  Field.input
   { label: "Secret Key (Confirm)"
   , placeholder: Just "au,#OK#F48i$"
   , helpText: "Enter the same secret identifier to confirm."
   , field: G._secretKey2
-  }
+  } Field.Text
 
 renderAdmin :: FormlessState -> FormlessHTML
 renderAdmin state =
