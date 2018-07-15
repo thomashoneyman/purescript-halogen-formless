@@ -38,6 +38,7 @@ data Query pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) m a
   | RunValidation a
   | SubmitReply (Either (form InputField) (form OutputField) -> a)
   | Submit a
+  | Reset a
   | Send cs (cq Unit) a
   | Raise (pq Unit) a
   | Receive (Input pq cq cs form m) a
@@ -152,8 +153,8 @@ component =
     , form: inputFields
     , internal: InternalState
       { formResult: Nothing
-      , allTouched: false
       , formSpec
+      , allTouched: false
       , initialInputs: Internal.inputFieldsToInput inputFields
       , validator
       }
@@ -218,6 +219,21 @@ component =
       calculateFormResult
       st <- getState
       H.raise $ Submitted $ note st.form (_.formResult $ unwrap st.internal)
+      pure a
+
+    -- | Should completely reset the form to its initial state
+    Reset a -> do
+      modifyState_ \st -> st
+        { valid = Incomplete
+        , dirty = false
+        , errors = 0
+        , form = Internal.formSpecToInputFields (_.formSpec $ unwrap st.internal)
+        , internal = over InternalState (_
+            { formResult = Nothing
+            , allTouched = false
+            }
+          ) st.internal
+        }
       pure a
 
     -- Only allows actions; always returns nothing.
