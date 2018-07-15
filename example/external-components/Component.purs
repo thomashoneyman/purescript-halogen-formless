@@ -75,6 +75,10 @@ component =
         H.liftEffect $ Console.log $ "Validated! Errors: " <> show errors
         pure a
 
+      -- If the form is reset, Formless will return the state so you can adjust
+      -- any of your parent state as needed
+      Formless.Reset _ -> pure a
+
       -- We'll just log the result here, but you could send this off to a server for
       -- processing on success.
       Formless.Submitted result -> case result of

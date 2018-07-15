@@ -24,16 +24,19 @@ data Query a
   | HandleAdminDropdown (Dropdown.Message Admin) a
   | HandleMetricDropdown (Dropdown.Message Metric) a
   | Select Tab a
+  | Reset a
   | Submit a
 
 -- | We'll keep track of both form errors so we can show them in tabs
 -- | and our ultimate goal is to result in a Group we can send to the
 -- | server.
 type State =
-  { focus :: Tab
-  , groupFormErrors :: Int
-  , optionsFormErrors :: Int
-  , group :: Maybe Group
+  { focus :: Tab                 -- Which tab is the user on?
+  , groupFormErrors :: Int       -- Count of the group form errors
+  , groupFormDirty :: Boolean    -- Is the group form in a dirty state?
+  , optionsFormErrors :: Int     -- Count of the options form errors
+  , optionsFormDirty :: Boolean  -- Is the options form in a dirty state?
+  , group :: Maybe Group         -- Our ideal result type from form submission
   }
 
 -- | Now we can create _this_ component's child query and child slot pairing.

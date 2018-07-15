@@ -7,7 +7,8 @@ import Example.RealWorld.Types (ChildQuery, ChildSlot, Query(..), State, Tab(..)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
-import Ocelot.Block.Button (button, buttonDark, buttonPrimary) as Button
+import Halogen.HTML.Properties as HP
+import Ocelot.Block.Button as Button
 import Ocelot.HTML.Properties (css)
 
 tabs :: State -> H.ParentHTML Query ChildQuery ChildSlot Aff
@@ -32,6 +33,9 @@ tabs state =
       [ HE.onClick $ HE.input_ Submit ]
       [ HH.text "Submit Form" ]
     ]
+  , HH.li
+    [ css "mr-3" ]
+    [ reset Button.buttonPrimary ]
   ]
   where
     group f = f
@@ -49,3 +53,12 @@ tabs state =
             then " (" <> show state.optionsFormErrors  <> ")"
             else ""
       ]
+
+    -- You can only reset the form if it's been changed in the first
+    -- place.
+    reset f = f
+      [ if state.groupFormDirty || state.optionsFormDirty
+          then HE.onClick $ HE.input_ Reset
+          else HP.disabled true
+      ]
+      [ HH.text "Reset All" ]

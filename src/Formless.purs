@@ -16,7 +16,7 @@ import Data.Lens.Record (prop)
 import Data.Maybe (Maybe(..))
 import Data.Monoid.Additive (Additive)
 import Data.Newtype (class Newtype, over, unwrap, wrap)
-import Data.Symbol (class IsSymbol, SProxy)
+import Data.Symbol (class IsSymbol, SProxy(..))
 import Formless.Internal as Internal
 import Formless.Spec (FormSpec, InputField, OutputField)
 import Formless.Spec as FSpec
@@ -26,6 +26,7 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Prim.Row (class Cons)
 import Prim.RowList (class RowToList) as RL
+import Record (delete) as Record
 import Renderless.State (getState, modifyState_, modifyStore_)
 import Web.Event.Event (Event)
 import Web.UIEvent.FocusEvent (FocusEvent)
@@ -38,7 +39,8 @@ data Query pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) m a
   | RunValidation a
   | SubmitReply (Either (form InputField) (form OutputField) -> a)
   | Submit a
-  | Reset a
+  | GetState (State' form -> a)
+  | ResetAll a
   | Send cs (cq Unit) a
   | Raise (pq Unit) a
   | Receive (Input pq cq cs form m) a
@@ -72,13 +74,19 @@ type DSL pq cq cs form m
       m
 
 -- | The component local state
-type State form m =
-  { valid :: ValidStatus
+type State form m = Record (StateRow form (internal :: InternalState form m))
+
+-- | The component's public state
+type State' form = Record (StateRow form ())
+
+-- | The component's state as a row type
+type StateRow form r =
+  ( valid :: ValidStatus
   , dirty :: Boolean
   , errors :: Int
   , form :: form InputField
-  , internal :: InternalState form m
-  }
+  | r
+  )
 
 -- | A newtype to make easier type errors for end users to
 -- | read by hiding internal fields
@@ -110,6 +118,7 @@ type Input pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) m =
 data Message pq form
   = Submitted (Either (form InputField) (form OutputField))
   | Validated Int
+  | Reset (State' form)
   | Emit (pq Unit)
 
 -- | The component itself
@@ -222,7 +231,7 @@ component =
       pure a
 
     -- | Should completely reset the form to its initial state
-    Reset a -> do
+    ResetAll a -> do
       modifyState_ \st -> st
         { valid = Incomplete
         , dirty = false
@@ -234,7 +243,17 @@ component =
             }
           ) st.internal
         }
+      st <- getState
+      H.raise $ Reset $ Record.delete (SProxy :: SProxy "internal") st
       pure a
+
+    -- We'll allow component users to fetch the public form state at any point, but
+    -- will remove the internal state first. (TODO: Is this really better than simply
+    -- allowing them access to the entire state? After all, they'll see it anyway
+    -- in their render functions).
+    GetState reply -> do
+      st <- getState
+      pure $ reply $ Record.delete (SProxy :: SProxy "internal") st
 
     -- Only allows actions; always returns nothing.
     Send cs cq a -> do

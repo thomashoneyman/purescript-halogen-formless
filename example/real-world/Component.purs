@@ -3,7 +3,7 @@ module Example.RealWorld.Component where
 import Prelude
 
 import Data.Either (Either(..))
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), maybe)
 import Debug.Trace (spy)
 import Effect.Aff (Aff)
 import Effect.Console as Console
@@ -40,7 +40,9 @@ component =
   initialState =
     { focus: GroupFormTab
     , groupFormErrors: 0
+    , groupFormDirty: false
     , optionsFormErrors: 0
+    , optionsFormDirty: false
     , group: Nothing
     }
 
@@ -101,6 +103,13 @@ component =
 
     Select tab a -> do
       H.modify_ _ { focus = tab }
+      pure a
+
+    -- We can reset both forms to their starting values by leveraging
+    -- the `Reset` query from Formless
+    Reset a -> do
+      _ <- H.query' CP.cp1 unit $ H.action Formless.ResetAll
+      _ <- H.query' CP.cp2 unit $ H.action Formless.ResetAll
       pure a
 
     -- On submit, we need to make sure both forms are run. We
@@ -167,9 +176,21 @@ component =
       Formless.Submitted _ -> pure a
 
       -- We don't care about the failed form result, but we do want
-      -- to collect errors on validation.
+      -- to collect errors on validation. We also want to fetch the
+      -- dirty states.
       Formless.Validated errors -> do
-        H.modify_ _ { groupFormErrors = errors }
+        formlessState <- H.query' CP.cp1 unit $ H.request Formless.GetState
+        H.modify_ \st -> st
+          { groupFormErrors = errors
+          , groupFormDirty = maybe st.groupFormDirty _.dirty formlessState
+          }
+        pure a
+
+      Formless.Reset formlessState -> do
+        H.modify_ _
+          { groupFormErrors = formlessState.errors
+          , groupFormDirty = formlessState.dirty
+          }
         pure a
 
     HandleGroupTypeahead slot m a -> case m of
@@ -219,7 +240,17 @@ component =
       Formless.Emit q -> eval q *> pure a
       Formless.Submitted _ -> pure a
       Formless.Validated errors -> do
-        H.modify_ _ { optionsFormErrors = errors }
+        formlessState <- H.query' CP.cp2 unit $ H.request Formless.GetState
+        H.modify_ \st -> st
+          { optionsFormErrors = errors
+          , optionsFormDirty = maybe st.optionsFormDirty _.dirty formlessState
+          }
+        pure a
+      Formless.Reset formlessState -> do
+        H.modify_ _
+          { optionsFormErrors = formlessState.errors
+          , optionsFormDirty = formlessState.dirty
+          }
         pure a
 
     HandleMetricDropdown m a -> case m of
