@@ -9,15 +9,16 @@ import Prelude
 import Control.Comonad (extract)
 import Control.Comonad.Store (Store, store)
 import Data.Either (Either, note)
+import Data.Eq (class EqRecord)
 import Data.Lens as Lens
 import Data.Lens.Iso.Newtype (_Newtype)
 import Data.Lens.Record (prop)
 import Data.Maybe (Maybe(..))
 import Data.Monoid.Additive (Additive)
-import Data.Newtype (class Newtype, unwrap, wrap)
+import Data.Newtype (class Newtype, over, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy)
 import Formless.Internal as Internal
-import Formless.Spec (FormSpec, InputField, MaybeOutput, OutputField)
+import Formless.Spec (FormSpec, InputField, OutputField)
 import Formless.Spec as FSpec
 import Halogen as H
 import Halogen.HTML as HH
@@ -71,37 +72,58 @@ type DSL pq cq cs form m
 
 -- | The component local state
 type State form m =
-  { isValid :: Boolean
-  , allTouched :: Boolean
-  , formResult :: Maybe (form OutputField)
+  { valid :: ValidStatus
+  , dirty :: Boolean
   , errors :: Int
-  , formSpec :: form FormSpec
-  , validator :: form InputField -> m (form InputField)
   , form :: form InputField
+  , internal :: InternalState form m
   }
+
+-- | A newtype to make easier type errors for end users to
+-- | read by hiding internal fields
+newtype InternalState form m = InternalState
+  { validator :: form InputField -> m (form InputField)
+  , formSpec :: form FormSpec
+  , initialInputs :: form Internal.Input
+  , formResult :: Maybe (form OutputField)
+  , allTouched :: Boolean
+  }
+derive instance newtypeInternalState :: Newtype (InternalState form m) _
+
+-- | A type to represent validation status
+data ValidStatus
+  = Invalid
+  | Incomplete
+  | Valid
+derive instance eqValidStatus :: Eq ValidStatus
+derive instance ordValidStatus :: Ord ValidStatus
 
 -- | The component's input type
 type Input pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) m =
   { formSpec :: form FormSpec
+  -- TODO? :: form InputField -> m (V (form InputField) (form OutputField))
   , validator :: form InputField -> m (form InputField)
   , render :: State form m -> HTML pq cq cs form m
   }
 
 data Message pq form
   = Submitted (Either (form InputField) (form OutputField))
-  | Validated (form InputField) Int
+  | Validated Int
   | Emit (pq Unit)
 
 -- | The component itself
 component
-  :: ∀ pq cq cs form m spec specxs field fieldxs mboutput mboutputxs output countxs count
+  :: ∀ pq cq cs form m spec specxs field fieldxs mboutput mboutputxs output countxs count inputs inputsxs
    . Ord cs
   => Monad m
   => RL.RowToList spec specxs
   => RL.RowToList field fieldxs
   => RL.RowToList mboutput mboutputxs
   => RL.RowToList count countxs
+  => RL.RowToList inputs inputsxs
+  => EqRecord inputsxs inputs
   => Internal.FormSpecToInputField specxs spec () field
+  => Internal.InputFieldsToInput fieldxs field () inputs
   => Internal.SetInputFieldsTouched fieldxs field () field
   => Internal.InputFieldToMaybeOutput fieldxs field () mboutput
   => Internal.MaybeOutputToOutputField mboutputxs mboutput () output
@@ -109,8 +131,9 @@ component
   => Internal.SumRecord countxs count (Additive Int)
   => Newtype (form FormSpec) (Record spec)
   => Newtype (form InputField) (Record field)
-  => Newtype (form MaybeOutput) (Record mboutput)
   => Newtype (form OutputField) (Record output)
+  => Newtype (form Internal.MaybeOutput) (Record mboutput)
+  => Newtype (form Internal.Input) (Record inputs)
   => Component pq cq cs form m
 component =
   H.parentComponent
@@ -123,14 +146,20 @@ component =
 
   initialState :: Input pq cq cs form m -> StateStore pq cq cs form m
   initialState { formSpec, validator, render } = store render $
-    { isValid: false
-    , allTouched: false
+    { valid: Incomplete
+    , dirty: false
     , errors: 0
-    , formResult: Nothing
-    , formSpec
-    , validator
-    , form: Internal.formSpecToInputFields formSpec
+    , form: inputFields
+    , internal: InternalState
+      { formResult: Nothing
+      , allTouched: false
+      , formSpec
+      , initialInputs: Internal.inputFieldsToInput inputFields
+      , validator
+      }
     }
+    where
+      inputFields = Internal.formSpecToInputFields formSpec
 
   eval :: Query pq cq cs form m ~> DSL pq cq cs form m
   eval = case _ of
@@ -143,47 +172,52 @@ component =
       pure a
 
     RunValidation a -> do
-      st <- getState
-      form <- H.lift $ st.validator st.form
-      modifyState_ _
+      init <- getState
+      let internal = unwrap init.internal
+      form <- H.lift $ internal.validator init.form
+      let errors = Internal.countErrors form
+      modifyState_ \st -> st
         { form = form
-        , formResult =
-            Internal.maybeOutputToOutputField
-            $ Internal.inputFieldToMaybeOutput
-            $ form
-        , errors = Internal.countErrors form
+        , errors = errors
+          -- Dirty state is computed by checking equality of original input fields vs. current ones.
+          -- This relies on input fields passed by the user having equality defined.
+        , dirty = not $ unwrap (Internal.inputFieldsToInput st.form) == unwrap internal.initialInputs
+        , valid = if not internal.allTouched
+                    then Incomplete
+                    else if not (errors == 0) then Invalid else Valid
         }
-      st' <- getState
-      H.raise $ Validated st'.form st'.errors
+      st <- getState
+      H.raise $ Validated st.errors
       pure a
 
     -- | Set all fields to true, then set allTouched to true to
     -- | avoid recomputing
     TouchAll a -> do
       st <- getState
-      if st.allTouched
-        then pure a
-        else do
-          modifyState_ _
-           { form = Internal.setInputFieldsTouched st.form
-           , allTouched = true }
-          pure a
+      when (not (_.allTouched (unwrap st.internal))) do
+        modifyState_ _
+         { form = Internal.setInputFieldsTouched st.form
+         , internal = over InternalState (_ { allTouched = true }) st.internal
+         }
+      pure a
 
     -- | Should not raise a submit message, because it returns
     -- | the value directly.
     SubmitReply reply -> do
       _ <- eval $ TouchAll unit
       _ <- eval $ RunValidation unit
+      calculateFormResult
       st <- getState
-      pure $ reply $ note st.form st.formResult
+      pure $ reply $ note st.form (_.formResult $ unwrap st.internal)
 
     -- | Should raise a submit message, because this does not
     -- | return the result values to the parent.
     Submit a -> do
       _ <- eval $ TouchAll unit
       _ <- eval $ RunValidation unit
+      calculateFormResult
       st <- getState
-      H.raise $ Submitted $ note st.form st.formResult
+      H.raise $ Submitted $ note st.form (_.formResult $ unwrap st.internal)
       pure a
 
     -- Only allows actions; always returns nothing.
@@ -199,9 +233,23 @@ component =
       modifyStore_ render (\s -> s)
       pure a
 
+  -----
+  -- Eval helpers
+
+  calculateFormResult :: DSL pq cq cs form m Unit
+  calculateFormResult = do
+    st <- getState
+    when (st.errors == 0) do
+      let result =
+            Internal.maybeOutputToOutputField
+            $ Internal.inputFieldToMaybeOutput
+            $ st.form
+      modifyState_ _
+        { internal = over InternalState (_ { formResult = result }) st.internal }
+
 
 ---------
--- Helpers
+-- Render Helpers
 
 -- | Given a proxy symbol, will trigger validation on that field using
 -- | its validator and current input

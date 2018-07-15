@@ -71,7 +71,7 @@ component =
       -- When the form is validated, Formless will show the current status of all
       -- fields and will report the total number of errors across fields. Only
       -- validated fields report errors.
-      Formless.Validated form errors -> do
+      Formless.Validated errors -> do
         H.liftEffect $ Console.log $ "Validated! Errors: " <> show errors
         pure a
 

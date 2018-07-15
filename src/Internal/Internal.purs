@@ -7,13 +7,28 @@ import Data.Maybe (Maybe(..))
 import Data.Monoid.Additive (Additive(..))
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
-import Formless.Spec (FormSpec(..), InputField(..), MaybeOutput(..), OutputField(..))
+import Formless.Spec (FormSpec(..), InputField(..), OutputField(..))
 import Prim.Row as Row
 import Prim.RowList as RL
 import Record as Record
 import Record.Builder (Builder)
 import Record.Builder as Builder
 import Type.Data.RowList (RLProxy(..))
+
+-----
+-- Types
+
+-- | Never exposed to the user, but used to
+-- | aid transformations
+newtype MaybeOutput i e o = MaybeOutput (Maybe o)
+derive instance newtypeMaybeOutput :: Newtype (MaybeOutput i e o) _
+
+-- | Never exposed to the user, but used to aid equality instances for
+-- | checking dirty states.
+newtype Input i e o = Input i
+derive instance newtypeInput :: Newtype (Input i e o) _
+derive newtype instance eqInput :: Eq i => Eq (Input i e o)
+
 
 -----
 -- Functions
@@ -52,6 +67,20 @@ setInputFieldsTouched
 setInputFieldsTouched r = wrap $ Builder.build builder {}
   where
     builder = setInputFieldsTouchedBuilder (RLProxy :: RLProxy xs) (unwrap r)
+
+-- | A helper function that will automatically transform a record of InputField(s) into
+-- | just the input value
+inputFieldsToInput
+  :: ∀ row xs row' form
+   . RL.RowToList row xs
+  => InputFieldsToInput xs row () row'
+  => Newtype (form InputField) (Record row)
+  => Newtype (form Input) (Record row')
+  => form InputField
+  -> form Input
+inputFieldsToInput r = wrap $ Builder.build builder {}
+  where
+    builder = inputFieldsToInputBuilder (RLProxy :: RLProxy xs) (unwrap r)
 
 -- | A helper function that will automatically transform a record of FormSpec(s) into
 -- | a record of InputField(s).
@@ -126,6 +155,33 @@ instance setInputFieldsTouchedCons
       rest = setInputFieldsTouchedBuilder (RLProxy :: RLProxy tail) r
       first = Builder.insert _name val
       transform (InputField i) = InputField i { touched = true }
+
+-- | The class that provides the Builder implementation to efficiently transform the record
+-- | of FormSpec to record of InputField.
+class InputFieldsToInput
+  (xs :: RL.RowList) (row :: # Type) (from :: # Type) (to :: # Type)
+  | xs -> from to where
+  inputFieldsToInputBuilder :: RLProxy xs -> Record row -> Builder { | from } { | to }
+
+instance inputFieldsToInputNil :: InputFieldsToInput RL.Nil row () () where
+  inputFieldsToInputBuilder _ _ = identity
+
+instance inputFieldsToInputCons
+  :: ( IsSymbol name
+     , Row.Cons name (InputField i e o) trash row
+     , InputFieldsToInput tail row from from'
+     , Row.Lacks name from'
+     , Row.Cons name (Input i e o) from' to
+     )
+  => InputFieldsToInput (RL.Cons name (InputField i e o) tail) row from to where
+  inputFieldsToInputBuilder _ r =
+    first <<< rest
+    where
+      _name = SProxy :: SProxy name
+      val = transform $ Record.get _name r
+      rest = inputFieldsToInputBuilder (RLProxy :: RLProxy tail) r
+      first = Builder.insert _name val
+      transform (InputField fields) = Input fields.input
 
 -- | The class that provides the Builder implementation to efficiently transform the record
 -- | of FormSpec to record of InputField.

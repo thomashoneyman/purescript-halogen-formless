@@ -26,7 +26,7 @@ derive instance newtypeFormSpec :: Newtype (FormSpec i e o) _
 -- | and 'result' on their behalf.
 newtype InputField input error output = InputField
   { input :: input
-  , touched :: Boolean
+  , touched :: Boolean -- Whether the field has been changed by the user
   , result :: Maybe (Either error output) -- force the user to end up in Either?
   }
 derive instance newtypeInputField :: Newtype (InputField i e o) _
@@ -41,11 +41,6 @@ _result = SProxy :: SProxy "result"
 -- | form results at the end of validation.
 newtype OutputField input error output = OutputField output
 derive instance newtypeOutputField :: Newtype (OutputField i e o) _
-
--- | Perhaps temporary; never exposed to the user, but used to
--- | aid transformations
-newtype MaybeOutput i e o = MaybeOutput (Maybe o)
-derive instance newtypeMaybeOutput :: Newtype (MaybeOutput i e o) _
 
 
 ----------
@@ -82,11 +77,11 @@ type Output input error output = output
 -- |   pure a
 -- | ```
 unwrapOutput
-  :: ∀ row xs row' form
+  :: ∀ row xs row' form wrapper
    . RL.RowToList row xs
   => UnwrapOutput xs row () row'
-  => Newtype (form OutputField) (Record row)
-  => form OutputField
+  => Newtype (form wrapper) (Record row)
+  => form wrapper
   -> Record row'
 unwrapOutput r = Builder.build builder {}
   where
@@ -104,12 +99,13 @@ instance unwrapOutputNil :: UnwrapOutput RL.Nil row () () where
 
 instance unwrapOutputCons
   :: ( IsSymbol name
-     , Row.Cons name (OutputField i e o) trash row
+     , Row.Cons name (wrapper i e o) trash row
+     , Newtype (wrapper i e o) o
      , UnwrapOutput tail row from from'
      , Row.Lacks name from'
      , Row.Cons name o from' to
      )
-  => UnwrapOutput (RL.Cons name (OutputField i e o) tail) row from to where
+  => UnwrapOutput (RL.Cons name (wrapper i e o) tail) row from to where
   unwrapOutputBuilder _ r =
     first <<< rest
     where

@@ -168,7 +168,7 @@ component =
 
       -- We don't care about the failed form result, but we do want
       -- to collect errors on validation.
-      Formless.Validated _ errors -> do
+      Formless.Validated errors -> do
         H.modify_ _ { groupFormErrors = errors }
         pure a
 
@@ -218,7 +218,7 @@ component =
     HandleOptionsForm m a -> case m of
       Formless.Emit q -> eval q *> pure a
       Formless.Submitted _ -> pure a
-      Formless.Validated _ errors -> do
+      Formless.Validated errors -> do
         H.modify_ _ { optionsFormErrors = errors }
         pure a
 
