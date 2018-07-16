@@ -11,7 +11,7 @@ import Effect.Aff (Aff)
 import Example.Validation.Semigroup (InvalidPrimitive, validateNonEmpty)
 import Example.Validation.Utils (showError)
 import Formless as Formless
-import Formless.Spec (FormSpec, InputField, mkFormSpec)
+import Formless.Spec (FormSpec, InputField, OutputField, mkFormSpec, unwrapOutput)
 import Formless.Validation (onInputField)
 import Halogen as H
 import Halogen.HTML as HH
@@ -27,26 +27,49 @@ import Record as Record
 -----
 -- Form spec
 
+-- | The type that you care about receiving from the form
+type Contact =
+  { name :: String
+  , text :: String
+  }
+
+-- | The same type represented as a form: the possible input,
+-- | error, and output types for each field.
 newtype Form f = Form
   { name :: f String (NonEmptyList InvalidPrimitive) String
   , text :: f String Void String
   }
 derive instance newtypeForm :: Newtype (Form f) _
 
+-- | You'll generally want to make symbol proxies for convenience
+-- | for each field.
+_name = SProxy :: SProxy "name"
+_text = SProxy :: SProxy "text"
+
+-- | The initial values for the form, which you must provide. If
+-- | this seems tedious, it is! For a much less boilerplate-heavy
+-- | version, see the external-components or real-world examples.
 formSpec :: Form FormSpec
 formSpec = mkFormSpec
   { name: ""
   , text: ""
   }
 
-validator :: Form InputField -> Form InputField
-validator (Form form) = Form
+-- | Your form validation that you'd like run on any touched
+-- | fields in the form. It can be monadic, so you can do things like
+-- | server validation.
+validator :: ∀ m. Monad m => Form InputField -> m (Form InputField)
+validator (Form form) = pure $ Form
   { name: validateNonEmpty `onInputField` form.name
   , text: pure `onInputField` form.text
   }
 
-_name = SProxy :: SProxy "name"
-_text = SProxy :: SProxy "text"
+-- | When the form is run, it will produce your Form type, with
+-- | only the output fields. Since our Contact type is the same
+-- | shape as the Form type, we can just unwrap the newtypes.
+parser :: Form OutputField -> Contact
+parser = unwrapOutput
+
 
 -----
 -- Component types
@@ -54,7 +77,7 @@ _text = SProxy :: SProxy "text"
 data Query a
   = DoNothing a
 
-type ChildQuery = Formless.Query Query (Const Void) Unit Form Aff
+type ChildQuery = Formless.Query Query (Const Void) Unit Form Contact Aff
 type ChildSlot = Unit
 
 -----
@@ -82,9 +105,8 @@ component = H.parentComponent
         unit
         Formless.component
         { formSpec
-        -- We wrote a pure function, so we'll need to map `pure` over it
-        -- to return in some monad
-        , validator: pure <$> validator
+        , validator
+        , parser
         , render: formless
         }
         (const Nothing)
@@ -98,8 +120,8 @@ component = H.parentComponent
 -- Formless
 
 formless
-  :: Formless.State Form Aff
-  -> Formless.HTML Query (Const Void) Unit Form Aff
+  :: Formless.State Form Contact Aff
+  -> Formless.HTML Query (Const Void) Unit Form Contact Aff
 formless state =
  HH.div_
    [ FormField.field_

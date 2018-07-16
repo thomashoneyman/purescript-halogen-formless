@@ -27,11 +27,11 @@ import Record as Record
 
 -- | A convenience synonym for the group Formless state
 type FormlessState
-  = Formless.State OP.OptionsForm Aff
+  = Formless.State OP.OptionsForm OP.Options Aff
 
 -- | A convenience synonym for the group Formless HTML type
 type FormlessHTML
-  = Formless.HTML Query OptionsCQ OptionsCS OP.OptionsForm Aff
+  = Formless.HTML Query OptionsCQ OptionsCS OP.OptionsForm OP.Options Aff
 
 -- | The form, grouped by sections.
 render :: FormlessState -> FormlessHTML

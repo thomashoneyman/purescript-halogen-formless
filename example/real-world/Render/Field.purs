@@ -36,15 +36,15 @@ data FieldType
   | Text
 
 input
-  :: ∀ form sym e o t0 fields m pq cq cs
+  :: ∀ form sym e o t0 fields m pq cq cs out
    . IsSymbol sym
   => Show e
   => Newtype (form InputField) (Record fields)
   => Cons sym (InputField String e o) t0 fields
   => FieldConfig sym
   -> FieldType
-  -> Formless.State form m
-  -> Formless.HTML pq cq cs form m
+  -> Formless.State form out m
+  -> Formless.HTML pq cq cs form out m
 input config ft state =
   HH.div_
     [ formField state config $ \field ->
@@ -65,20 +65,20 @@ input config ft state =
 -- | A utility to help create form fields using an unwrapped
 -- | field value from a given symbol.
 formField
-  :: ∀ form sym i e o t0 fields m pq cq cs
+  :: ∀ form sym i e o t0 fields m pq cq cs out
    . IsSymbol sym
   => Show e
   => Newtype (form InputField) (Record fields)
   => Cons sym (InputField i e o) t0 fields
-  => Formless.State form m
+  => Formless.State form out m
   -> FieldConfig sym
   -> ( { result :: Maybe (Either e o)
        , touched :: Boolean
        , input :: i
        }
-       -> Formless.HTML pq cq cs form m
+       -> Formless.HTML pq cq cs form out m
      )
-  -> Formless.HTML pq cq cs form m
+  -> Formless.HTML pq cq cs form out m
 formField state config html =
   HH.div_
     [ FormField.field_

@@ -4,10 +4,13 @@ import Prelude
 
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
-import Example.RealWorld.Data.Group (GroupForm(..), GroupFormRow)
+import Data.Symbol (SProxy(..))
+import Example.RealWorld.Data.Group (Group(..), GroupForm(..), GroupFormRow, GroupId(..))
 import Example.Validation.Semigroup as V
+import Formless.Spec (OutputField, unwrapOutput)
 import Formless.Spec as FSpec
 import Formless.Validation (onInputField)
+import Record as Record
 import Type.Row (RProxy(..))
 
 -- | mkFormSpecFromRow can produce a valid input form spec from your row
@@ -16,6 +19,18 @@ groupFormSpec :: GroupForm FSpec.FormSpec
 groupFormSpec =
   FSpec.mkFormSpecFromRow $ RProxy :: RProxy (GroupFormRow FSpec.Input)
 
+-- | We can use simple record manipulations to change the group form result
+-- | into our output type
+groupFormParser :: GroupForm OutputField -> Group
+groupFormParser = Group
+  <<< Record.delete (SProxy :: SProxy "secretKey2")
+  <<< Record.rename (SProxy :: SProxy "secretKey1") (SProxy :: SProxy "secretKey")
+  <<< Record.insert (SProxy :: SProxy "id") (GroupId 10)
+  <<< Record.insert (SProxy :: SProxy "options") Nothing
+  <<< unwrapOutput
+
+-- | We'll provide a fairly involved validation function to verify the fields are
+-- | correct. This includes things like dependent validation.
 groupFormValidation
   :: GroupForm FSpec.InputField
   -> GroupForm FSpec.InputField
@@ -36,3 +51,4 @@ groupFormValidation (GroupForm form) = GroupForm
   , minBudget: V.validateInt `onInputField` form.minBudget
   , whiskey: V.validateMaybe `onInputField` form.whiskey
   }
+

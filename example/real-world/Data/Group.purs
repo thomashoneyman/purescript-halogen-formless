@@ -92,6 +92,8 @@ newtype Group = Group
     )
   )
 derive instance newtypeGroup :: Newtype Group _
+derive newtype instance eqGroup :: Eq Group
+derive newtype instance showGroup :: Show Group
 
 _id = SProxy :: SProxy "id"
 _secretKey = SProxy :: SProxy "secretKey"

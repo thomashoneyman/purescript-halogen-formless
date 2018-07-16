@@ -2,15 +2,13 @@ module Example.ExternalComponents.Component where
 
 import Prelude
 
-import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
 import Effect.Console (log) as Console
 import Example.ExternalComponents.RenderForm (formless)
-import Example.ExternalComponents.Spec (FormRow, _email, _language, _whiskey, formSpec, formValidation)
+import Example.ExternalComponents.Spec (_email, _language, _whiskey, formSpec, formValidation, outputParser)
 import Example.ExternalComponents.Types (ChildQuery, ChildSlot, Query(..), Slot(..), State)
 import Formless as Formless
-import Formless.Spec as FSpec
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -54,7 +52,10 @@ component =
         unit
         Formless.component
         { formSpec
+          -- We wrote a pure validator, but could have written an effectful one. For that reason
+          -- we'll need to map pure over the result.
         , validator: pure <$> formValidation
+        , parser: outputParser
         , render: formless
         }
         (HE.input HandleFormless)
@@ -68,33 +69,10 @@ component =
       -- calling `eval`
       Formless.Emit q -> eval q *> pure a
 
-      -- When the form is validated, Formless will show the current status of all
-      -- fields and will report the total number of errors across fields. Only
-      -- validated fields report errors.
-      Formless.Validated errors -> do
-        H.liftEffect $ Console.log $ "Validated! Errors: " <> show errors
+      -- Formless will provide your result on successful submission.
+      Formless.Submitted user -> do
+        H.liftEffect $ Console.log $ show user
         pure a
-
-      -- If the form is reset, Formless will return the state so you can adjust
-      -- any of your parent state as needed
-      Formless.Reset _ -> pure a
-
-      -- We'll just log the result here, but you could send this off to a server for
-      -- processing on success.
-      Formless.Submitted result -> case result of
-        Left f -> do
-          H.liftEffect $ Console.log "Failed to validate form."
-          pure a
-        Right v -> do
-          -- Now we have just a simple record of successful output!
-          let form :: Record (FormRow FSpec.Output)
-              form = FSpec.unwrapOutput v
-
-          H.liftEffect $ do
-             Console.log "Successfully validated form."
-             Console.log $ "Whiskey: " <> form.whiskey
-
-          pure a
 
     HandleTypeahead slot m a -> case m of
       -- This is a renderless component, so we must handle the `Emit` case by recursively

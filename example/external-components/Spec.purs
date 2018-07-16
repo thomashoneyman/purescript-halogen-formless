@@ -6,6 +6,7 @@ import Data.Maybe (Maybe, fromMaybe)
 import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
 import Example.Validation.Semigroup as V
+import Formless.Spec (Output, OutputField, unwrapOutput)
 import Formless.Spec as FSpec
 import Formless.Validation (onInputField)
 import Type.Row (RProxy(..))
@@ -14,6 +15,11 @@ import Type.Row (RProxy(..))
 -- | rather than a record accepting `f`, we're just providing a row.
 newtype Form f = Form (Record (FormRow f))
 derive instance newtypeForm :: Newtype (Form f) _
+
+-- | This is the actual type you want to parse to and use throughout your program.
+-- | In this case, it'll be the exact record output by the form, but in many cases,
+-- | it may be another shape.
+type User = Record (FormRow Output)
 
 -- | We'll use this row to generate our form spec, but also to represent the
 -- | available fields in the record.
@@ -47,3 +53,8 @@ formValidation (Form form) = Form
   , language: V.validateMaybe `onInputField` form.language
   }
 
+-- | You should provide a function from the form with only output values to your ideal
+-- | parsed type. Since your output type is identical to the form's shape, you can simply
+-- | unwrap the form with a helper from Formless.
+outputParser :: Form OutputField -> User
+outputParser = unwrapOutput
