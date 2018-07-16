@@ -13,7 +13,7 @@ import Ocelot.Components.Typeahead as TA
 -- | This component will only handle output from Formless to keep
 -- | things simple.
 data Query a
-  = HandleFormless (Formless.Message Query User) a
+  = HandleFormless (Formless.Message Query Form User) a
   | HandleTypeahead Slot (TA.Message Query String) a
 
 type State = Unit

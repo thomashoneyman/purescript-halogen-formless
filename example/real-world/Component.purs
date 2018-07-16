@@ -2,7 +2,7 @@ module Example.RealWorld.Component where
 
 import Prelude
 
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..))
 import Data.Newtype (over)
 import Effect.Aff (Aff)
 import Effect.Console as Console
@@ -109,14 +109,8 @@ component =
     -- We can reset both forms to their starting values by leveraging
     -- the `Reset` query from Formless
     Reset a -> do
-      groupState <- H.query' CP.cp1 unit $ H.request Formless.ResetReply
-      optionsState <- H.query' CP.cp2 unit $ H.request Formless.ResetReply
-      H.modify_ \st -> st
-        { groupFormErrors = maybe st.groupFormErrors _.errors groupState
-        , groupFormDirty = maybe st.groupFormDirty _.dirty groupState
-        , optionsFormErrors = maybe st.optionsFormErrors _.errors optionsState
-        , optionsFormDirty = maybe st.optionsFormDirty _.dirty optionsState
-        }
+      _ <- H.query' CP.cp1 unit $ H.action Formless.Reset
+      _ <- H.query' CP.cp2 unit $ H.action Formless.Reset
       pure a
 
     -- On submit, we need to make sure both forms are run. We
@@ -140,10 +134,16 @@ component =
     -- Group Form
 
     HandleGroupForm m a -> case m of
-      Formless.Emit q -> eval q *> pure a
       -- We are manually querying Formless to get form submissions
       -- so we can safely ignore this.
       Formless.Submitted _ -> pure a
+      Formless.Emit q -> eval q *> pure a
+      Formless.Changed fstate -> do
+        H.modify_ \st -> st
+          { groupFormErrors = fstate.errors
+          , groupFormDirty = fstate.dirty
+          }
+        pure a
 
     HandleGroupTypeahead slot m a -> case m of
       TA.Emit q -> eval q *> pure a
@@ -191,6 +191,12 @@ component =
     HandleOptionsForm m a -> case m of
       Formless.Emit q -> eval q *> pure a
       Formless.Submitted _ -> pure a
+      Formless.Changed fstate -> do
+        H.modify_ \st -> st
+          { optionsFormErrors = fstate.errors
+          , optionsFormDirty = fstate.dirty
+          }
+        pure a
 
     HandleMetricDropdown m a -> case m of
       Dropdown.ItemSelected x -> do

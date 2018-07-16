@@ -3,10 +3,11 @@ module Example.ExternalComponents.Component where
 import Prelude
 
 import Data.Maybe (Maybe(..))
+import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Effect.Console (log) as Console
 import Example.ExternalComponents.RenderForm (formless)
-import Example.ExternalComponents.Spec (_email, _language, _whiskey, formSpec, formValidation, outputParser)
+import Example.ExternalComponents.Spec (User, _email, _language, _whiskey, formSpec, formValidation, outputParser)
 import Example.ExternalComponents.Types (ChildQuery, ChildSlot, Query(..), Slot(..), State)
 import Formless as Formless
 import Halogen as H
@@ -15,6 +16,7 @@ import Halogen.HTML.Events as HE
 import Ocelot.Block.Format as Format
 import Ocelot.Components.Typeahead as TA
 import Ocelot.HTML.Properties (css)
+import Record (delete)
 
 component :: H.Component HH.HTML Query Unit Void Aff
 component =
@@ -69,9 +71,14 @@ component =
       -- calling `eval`
       Formless.Emit q -> eval q *> pure a
 
-      -- Formless will provide your result on successful submission.
+      -- Formless will provide your result type on successful submission.
       Formless.Submitted user -> do
-        H.liftEffect $ Console.log $ show user
+        H.liftEffect $ Console.log $ show (user :: User)
+        pure a
+
+      -- Formless will alert you with the new summary state if it is changed.
+      Formless.Changed fstate -> do
+        H.liftEffect $ Console.log $ show $ delete (SProxy :: SProxy "form") fstate
         pure a
 
     HandleTypeahead slot m a -> case m of

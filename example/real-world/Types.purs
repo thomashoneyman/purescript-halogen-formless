@@ -18,8 +18,8 @@ import Ocelot.Components.Typeahead as TA
 -- | This component will only handle output from Formless to keep
 -- | things simple.
 data Query a
-  = HandleGroupForm (Formless.Message Query Group) a
-  | HandleOptionsForm (Formless.Message Query Options) a
+  = HandleGroupForm (Formless.Message Query GroupForm Group) a
+  | HandleOptionsForm (Formless.Message Query OptionsForm Options) a
   | HandleGroupTypeahead GroupTASlot (TA.Message Query String) a
   | HandleAdminDropdown (Dropdown.Message Admin) a
   | HandleMetricDropdown (Dropdown.Message Metric) a

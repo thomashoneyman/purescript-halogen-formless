@@ -9,6 +9,8 @@ import Prelude
 import Control.Comonad (extract)
 import Control.Comonad.Store (Store, store)
 import Data.Eq (class EqRecord)
+import Data.Generic.Rep (class Generic)
+import Data.Generic.Rep.Show (genericShow)
 import Data.Lens as Lens
 import Data.Lens.Iso.Newtype (_Newtype)
 import Data.Lens.Record (prop)
@@ -35,14 +37,10 @@ import Web.UIEvent.MouseEvent (MouseEvent)
 data Query pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) out m a
   = HandleBlur (form InputField -> form InputField) a
   | HandleChange (form InputField -> form InputField) a
-  | TouchAll a
+  | Reset a
   | Validate a
-  | ValidateReply (State' form -> a)
   | Submit a
   | SubmitReply (Maybe out -> a)
-  | Reset a
-  | ResetReply (State' form -> a)
-  | GetState (State' form -> a)
   | Send cs (cq Unit) a
   | Raise (pq Unit) a
   | Receive (Input pq cq cs form out m) a
@@ -58,7 +56,7 @@ type Component pq cq cs form out m
       HH.HTML
       (Query pq cq cs form out m)
       (Input pq cq cs form out m)
-      (Message pq out)
+      (Message pq form out)
       m
 
 -- | The component's HTML type, the result of the render function.
@@ -72,7 +70,7 @@ type DSL pq cq cs form out m
       (Query pq cq cs form out m)
       cq
       cs
-      (Message pq out)
+      (Message pq form out)
       m
 
 -- | The component local state
@@ -107,8 +105,11 @@ data ValidStatus
   = Invalid
   | Incomplete
   | Valid
+derive instance genericValidStatus :: Generic ValidStatus _
 derive instance eqValidStatus :: Eq ValidStatus
 derive instance ordValidStatus :: Ord ValidStatus
+instance showValidStatus :: Show ValidStatus where
+  show = genericShow
 
 -- | The component's input type
 type Input pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) out m =
@@ -122,8 +123,9 @@ type Input pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) out m =
 -- | The component tries to require as few messages to be handled as possible. You
 -- | can always use the *Reply variants of queries to perform actions and receive
 -- | a result out the other end.
-data Message pq out
+data Message pq form out
   = Submitted out
+  | Changed (State' form)
   | Emit (pq Unit)
 
 -- | The component itself
@@ -189,7 +191,7 @@ component =
       let internal = unwrap init.internal
       form <- H.lift $ internal.validator init.form
       let errors = Internal.countErrors form
-      modifyState_ \st -> st
+      new <- modifyState \st -> st
         { form = form
         , errors = errors
           -- Dirty state is computed by checking equality of original input fields vs. current ones.
@@ -200,44 +202,22 @@ component =
               then Incomplete
               else if not (errors == 0) then Invalid else Valid
         }
+      H.raise $ Changed $ getPublicState new
       pure a
 
-    ValidateReply reply -> do
-      _ <- eval $ Validate unit
-      eval $ GetState reply
-
-    -- | Set all fields to true, then set allTouched to true to
-    -- | avoid recomputing
-    TouchAll a -> do
-      st <- getState
-      when (not (_.allTouched (unwrap st.internal))) do
-        modifyState_ _
-         { form = Internal.setInputFieldsTouched st.form
-         , internal = over InternalState (_ { allTouched = true }) st.internal
-         }
-      pure a
-
-    -- | Should raise a submit message, because this does not
-    -- | return the result values to the parent.
-    Submit a -> do
-      _ <- eval $ TouchAll unit
-      _ <- eval $ Validate unit
+    -- Submit, also raising a message to the user
+    Submit a -> a <$ do
       st <- runSubmit
-      traverse_ (H.raise <<< Submitted) (_.formResult $ unwrap st.internal)
-      pure a
+      traverse_ (H.raise <<< Submitted) st
 
-    -- | Should not raise a submit message, because it returns
-    -- | the value directly.
+    -- Submit, without raising a message, but returning the result directly
     SubmitReply reply -> do
-      _ <- eval $ TouchAll unit
-      _ <- eval $ Validate unit
-      st <- runSubmit
-      pure $ reply (_.formResult $ unwrap st.internal)
-
+       st <- runSubmit
+       pure $ reply st
 
     -- | Should completely reset the form to its initial state
     Reset a -> do
-      modifyState_ \st -> st
+      new <- modifyState \st -> st
         { validity = Incomplete
         , dirty = false
         , errors = 0
@@ -248,19 +228,8 @@ component =
             }
           ) st.internal
         }
+      H.raise $ Changed $ getPublicState new
       pure a
-
-    ResetReply reply -> do
-      _ <- eval $ Reset unit
-      eval $ GetState reply
-
-    -- We'll allow component users to fetch the public form state at any point, but
-    -- will remove the internal state first. (TODO: Is this really better than simply
-    -- allowing them access to the entire state? After all, they'll see it anyway
-    -- in their render functions).
-    GetState reply -> do
-      st <- getState
-      pure $ reply $ Record.delete (SProxy :: SProxy "internal") st
 
     -- Only allows actions; always returns nothing.
     Send cs cq a -> do
@@ -278,13 +247,24 @@ component =
   ----------
   -- Effectful eval helpers
 
-  -- Only attempt to parse the form to an output if it is already
-  -- valid, in order to save effort.
-  runSubmit :: DSL pq cq cs form out m (State form out m)
+  -- Remove internal fields and return the public state
+  getPublicState :: State form out m -> State' form
+  getPublicState = Record.delete (SProxy :: SProxy "internal")
+
+  -- Run submission without raising messages or replies
+  runSubmit :: DSL pq cq cs form out m (Maybe out)
   runSubmit = do
+    init <- getState
+    when (not (_.allTouched (unwrap init.internal))) do
+      modifyState_ _
+       { form = Internal.setInputFieldsTouched init.form
+       , internal = over InternalState (_ { allTouched = true }) init.internal
+       }
+    _ <- eval $ Validate unit
     output <- runFormParser
-    modifyState \st -> st
+    modifyState_ \st -> st
       { internal = over InternalState (_ { formResult = output }) st.internal }
+    pure output
 
   -- Only attempt to parse the form to an output if it is already
   -- valid, in order to save effort.
