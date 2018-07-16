@@ -128,26 +128,23 @@ data Message pq out
 
 -- | The component itself
 component
-  :: ∀ pq cq cs form out m spec specxs field fieldxs mboutput mboutputxs output countxs count inputs inputsxs
+  :: ∀ pq cq cs form out m spec specxs field fieldxs output countxs count inputs inputsxs
    . Ord cs
   => Monad m
   => RL.RowToList spec specxs
   => RL.RowToList field fieldxs
-  => RL.RowToList mboutput mboutputxs
   => RL.RowToList count countxs
   => RL.RowToList inputs inputsxs
   => EqRecord inputsxs inputs
   => Internal.FormSpecToInputField specxs spec () field
   => Internal.InputFieldsToInput fieldxs field () inputs
   => Internal.SetInputFieldsTouched fieldxs field () field
-  => Internal.InputFieldToMaybeOutput fieldxs field () mboutput
-  => Internal.MaybeOutputToOutputField mboutputxs mboutput () output
+  => Internal.InputFieldToMaybeOutput fieldxs field () output
   => Internal.CountErrors fieldxs field () count
   => Internal.SumRecord countxs count (Additive Int)
   => Newtype (form FormSpec) (Record spec)
   => Newtype (form InputField) (Record field)
   => Newtype (form OutputField) (Record output)
-  => Newtype (form Internal.MaybeOutput) (Record mboutput)
   => Newtype (form Internal.Input) (Record inputs)
   => Component pq cq cs form out m
 component =
@@ -297,10 +294,7 @@ component =
     pure $
       if st.validity == Valid
         then let internal = unwrap st.internal
-                 outputs =
-                   Internal.maybeOutputToOutputField
-                   $ Internal.inputFieldToMaybeOutput
-                   $ st.form
+                 outputs = Internal.inputFieldToMaybeOutput st.form
               in internal.parser <$> outputs
         else Nothing
 

@@ -2,7 +2,7 @@ module Formless.Internal where
 
 import Prelude
 
-import Data.Either (Either(..))
+import Data.Either (Either(..), hush)
 import Data.Maybe (Maybe(..))
 import Data.Monoid.Additive (Additive(..))
 import Data.Newtype (class Newtype, unwrap, wrap)
@@ -17,11 +17,6 @@ import Type.Data.RowList (RLProxy(..))
 
 -----
 -- Types
-
--- | Never exposed to the user, but used to
--- | aid transformations
-newtype MaybeOutput i e o = MaybeOutput (Maybe o)
-derive instance newtypeMaybeOutput :: Newtype (MaybeOutput i e o) _
 
 -- | Never exposed to the user, but used to aid equality instances for
 -- | checking dirty states.
@@ -103,29 +98,12 @@ inputFieldToMaybeOutput
    . RL.RowToList row xs
   => InputFieldToMaybeOutput xs row () row'
   => Newtype (form InputField) (Record row)
-  => Newtype (form MaybeOutput) (Record row')
+  => Newtype (form OutputField) (Record row')
   => form InputField
-  -> form MaybeOutput
-inputFieldToMaybeOutput r = wrap $ Builder.build builder {}
+  -> Maybe (form OutputField)
+inputFieldToMaybeOutput r = map wrap $ Builder.build <@> {} <$> builder
   where
     builder = inputFieldToMaybeOutputBuilder (RLProxy :: RLProxy xs) (unwrap r)
-
--- | A function that, when used with `inputFieldToMaybeOutput`, turns a record of
--- | InputField into a record of OutputField if all fields in the record are successfully
--- | validated.
-maybeOutputToOutputField
-  :: ∀ i e o row xs row' form
-   . RL.RowToList row xs
-  => MaybeOutputToOutputField xs row () row'
-  => Newtype (MaybeOutput i e o) (Maybe o)
-  => Newtype (form MaybeOutput) (Record row)
-  => Newtype (form OutputField) (Record row')
-  => form MaybeOutput
-  -> Maybe (form OutputField)
-maybeOutputToOutputField r = map wrap $ Builder.build <@> {} <$> builder
-  where
-    builder = maybeOutputToOutputFieldBuilder (RLProxy :: RLProxy xs) (unwrap r)
-
 
 -----
 -- Classes (Internal)
@@ -215,66 +193,34 @@ instance formSpecToInputFieldCons
         }
 
 -- | The class that provides the Builder implementation to efficiently transform the record
--- | of InputField to record of MaybeOutput.
+-- | of MaybeOutput to a record of OutputField, but only if all fields were successfully
+-- | validated.
 class InputFieldToMaybeOutput
   (xs :: RL.RowList) (row :: # Type) (from :: # Type) (to :: # Type)
   | xs -> from to where
-  inputFieldToMaybeOutputBuilder :: RLProxy xs -> Record row -> Builder { | from } { | to }
+  inputFieldToMaybeOutputBuilder :: RLProxy xs -> Record row -> Maybe (Builder { | from } { | to })
 
 instance inputFieldToMaybeOutputNil :: InputFieldToMaybeOutput RL.Nil row () () where
-  inputFieldToMaybeOutputBuilder _ _ = identity
+  inputFieldToMaybeOutputBuilder _ _ = Just identity
 
 instance inputFieldToMaybeOutputCons
   :: ( IsSymbol name
      , Row.Cons name (InputField i e o) trash row
      , InputFieldToMaybeOutput tail row from from'
      , Row.Lacks name from'
-     , Row.Cons name (MaybeOutput i e o) from' to
+     , Row.Cons name (OutputField i e o) from' to
      )
   => InputFieldToMaybeOutput (RL.Cons name (InputField i e o) tail) row from to where
   inputFieldToMaybeOutputBuilder _ r =
-    first <<< rest
-    where
-      _name = SProxy :: SProxy name
-      val = transform $ Record.get _name r
-      rest = inputFieldToMaybeOutputBuilder (RLProxy :: RLProxy tail) r
-      first = Builder.insert _name val
-      transform (InputField { result }) = MaybeOutput
-        case result of
-          Just (Right v) -> Just v
-          _ -> Nothing
-
-
--- | The class that provides the Builder implementation to efficiently transform the record
--- | of MaybeOutput to a record of OutputField, but only if all fields were successfully
--- | validated.
-class MaybeOutputToOutputField
-  (xs :: RL.RowList) (row :: # Type) (from :: # Type) (to :: # Type)
-  | xs -> from to where
-  maybeOutputToOutputFieldBuilder :: RLProxy xs -> Record row -> Maybe (Builder { | from } { | to })
-
-instance maybeOutputToOutputFieldNil :: MaybeOutputToOutputField RL.Nil row () () where
-  maybeOutputToOutputFieldBuilder _ _ = Just identity
-
-instance maybeOutputToOutputFieldCons
-  :: ( IsSymbol name
-     , Newtype (MaybeOutput i e o) (Maybe o)
-     , Row.Cons name (MaybeOutput i e o) trash row
-     , MaybeOutputToOutputField tail row from from'
-     , Row.Lacks name from'
-     , Row.Cons name (OutputField i e o) from' to
-     )
-  => MaybeOutputToOutputField (RL.Cons name (MaybeOutput i e o) tail) row from to where
-  maybeOutputToOutputFieldBuilder _ r =
     transform <$> val <*> rest
     where
       _name = SProxy :: SProxy name
 
       val :: Maybe (OutputField i e o)
-      val = map OutputField $ unwrap $ Record.get _name r
+      val = map OutputField $ join $ map hush $ _.result $ unwrap $ Record.get _name r
 
       rest :: Maybe (Builder { | from } { | from' })
-      rest = maybeOutputToOutputFieldBuilder (RLProxy :: RLProxy tail) r
+      rest = inputFieldToMaybeOutputBuilder (RLProxy :: RLProxy tail) r
 
       transform
         :: OutputField i e o
