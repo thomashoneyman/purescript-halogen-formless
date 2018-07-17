@@ -6,6 +6,7 @@ import Data.Maybe (Maybe, fromMaybe)
 import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
 import Example.Validation.Semigroup as V
+import Formless.Spec (Output, OutputField, unwrapOutput)
 import Formless.Spec as FSpec
 import Formless.Validation (onInputField)
 import Type.Row (RProxy(..))
@@ -14,6 +15,11 @@ import Type.Row (RProxy(..))
 -- | rather than a record accepting `f`, we're just providing a row.
 newtype Form f = Form (Record (FormRow f))
 derive instance newtypeForm :: Newtype (Form f) _
+
+-- | This is the actual type you want to parse to and use throughout your program.
+-- | In this case, it'll be the exact record output by the form, but in many cases,
+-- | it may be another shape.
+type User = Record (FormRow Output)
 
 -- | We'll use this row to generate our form spec, but also to represent the
 -- | available fields in the record.
@@ -39,11 +45,17 @@ formSpec = FSpec.mkFormSpecFromRow $ RProxy :: RProxy (FormRow FSpec.Input)
 
 -- | You should provide your own validation. This example uses the PureScript
 -- | standard, `purescript-validation`.
-formValidation :: Form FSpec.InputField -> Form FSpec.InputField
-formValidation (Form form) = Form
-  { name: (\i -> V.validateNonEmpty i *> V.validateMinimumLength i 7) `onInputField` form.name
-  , email: (\i -> V.validateMaybe i *> V.validateEmailRegex (fromMaybe "" i)) `onInputField` form.email
-  , whiskey: V.validateMaybe `onInputField` form.whiskey
-  , language: V.validateMaybe `onInputField` form.language
-  }
+validator :: ∀ m. Monad m => Form FSpec.InputField -> m (Form FSpec.InputField)
+validator (Form form) = pure $
+  Form
+    { name: (\i -> V.validateNonEmpty i *> V.validateMinimumLength i 7) `onInputField` form.name
+    , email: (\i -> V.validateMaybe i *> V.validateEmailRegex (fromMaybe "" i)) `onInputField` form.email
+    , whiskey: V.validateMaybe `onInputField` form.whiskey
+    , language: V.validateMaybe `onInputField` form.language
+    }
 
+-- | You should provide a function from the form with only output values to your ideal
+-- | parsed type. Since your output type is identical to the form's shape, you can simply
+-- | unwrap the form with a helper from Formless.
+submitter :: ∀ m. Monad m => Form OutputField -> m User
+submitter = pure <<< unwrapOutput

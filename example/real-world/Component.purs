@@ -2,18 +2,17 @@ module Example.RealWorld.Component where
 
 import Prelude
 
-import Data.Either (Either(..))
-import Data.Maybe (Maybe(..), maybe)
-import Debug.Trace (spy)
+import Data.Maybe (Maybe(..))
+import Data.Newtype (over)
 import Effect.Aff (Aff)
 import Effect.Console as Console
-import Example.RealWorld.Data.Group (Group(..), GroupId(..), _admin, _applications, _pixels, _secretKey1, _secretKey2, _whiskey)
+import Example.RealWorld.Data.Group (Group(..), _admin, _applications, _pixels, _secretKey1, _secretKey2, _whiskey)
 import Example.RealWorld.Data.Options (Options(..), _metric)
 import Example.RealWorld.Render.GroupForm as GroupForm
 import Example.RealWorld.Render.Nav as Nav
 import Example.RealWorld.Render.OptionsForm as OptionsForm
-import Example.RealWorld.Spec.GroupForm (groupFormSpec, groupFormValidation)
-import Example.RealWorld.Spec.OptionsForm (optionsFormSpec, optionsFormValidation)
+import Example.RealWorld.Spec.GroupForm (groupFormSpec, groupFormSubmit, groupFormValidate)
+import Example.RealWorld.Spec.OptionsForm (optionsFormSpec, optionsFormValidate)
 import Example.RealWorld.Types (ChildQuery, ChildSlot, GroupTASlot(..), Query(..), State, Tab(..))
 import Formless as Formless
 import Formless.Spec (unwrapOutput)
@@ -76,7 +75,8 @@ component =
           unit
           Formless.component
           { formSpec: groupFormSpec
-          , validator: pure <$> groupFormValidation
+          , validator: groupFormValidate
+          , submitter: groupFormSubmit
           , render: GroupForm.render
           }
           (HE.input HandleGroupForm)
@@ -88,7 +88,8 @@ component =
           unit
           Formless.component
           { formSpec: optionsFormSpec
-          , validator: pure <$> optionsFormValidation
+          , validator: pure <$> optionsFormValidate
+          , submitter: pure <<< Options <<< unwrapOutput
           , render: OptionsForm.render
           }
           (HE.input HandleOptionsForm)
@@ -106,10 +107,12 @@ component =
       pure a
 
     -- We can reset both forms to their starting values by leveraging
-    -- the `Reset` query from Formless
+    -- the `Reset` query from Formless. We also need to reset our various
+    -- external components, as Formless doesn't know about them.
+    -- TODO: Currently can't send queries through to multiple child types
     Reset a -> do
-      _ <- H.query' CP.cp1 unit $ H.action Formless.ResetAll
-      _ <- H.query' CP.cp2 unit $ H.action Formless.ResetAll
+      _ <- H.query' CP.cp1 unit $ H.action Formless.Reset
+      _ <- H.query' CP.cp2 unit $ H.action Formless.Reset
       pure a
 
     -- On submit, we need to make sure both forms are run. We
@@ -118,78 +121,29 @@ component =
     Submit a -> do
       mbGroupForm <- H.query' CP.cp1 unit $ H.request Formless.SubmitReply
       mbOptionsForm <- H.query' CP.cp2 unit $ H.request Formless.SubmitReply
-      group <- H.liftEffect case mbGroupForm, mbOptionsForm of
-        Just (Left _), Just (Left _) -> do
-          Console.error "Neither form validated successfully."
-          pure Nothing
 
-        Just (Left _), Just (Right _) -> do
-          Console.warn "Only the options form validated successfully."
-          pure Nothing
+      -- Here, we'll construct our new group from the two form outputs.
+      case mbGroupForm, mbOptionsForm of
+         Just g, Just v -> do
+           H.modify_ _ { group = map (over Group (_ { options = v })) g }
+         _, _ -> H.liftEffect (Console.error "Forms did not validate.")
 
-        Just (Right _), Just (Left _) -> do
-          Console.warn "Only the group form validated successfully."
-          pure Nothing
-
-        Just (Right groupRaw), Just (Right optionsRaw) -> do
-          Console.info "Both forms validated successfully."
-          let groupForm = unwrapOutput groupRaw
-              optionsForm = unwrapOutput optionsRaw
-              group = Group
-                { name: groupForm.name
-                , id: GroupId 10
-                , secretKey: groupForm.secretKey1
-                , options: Just $ Options optionsForm
-                , admin: groupForm.admin
-                , applications: groupForm.applications
-                , pixels: groupForm.pixels
-                , maxBudget: groupForm.maxBudget
-                , minBudget: groupForm.minBudget
-                , whiskey: groupForm.whiskey
-                }
-          pure $ Just group
-
-        Nothing, Just v -> do
-          Console.error "The group form doesn't exist at that slot."
-          pure Nothing
-
-        Just v, Nothing -> do
-          Console.error "The options form doesn't exist at that slot."
-          pure Nothing
-
-        Nothing, Nothing -> do
-          Console.error "Something went wrong with the both forms."
-          pure Nothing
-
-      -- Now we can set our group -- if successful.
-      H.modify_ _ { group = group }
-      let _ = spy "Trying to set group..." group
+      st <- H.get
+      H.liftEffect $ Console.log $ show st.group
       pure a
 
     -----
     -- Group Form
 
     HandleGroupForm m a -> case m of
-      Formless.Emit q -> eval q *> pure a
       -- We are manually querying Formless to get form submissions
       -- so we can safely ignore this.
       Formless.Submitted _ -> pure a
-
-      -- We don't care about the failed form result, but we do want
-      -- to collect errors on validation. We also want to fetch the
-      -- dirty states.
-      Formless.Validated errors -> do
-        formlessState <- H.query' CP.cp1 unit $ H.request Formless.GetState
+      Formless.Emit q -> eval q *> pure a
+      Formless.Changed fstate -> do
         H.modify_ \st -> st
-          { groupFormErrors = errors
-          , groupFormDirty = maybe st.groupFormDirty _.dirty formlessState
-          }
-        pure a
-
-      Formless.Reset formlessState -> do
-        H.modify_ _
-          { groupFormErrors = formlessState.errors
-          , groupFormDirty = formlessState.dirty
+          { groupFormErrors = fstate.errors
+          , groupFormDirty = fstate.dirty
           }
         pure a
 
@@ -199,37 +153,28 @@ component =
         let v' = TA.unpackSelections v
         case slot of
           ApplicationsTypeahead -> do
-            _ <- H.query' CP.cp1 unit $ Formless.handleChange _applications v'
-            _ <- H.query' CP.cp1 unit $ Formless.handleBlur _applications
+            _ <- H.query' CP.cp1 unit $ Formless.handleBlurAndChange _applications v'
             pure a
           PixelsTypeahead -> do
-            _ <- H.query' CP.cp1 unit $ Formless.handleChange _pixels v'
-            _ <- H.query' CP.cp1 unit $ Formless.handleBlur _pixels
+            _ <- H.query' CP.cp1 unit $ Formless.handleBlurAndChange _pixels v'
             pure a
           WhiskeyTypeahead -> case s of
             TA.ItemSelected x -> do
-              _ <- H.query' CP.cp1 unit $ Formless.handleChange _whiskey (Just x)
-              _ <- H.query' CP.cp1 unit $ Formless.handleBlur _whiskey
+              _ <- H.query' CP.cp1 unit $ Formless.handleBlurAndChange _whiskey (Just x)
               pure a
             _ -> do
-              _ <- H.query' CP.cp1 unit $ Formless.handleChange _whiskey Nothing
-              _ <- H.query' CP.cp1 unit $ Formless.handleBlur _whiskey
+              _ <- H.query' CP.cp1 unit $ Formless.handleBlurAndChange _whiskey Nothing
               pure a
       TA.VisibilityChanged _ -> pure a
       TA.Searched _ -> pure a
 
     HandleAdminDropdown m a -> case m of
       Dropdown.ItemSelected x -> do
-        _ <- H.query' CP.cp1 unit
-          $ Formless.handleChange _admin (Just x)
-        _ <- H.query' CP.cp1 unit
-          $ Formless.handleBlur _admin
-
-        -- Changing this field should also clear the secret keys
-        _ <- H.query' CP.cp1 unit
-          $ Formless.handleChange _secretKey1 ""
-        _ <- H.query' CP.cp1 unit
-          $ Formless.handleChange _secretKey2 ""
+        _ <- H.query' CP.cp1 unit $ Formless.handleBlurAndChange _admin (Just x)
+        -- Changing this field should also clear the secret keys. Ensure you use `reset`
+        -- instead of `change` as you want to clear errors, too.
+        _ <- H.query' CP.cp1 unit $ Formless.handleReset _secretKey1
+        _ <- H.query' CP.cp1 unit $ Formless.handleReset _secretKey2
         pure a
 
 
@@ -239,22 +184,14 @@ component =
     HandleOptionsForm m a -> case m of
       Formless.Emit q -> eval q *> pure a
       Formless.Submitted _ -> pure a
-      Formless.Validated errors -> do
-        formlessState <- H.query' CP.cp2 unit $ H.request Formless.GetState
+      Formless.Changed fstate -> do
         H.modify_ \st -> st
-          { optionsFormErrors = errors
-          , optionsFormDirty = maybe st.optionsFormDirty _.dirty formlessState
-          }
-        pure a
-      Formless.Reset formlessState -> do
-        H.modify_ _
-          { optionsFormErrors = formlessState.errors
-          , optionsFormDirty = formlessState.dirty
+          { optionsFormErrors = fstate.errors
+          , optionsFormDirty = fstate.dirty
           }
         pure a
 
     HandleMetricDropdown m a -> case m of
       Dropdown.ItemSelected x -> do
-        _ <- H.query' CP.cp2 unit $ Formless.handleChange _metric (Just x)
-        _ <- H.query' CP.cp2 unit $ Formless.handleBlur _metric
+        _ <- H.query' CP.cp2 unit $ Formless.handleBlurAndChange _metric (Just x)
         pure a

@@ -20,10 +20,10 @@ optionsFormSpec =
 
 -- | You should provide your own validation. This example uses the PureScript
 -- | standard, `purescript-validation`.
-optionsFormValidation
+optionsFormValidate
   :: OptionsForm FSpec.InputField
   -> OptionsForm FSpec.InputField
-optionsFormValidation (OptionsForm form) =
+optionsFormValidate (OptionsForm form) =
   case (_.input $ unwrap form.enable) of
     false -> OptionsForm form
     true -> OptionsForm

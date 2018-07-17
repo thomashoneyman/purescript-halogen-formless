@@ -22,6 +22,8 @@ import Formless.Spec as FSpec
 -- | This data type represents dollar amounts
 newtype Dollars = Dollars Int
 derive instance newtypeDollars :: Newtype Dollars _
+derive newtype instance eqDollars :: Eq Dollars
+derive newtype instance showDollars :: Show Dollars
 
 -- | This data type represents different metrics a user
 -- | can choose from. Depending on what metric they choose,
@@ -92,6 +94,8 @@ _speed = SProxy :: SProxy "speed"
 -- | as the form and the underlying row.
 newtype Options = Options (Record (OptionsRow FSpec.Output))
 derive instance newtypeOptions :: Newtype Options _
+derive newtype instance eqOptions :: Eq Options
+derive newtype instance showOptions :: Show Options
 
 -- | Here's the Form type we'll use to run with Formless. The fields are the same as the
 -- | underlying row.

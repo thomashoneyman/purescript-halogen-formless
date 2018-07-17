@@ -2,21 +2,21 @@ module Example.ExternalComponents.Component where
 
 import Prelude
 
-import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
+import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Effect.Console (log) as Console
 import Example.ExternalComponents.RenderForm (formless)
-import Example.ExternalComponents.Spec (FormRow, _email, _language, _whiskey, formSpec, formValidation)
+import Example.ExternalComponents.Spec (User, _email, _language, _whiskey, formSpec, submitter, validator)
 import Example.ExternalComponents.Types (ChildQuery, ChildSlot, Query(..), Slot(..), State)
 import Formless as Formless
-import Formless.Spec as FSpec
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Ocelot.Block.Format as Format
 import Ocelot.Components.Typeahead as TA
 import Ocelot.HTML.Properties (css)
+import Record (delete)
 
 component :: H.Component HH.HTML Query Unit Void Aff
 component =
@@ -54,7 +54,8 @@ component =
         unit
         Formless.component
         { formSpec
-        , validator: pure <$> formValidation
+        , validator
+        , submitter
         , render: formless
         }
         (HE.input HandleFormless)
@@ -68,33 +69,25 @@ component =
       -- calling `eval`
       Formless.Emit q -> eval q *> pure a
 
-      -- When the form is validated, Formless will show the current status of all
-      -- fields and will report the total number of errors across fields. Only
-      -- validated fields report errors.
-      Formless.Validated errors -> do
-        H.liftEffect $ Console.log $ "Validated! Errors: " <> show errors
+      -- Formless will provide your result type on successful submission.
+      Formless.Submitted user -> do
+        H.liftEffect $ Console.log $ show (user :: User)
         pure a
 
-      -- If the form is reset, Formless will return the state so you can adjust
-      -- any of your parent state as needed
-      Formless.Reset _ -> pure a
+      -- Formless will alert you with the new summary state if it is changed.
+      Formless.Changed fstate -> do
+        H.liftEffect $ Console.log $ show $ delete (SProxy :: SProxy "form") fstate
+        pure a
 
-      -- We'll just log the result here, but you could send this off to a server for
-      -- processing on success.
-      Formless.Submitted result -> case result of
-        Left f -> do
-          H.liftEffect $ Console.log "Failed to validate form."
-          pure a
-        Right v -> do
-          -- Now we have just a simple record of successful output!
-          let form :: Record (FormRow FSpec.Output)
-              form = FSpec.unwrapOutput v
-
-          H.liftEffect $ do
-             Console.log "Successfully validated form."
-             Console.log $ "Whiskey: " <> form.whiskey
-
-          pure a
+    -- While Formless is perfectly capable of resetting all fields to their initial
+    -- values, it isn't aware of your external components, so you'll need to reset
+    -- those yourself.
+    Reset a -> do
+      _ <- H.query unit $ H.action $ Formless.Send EmailTypeahead (TA.ReplaceSelections (TA.One Nothing) unit)
+      _ <- H.query unit $ H.action $ Formless.Send WhiskeyTypeahead (TA.ReplaceSelections (TA.One Nothing) unit)
+      _ <- H.query unit $ H.action $ Formless.Send LanguageTypeahead (TA.ReplaceSelections (TA.One Nothing) unit)
+      _ <- H.query unit $ H.action Formless.Reset
+      pure a
 
     HandleTypeahead slot m a -> case m of
       -- This is a renderless component, so we must handle the `Emit` case by recursively
@@ -109,32 +102,31 @@ component =
         TA.ItemSelected x -> do
           case slot of
             EmailTypeahead -> do
-              _ <- H.query unit $ Formless.handleChange _email (Just x)
-              _ <- H.query unit $ Formless.handleBlur _email
+              _ <- H.query unit $ Formless.handleBlurAndChange _email (Just x)
               pure a
             WhiskeyTypeahead -> do
-              _ <- H.query unit $ Formless.handleChange _whiskey (Just x)
-              _ <- H.query unit $ Formless.handleBlur _whiskey
+              -- We can use handleBlurAndChange to manage our component updates
+              _ <- H.query unit $ Formless.handleBlurAndChange _whiskey (Just x)
+              -- This is how you can clear a typeahead via Formless using your queries
               _ <- H.query unit $ Formless.Send EmailTypeahead (TA.ReplaceSelections (TA.One Nothing) unit) unit
+              -- To reset a field, including 'touched' state, errors, and inputs, use handleReset
+              _ <- H.query unit $ Formless.handleReset _email
               pure a
             LanguageTypeahead -> do
-              _ <- H.query unit $ Formless.handleChange _language (Just x)
-              _ <- H.query unit $ Formless.handleBlur _language
+              _ <- H.query unit $ Formless.handleBlurAndChange _language (Just x)
               _ <- H.query unit $ Formless.Send EmailTypeahead (TA.ReplaceSelections (TA.One Nothing) unit) unit
+              _ <- H.query unit $ Formless.handleReset _email
               pure a
         _ -> do
           case slot of
             EmailTypeahead -> do
-              _ <- H.query unit $ Formless.handleChange _email Nothing
-              _ <- H.query unit $ Formless.handleBlur _email
+              _ <- H.query unit $ Formless.handleBlurAndChange _email Nothing
               pure a
             WhiskeyTypeahead -> do
-              _ <- H.query unit $ Formless.handleChange _whiskey Nothing
-              _ <- H.query unit $ Formless.handleBlur _whiskey
+              _ <- H.query unit $ Formless.handleBlurAndChange _whiskey Nothing
               pure a
             LanguageTypeahead -> do
-              _ <- H.query unit $ Formless.handleChange _language Nothing
-              _ <- H.query unit $ Formless.handleBlur _language
+              _ <- H.query unit $ Formless.handleBlurAndChange _language Nothing
               pure a
 
       -- Unfortunately, single-select typeaheads send blur events before

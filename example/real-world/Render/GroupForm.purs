@@ -33,11 +33,11 @@ import Record (get) as Record
 
 -- | A convenience synonym for the group Formless state
 type FormlessState
-  = Formless.State G.GroupForm Aff
+  = Formless.State G.GroupForm G.Group Aff
 
 -- | A convenience synonym for the group Formless HTML type
 type FormlessHTML
-  = Formless.HTML Query GroupCQ GroupCS G.GroupForm Aff
+  = Formless.HTML Query GroupCQ GroupCS G.GroupForm G.Group Aff
 
 -- | The form, grouped by sections.
 render :: FormlessState -> FormlessHTML

@@ -7,7 +7,7 @@ import Data.Functor.Coproduct.Nested (Coproduct2)
 import Data.Maybe (Maybe)
 import Effect.Aff (Aff)
 import Example.RealWorld.Data.Group (Admin, Group, GroupForm)
-import Example.RealWorld.Data.Options (Metric, OptionsForm)
+import Example.RealWorld.Data.Options (Metric, Options, OptionsForm)
 import Formless as Formless
 import Ocelot.Components.Dropdown as Dropdown
 import Ocelot.Components.Typeahead as TA
@@ -18,8 +18,8 @@ import Ocelot.Components.Typeahead as TA
 -- | This component will only handle output from Formless to keep
 -- | things simple.
 data Query a
-  = HandleGroupForm (Formless.Message Query GroupForm) a
-  | HandleOptionsForm (Formless.Message Query OptionsForm) a
+  = HandleGroupForm (Formless.Message Query GroupForm Group) a
+  | HandleOptionsForm (Formless.Message Query OptionsForm Options) a
   | HandleGroupTypeahead GroupTASlot (TA.Message Query String) a
   | HandleAdminDropdown (Dropdown.Message Admin) a
   | HandleMetricDropdown (Dropdown.Message Metric) a
@@ -41,8 +41,8 @@ type State =
 
 -- | Now we can create _this_ component's child query and child slot pairing.
 type ChildQuery = Coproduct2
-  (Formless.Query Query GroupCQ GroupCS GroupForm Aff)
-  (Formless.Query Query OptionsCQ OptionsCS OptionsForm Aff)
+  (Formless.Query Query GroupCQ GroupCS GroupForm Group Aff)
+  (Formless.Query Query OptionsCQ OptionsCS OptionsForm Options Aff)
 
 type ChildSlot = Either2
   Unit

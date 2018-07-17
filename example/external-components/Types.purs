@@ -3,23 +3,26 @@ module Example.ExternalComponents.Types where
 import Prelude
 
 import Effect.Aff (Aff)
-import Example.ExternalComponents.Spec (Form)
+import Example.ExternalComponents.Spec (Form, User)
 import Formless as Formless
 import Ocelot.Components.Typeahead as TA
 
 ----------
 -- Component
 
--- | This component will only handle output from Formless to keep
--- | things simple.
+-- | This component manages several typeahead components, plus
+-- | Formless. Because of the external components, it needs its
+-- | own reset query to clear those components when Formless
+-- | has been reset by the user.
 data Query a
-  = HandleFormless (Formless.Message Query Form) a
+  = HandleFormless (Formless.Message Query Form User) a
   | HandleTypeahead Slot (TA.Message Query String) a
+  | Reset a
 
 type State = Unit
 
 -- | Now we can create _this_ component's child query and child slot pairing.
-type ChildQuery = Formless.Query Query FCQ FCS Form Aff
+type ChildQuery = Formless.Query Query FCQ FCS Form User Aff
 type ChildSlot = Unit
 
 
