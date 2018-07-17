@@ -44,13 +44,13 @@ formless state =
       [ if state.submitting || state.validity /= Formless.Valid
           then HP.disabled true
           else HE.onClick $ HE.input_ Formless.Submit
-      , css "mr3"
+      , css "mr-3"
       ]
       [ HH.text "Submit" ]
     , Button.button
       [ if not state.dirty
           then HP.disabled true
-          else HE.onClick $ HE.input_ Formless.Reset
+          else HE.onClick $ HE.input_ $ Formless.Raise (Reset unit)
       ]
       [ HH.text "Reset" ]
     ]

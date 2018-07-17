@@ -107,7 +107,9 @@ component =
       pure a
 
     -- We can reset both forms to their starting values by leveraging
-    -- the `Reset` query from Formless
+    -- the `Reset` query from Formless. We also need to reset our various
+    -- external components, as Formless doesn't know about them.
+    -- TODO: Currently can't send queries through to multiple child types
     Reset a -> do
       _ <- H.query' CP.cp1 unit $ H.action Formless.Reset
       _ <- H.query' CP.cp2 unit $ H.action Formless.Reset
@@ -151,37 +153,28 @@ component =
         let v' = TA.unpackSelections v
         case slot of
           ApplicationsTypeahead -> do
-            _ <- H.query' CP.cp1 unit $ Formless.handleChange _applications v'
-            _ <- H.query' CP.cp1 unit $ Formless.handleBlur _applications
+            _ <- H.query' CP.cp1 unit $ Formless.handleBlurAndChange _applications v'
             pure a
           PixelsTypeahead -> do
-            _ <- H.query' CP.cp1 unit $ Formless.handleChange _pixels v'
-            _ <- H.query' CP.cp1 unit $ Formless.handleBlur _pixels
+            _ <- H.query' CP.cp1 unit $ Formless.handleBlurAndChange _pixels v'
             pure a
           WhiskeyTypeahead -> case s of
             TA.ItemSelected x -> do
-              _ <- H.query' CP.cp1 unit $ Formless.handleChange _whiskey (Just x)
-              _ <- H.query' CP.cp1 unit $ Formless.handleBlur _whiskey
+              _ <- H.query' CP.cp1 unit $ Formless.handleBlurAndChange _whiskey (Just x)
               pure a
             _ -> do
-              _ <- H.query' CP.cp1 unit $ Formless.handleChange _whiskey Nothing
-              _ <- H.query' CP.cp1 unit $ Formless.handleBlur _whiskey
+              _ <- H.query' CP.cp1 unit $ Formless.handleBlurAndChange _whiskey Nothing
               pure a
       TA.VisibilityChanged _ -> pure a
       TA.Searched _ -> pure a
 
     HandleAdminDropdown m a -> case m of
       Dropdown.ItemSelected x -> do
-        _ <- H.query' CP.cp1 unit
-          $ Formless.handleChange _admin (Just x)
-        _ <- H.query' CP.cp1 unit
-          $ Formless.handleBlur _admin
-
-        -- Changing this field should also clear the secret keys
-        _ <- H.query' CP.cp1 unit
-          $ Formless.handleChange _secretKey1 ""
-        _ <- H.query' CP.cp1 unit
-          $ Formless.handleChange _secretKey2 ""
+        _ <- H.query' CP.cp1 unit $ Formless.handleBlurAndChange _admin (Just x)
+        -- Changing this field should also clear the secret keys. Ensure you use `reset`
+        -- instead of `change` as you want to clear errors, too.
+        _ <- H.query' CP.cp1 unit $ Formless.handleReset _secretKey1
+        _ <- H.query' CP.cp1 unit $ Formless.handleReset _secretKey2
         pure a
 
 
@@ -200,6 +193,5 @@ component =
 
     HandleMetricDropdown m a -> case m of
       Dropdown.ItemSelected x -> do
-        _ <- H.query' CP.cp2 unit $ Formless.handleChange _metric (Just x)
-        _ <- H.query' CP.cp2 unit $ Formless.handleBlur _metric
+        _ <- H.query' CP.cp2 unit $ Formless.handleBlurAndChange _metric (Just x)
         pure a

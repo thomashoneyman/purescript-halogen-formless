@@ -79,6 +79,16 @@ component =
         H.liftEffect $ Console.log $ show $ delete (SProxy :: SProxy "form") fstate
         pure a
 
+    -- While Formless is perfectly capable of resetting all fields to their initial
+    -- values, it isn't aware of your external components, so you'll need to reset
+    -- those yourself.
+    Reset a -> do
+      _ <- H.query unit $ H.action $ Formless.Send EmailTypeahead (TA.ReplaceSelections (TA.One Nothing) unit)
+      _ <- H.query unit $ H.action $ Formless.Send WhiskeyTypeahead (TA.ReplaceSelections (TA.One Nothing) unit)
+      _ <- H.query unit $ H.action $ Formless.Send LanguageTypeahead (TA.ReplaceSelections (TA.One Nothing) unit)
+      _ <- H.query unit $ H.action Formless.Reset
+      pure a
+
     HandleTypeahead slot m a -> case m of
       -- This is a renderless component, so we must handle the `Emit` case by recursively
       -- calling `eval`
@@ -92,32 +102,31 @@ component =
         TA.ItemSelected x -> do
           case slot of
             EmailTypeahead -> do
-              _ <- H.query unit $ Formless.handleChange _email (Just x)
-              _ <- H.query unit $ Formless.handleBlur _email
+              _ <- H.query unit $ Formless.handleBlurAndChange _email (Just x)
               pure a
             WhiskeyTypeahead -> do
-              _ <- H.query unit $ Formless.handleChange _whiskey (Just x)
-              _ <- H.query unit $ Formless.handleBlur _whiskey
+              -- We can use handleBlurAndChange to manage our component updates
+              _ <- H.query unit $ Formless.handleBlurAndChange _whiskey (Just x)
+              -- This is how you can clear a typeahead via Formless using your queries
               _ <- H.query unit $ Formless.Send EmailTypeahead (TA.ReplaceSelections (TA.One Nothing) unit) unit
+              -- To reset a field, including 'touched' state, errors, and inputs, use handleReset
+              _ <- H.query unit $ Formless.handleReset _email
               pure a
             LanguageTypeahead -> do
-              _ <- H.query unit $ Formless.handleChange _language (Just x)
-              _ <- H.query unit $ Formless.handleBlur _language
+              _ <- H.query unit $ Formless.handleBlurAndChange _language (Just x)
               _ <- H.query unit $ Formless.Send EmailTypeahead (TA.ReplaceSelections (TA.One Nothing) unit) unit
+              _ <- H.query unit $ Formless.handleReset _email
               pure a
         _ -> do
           case slot of
             EmailTypeahead -> do
-              _ <- H.query unit $ Formless.handleChange _email Nothing
-              _ <- H.query unit $ Formless.handleBlur _email
+              _ <- H.query unit $ Formless.handleBlurAndChange _email Nothing
               pure a
             WhiskeyTypeahead -> do
-              _ <- H.query unit $ Formless.handleChange _whiskey Nothing
-              _ <- H.query unit $ Formless.handleBlur _whiskey
+              _ <- H.query unit $ Formless.handleBlurAndChange _whiskey Nothing
               pure a
             LanguageTypeahead -> do
-              _ <- H.query unit $ Formless.handleChange _language Nothing
-              _ <- H.query unit $ Formless.handleBlur _language
+              _ <- H.query unit $ Formless.handleBlurAndChange _language Nothing
               pure a
 
       -- Unfortunately, single-select typeaheads send blur events before

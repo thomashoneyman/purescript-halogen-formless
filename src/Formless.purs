@@ -19,6 +19,7 @@ import Data.Monoid.Additive (Additive)
 import Data.Newtype (class Newtype, over, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Data.Traversable (traverse, traverse_)
+import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
 import Formless.Spec (FormSpec, InputField, OutputField)
 import Formless.Spec as FSpec
@@ -37,6 +38,7 @@ import Web.UIEvent.MouseEvent (MouseEvent)
 data Query pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) out m a
   = HandleBlur (form InputField -> form InputField) a
   | HandleChange (form InputField -> form InputField) a
+  | HandleReset (form InputField -> form InputField) a
   | Reset a
   | Validate a
   | Submit a
@@ -117,8 +119,6 @@ instance showValidStatus :: Show ValidStatus where
 type Input pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) out m =
   { formSpec :: form FormSpec
   , validator :: form InputField -> m (form InputField)
-  -- Can be monadic in case you need to submit to the server and collect errors
-  -- or something like that
   , submitter :: form OutputField -> m out
   , render :: State form out m -> HTML pq cq cs form out m
   }
@@ -146,6 +146,7 @@ component
   => Internal.SetInputFieldsTouched fieldxs field () field
   => Internal.InputFieldToMaybeOutput fieldxs field () output
   => Internal.CountErrors fieldxs field () count
+  => Internal.AllTouched fieldxs field
   => Internal.SumRecord countxs count (Additive Int)
   => Newtype (form FormSpec) (Record spec)
   => Newtype (form InputField) (Record field)
@@ -191,22 +192,41 @@ component =
       modifyState_ \st -> st { form = fs st.form }
       pure a
 
+    HandleReset fs a -> do
+      modifyState_ \st -> st { form = fs st.form }
+      eval $ Validate a
+
     Validate a -> do
       init <- getState
       let internal = unwrap init.internal
       form <- H.lift $ internal.validator init.form
       let errors = Internal.countErrors form
-      new <- modifyState \st -> st
+
+      -- At this point we can modify most of the state, except for the valid status
+      modifyState_ _
         { form = form
         , errors = errors
           -- Dirty state is computed by checking equality of original input fields vs. current ones.
           -- This relies on input fields passed by the user having equality defined.
-        , dirty = not $ unwrap (Internal.inputFieldsToInput st.form) == unwrap internal.initialInputs
-        , validity =
-            if not internal.allTouched
-              then Incomplete
-              else if not (errors == 0) then Invalid else Valid
+        , dirty = not $ unwrap (Internal.inputFieldsToInput form) == unwrap internal.initialInputs
         }
+
+      -- Need to verify the validity status of the form.
+      new <- case internal.allTouched of
+        true -> modifyState _
+          { validity = if not (errors == 0) then Invalid else Valid }
+        -- If not all fields are touched, then we need to quickly sync the form state
+        -- to verify this is actually the case.
+        _ -> case Internal.checkTouched form of
+          -- The sync revealed all fields really have been touched
+          true -> modifyState \st -> st
+            { validity = if not (errors == 0) then Invalid else Valid
+            , internal = over InternalState (_ { allTouched = true }) st.internal
+            }
+          -- The sync revealed that not all fields have been touched
+          _ -> modifyState _
+            { validity = Incomplete }
+
       H.raise $ Changed $ getPublicState new
       pure a
 
@@ -293,8 +313,45 @@ component =
 -- External to the component
 --------------------
 
-----------
--- Render Helpers
+-- | Handles resetting a single field, but is only possible if the field is
+-- | a member of the Initial type class
+handleReset
+  :: ∀ pq cq cs m sym form' form i e o out r
+   . IsSymbol sym
+  => Cons sym (InputField i e o) r form
+  => Newtype (form' InputField) (Record form)
+  => Initial i
+  => SProxy sym
+  -> Query pq cq cs form' m out Unit
+handleReset sym = HandleReset (handleReset' sym) unit
+
+handleReset'
+  :: ∀ sym form' form i e o r
+   . IsSymbol sym
+  => Cons sym (InputField i e o) r form
+  => Newtype form' (Record form)
+  => Initial i
+  => SProxy sym
+  -> form'
+  -> form'
+handleReset' sym = wrap <<< unsetTouched <<< unsetResult <<< unsetValue <<< unwrap
+  where
+    _sym :: Lens.Lens' (Record form) (InputField i e o)
+    _sym = prop sym
+    unsetTouched = Lens.set (_sym <<< _Newtype <<< prop FSpec._touched) false
+    unsetResult = Lens.set (_sym <<< _Newtype <<< prop FSpec._result) Nothing
+    unsetValue = Lens.set (_sym <<< _Newtype <<< prop FSpec._input) initial
+
+-- | Performs behaviors for both blur and change events
+handleBlurAndChange
+  :: ∀ pq cq cs m sym form' form i e o out r
+   . IsSymbol sym
+  => Cons sym (InputField i e o) r form
+  => Newtype (form' InputField) (Record form)
+  => SProxy sym
+  -> i
+  -> Query pq cq cs form' m out Unit
+handleBlurAndChange sym val = HandleBlur (handleBlur' sym <<< handleChange' sym val) unit
 
 -- | Given a proxy symbol, will trigger validation on that field using
 -- | its validator and current input
@@ -329,7 +386,6 @@ handleBlur' sym form = wrap <<< setTouched $ unwrap form
     _sym :: Lens.Lens' (Record form) (InputField i e o)
     _sym = prop sym
     setTouched = Lens.set (_sym <<< _Newtype <<< prop FSpec._touched) true
-
 
 -- | Replace the value at a given field with a new value of the correct type.
 onValueInputWith

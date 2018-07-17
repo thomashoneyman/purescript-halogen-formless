@@ -24,9 +24,18 @@ newtype Input i e o = Input i
 derive instance newtypeInput :: Newtype (Input i e o) _
 derive newtype instance eqInput :: Eq i => Eq (Input i e o)
 
-
 -----
 -- Functions
+
+-- | A helper function that will count all errors in a record
+checkTouched
+  :: ∀ form row xs
+   . RL.RowToList row xs
+  => AllTouched xs row
+  => Newtype (form InputField) (Record row)
+  => form InputField
+  -> Boolean
+checkTouched = allTouchedImpl (RLProxy :: RLProxy xs) <<< unwrap
 
 -- | A helper function that will count all errors in a record
 countErrors
@@ -38,7 +47,9 @@ countErrors
   => Newtype (form InputField) (Record row)
   => form InputField
   -> Int
-countErrors = unwrap <<< sumRecord <<< countErrors' <<< unwrap
+countErrors r = unwrap $ sumRecord $ Builder.build builder {}
+  where
+    builder = countErrorsBuilder (RLProxy :: RLProxy xs) (unwrap r)
 
 -- | A helper function that sums a monoidal record
 sumRecord
@@ -280,14 +291,23 @@ instance countErrorsCons
           Just (Left _) -> Additive 1
           _ -> Additive 0
 
--- Intermediate function for countErrors
-countErrors'
-  :: ∀ row xs row'
-   . RL.RowToList row xs
-  => CountErrors xs row () row'
-  => Record row
-  -> Record row'
-countErrors' r = Builder.build builder {}
-  where
-    builder = countErrorsBuilder (RLProxy :: RLProxy xs) r
+-- | A class to check if all fields in an InputField record have been touched or not
+class AllTouched (rl :: RL.RowList) (r :: # Type) where
+  allTouchedImpl :: RLProxy rl -> Record r -> Boolean
 
+instance nilAllTouched :: AllTouched RL.Nil r where
+  allTouchedImpl _ _ = true
+
+instance consAllTouched
+  :: ( IsSymbol name
+     , Row.Cons name (InputField i e o) t0 r
+     , AllTouched tail r
+     )
+  => AllTouched (RL.Cons name (InputField i e o) tail) r
+  where
+    allTouchedImpl _ r =
+      -- This has to be defined in a variable for some reason; it won't
+      -- compile otherwise, but I don't know why not.
+      let tail' = allTouchedImpl (RLProxy :: RLProxy tail) r
+          val = _.touched $ unwrap $ Record.get (SProxy :: SProxy name) r
+       in val && tail'

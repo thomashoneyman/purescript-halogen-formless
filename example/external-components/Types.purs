@@ -10,11 +10,14 @@ import Ocelot.Components.Typeahead as TA
 ----------
 -- Component
 
--- | This component will only handle output from Formless to keep
--- | things simple.
+-- | This component manages several typeahead components, plus
+-- | Formless. Because of the external components, it needs its
+-- | own reset query to clear those components when Formless
+-- | has been reset by the user.
 data Query a
   = HandleFormless (Formless.Message Query Form User) a
   | HandleTypeahead Slot (TA.Message Query String) a
+  | Reset a
 
 type State = Unit
 
