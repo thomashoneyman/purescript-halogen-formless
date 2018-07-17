@@ -11,8 +11,8 @@ import Example.RealWorld.Data.Options (Options(..), _metric)
 import Example.RealWorld.Render.GroupForm as GroupForm
 import Example.RealWorld.Render.Nav as Nav
 import Example.RealWorld.Render.OptionsForm as OptionsForm
-import Example.RealWorld.Spec.GroupForm (groupFormParser, groupFormSpec, groupFormValidation)
-import Example.RealWorld.Spec.OptionsForm (optionsFormSpec, optionsFormValidation)
+import Example.RealWorld.Spec.GroupForm (groupFormSpec, groupFormSubmit, groupFormValidate)
+import Example.RealWorld.Spec.OptionsForm (optionsFormSpec, optionsFormValidate)
 import Example.RealWorld.Types (ChildQuery, ChildSlot, GroupTASlot(..), Query(..), State, Tab(..))
 import Formless as Formless
 import Formless.Spec (unwrapOutput)
@@ -75,8 +75,8 @@ component =
           unit
           Formless.component
           { formSpec: groupFormSpec
-          , validator: pure <$> groupFormValidation
-          , parser: groupFormParser
+          , validator: groupFormValidate
+          , submitter: groupFormSubmit
           , render: GroupForm.render
           }
           (HE.input HandleGroupForm)
@@ -88,8 +88,8 @@ component =
           unit
           Formless.component
           { formSpec: optionsFormSpec
-          , validator: pure <$> optionsFormValidation
-          , parser: Options <<< unwrapOutput
+          , validator: pure <$> optionsFormValidate
+          , submitter: pure <<< Options <<< unwrapOutput
           , render: OptionsForm.render
           }
           (HE.input HandleOptionsForm)

@@ -45,16 +45,17 @@ formSpec = FSpec.mkFormSpecFromRow $ RProxy :: RProxy (FormRow FSpec.Input)
 
 -- | You should provide your own validation. This example uses the PureScript
 -- | standard, `purescript-validation`.
-formValidation :: Form FSpec.InputField -> Form FSpec.InputField
-formValidation (Form form) = Form
-  { name: (\i -> V.validateNonEmpty i *> V.validateMinimumLength i 7) `onInputField` form.name
-  , email: (\i -> V.validateMaybe i *> V.validateEmailRegex (fromMaybe "" i)) `onInputField` form.email
-  , whiskey: V.validateMaybe `onInputField` form.whiskey
-  , language: V.validateMaybe `onInputField` form.language
-  }
+validator :: ∀ m. Monad m => Form FSpec.InputField -> m (Form FSpec.InputField)
+validator (Form form) = pure $
+  Form
+    { name: (\i -> V.validateNonEmpty i *> V.validateMinimumLength i 7) `onInputField` form.name
+    , email: (\i -> V.validateMaybe i *> V.validateEmailRegex (fromMaybe "" i)) `onInputField` form.email
+    , whiskey: V.validateMaybe `onInputField` form.whiskey
+    , language: V.validateMaybe `onInputField` form.language
+    }
 
 -- | You should provide a function from the form with only output values to your ideal
 -- | parsed type. Since your output type is identical to the form's shape, you can simply
 -- | unwrap the form with a helper from Formless.
-outputParser :: Form OutputField -> User
-outputParser = unwrapOutput
+submitter :: ∀ m. Monad m => Form OutputField -> m User
+submitter = pure <<< unwrapOutput

@@ -15,9 +15,11 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Ocelot.Block.Button as Button
 import Ocelot.Block.FormField as FormField
-import Ocelot.Block.Input (input) as Input
+import Ocelot.Block.Format as Format
+import Ocelot.Block.Input as Input
 import Ocelot.Components.Typeahead as TA
 import Ocelot.Components.Typeahead.Input as TA.Input
+import Ocelot.HTML.Properties (css)
 import Record as Record
 
 -- | Our render function has access to anything in Formless' State type, plus
@@ -31,9 +33,26 @@ formless state =
     , renderEmail state
     , renderWhiskey state
     , renderLanguage state
+    , Format.p_
+      [ HH.text $
+          "You can only attempt to submit this form if it is valid "
+          <> "and not already being submitted. You can only attempt "
+          <> "to reset the form if it has been changed from its initial "
+          <> "state."
+      ]
     , Button.buttonPrimary
-      [ HE.onClick $ HE.input_ Formless.Submit ]
+      [ if state.submitting || state.validity /= Formless.Valid
+          then HP.disabled true
+          else HE.onClick $ HE.input_ Formless.Submit
+      , css "mr3"
+      ]
       [ HH.text "Submit" ]
+    , Button.button
+      [ if not state.dirty
+          then HP.disabled true
+          else HE.onClick $ HE.input_ Formless.Reset
+      ]
+      [ HH.text "Reset" ]
     ]
 
 ----------

@@ -66,9 +66,10 @@ validator (Form form) = pure $ Form
 
 -- | When the form is run, it will produce your Form type, with
 -- | only the output fields. Since our Contact type is the same
--- | shape as the Form type, we can just unwrap the newtypes.
-parser :: Form OutputField -> Contact
-parser = unwrapOutput
+-- | shape as the Form type, we can just unwrap the newtypes. This can
+-- | be monadic, like hitting a server for extra information.
+submitter :: ∀ m. Monad m => Form OutputField -> m Contact
+submitter = pure <<< unwrapOutput
 
 
 -----
@@ -106,7 +107,7 @@ component = H.parentComponent
         Formless.component
         { formSpec
         , validator
-        , parser
+        , submitter
         , render: formless
         }
         (const Nothing)

@@ -7,7 +7,7 @@ import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Effect.Console (log) as Console
 import Example.ExternalComponents.RenderForm (formless)
-import Example.ExternalComponents.Spec (User, _email, _language, _whiskey, formSpec, formValidation, outputParser)
+import Example.ExternalComponents.Spec (User, _email, _language, _whiskey, formSpec, submitter, validator)
 import Example.ExternalComponents.Types (ChildQuery, ChildSlot, Query(..), Slot(..), State)
 import Formless as Formless
 import Halogen as H
@@ -54,10 +54,8 @@ component =
         unit
         Formless.component
         { formSpec
-          -- We wrote a pure validator, but could have written an effectful one. For that reason
-          -- we'll need to map pure over the result.
-        , validator: pure <$> formValidation
-        , parser: outputParser
+        , validator
+        , submitter
         , render: formless
         }
         (HE.input HandleFormless)

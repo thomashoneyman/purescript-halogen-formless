@@ -18,7 +18,7 @@ import Data.Maybe (Maybe(..))
 import Data.Monoid.Additive (Additive)
 import Data.Newtype (class Newtype, over, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
-import Data.Traversable (traverse_)
+import Data.Traversable (traverse, traverse_)
 import Formless.Internal as Internal
 import Formless.Spec (FormSpec, InputField, OutputField)
 import Formless.Spec as FSpec
@@ -28,7 +28,7 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Prim.Row (class Cons)
 import Prim.RowList (class RowToList) as RL
-import Record (delete) as Record
+import Record as Record
 import Renderless.State (getState, modifyState, modifyState_, modifyStore_)
 import Web.Event.Event (Event)
 import Web.UIEvent.FocusEvent (FocusEvent)
@@ -83,7 +83,9 @@ type State' form = Record (StateRow form ())
 type StateRow form r =
   ( validity :: ValidStatus
   , dirty :: Boolean
+  , submitting :: Boolean
   , errors :: Int
+  , submitAttempts :: Int
   , form :: form InputField
   | r
   )
@@ -92,7 +94,7 @@ type StateRow form r =
 -- | read by hiding internal fields
 newtype InternalState form out m = InternalState
   { validator :: form InputField -> m (form InputField)
-  , parser :: form OutputField -> out
+  , submitter :: form OutputField -> m out
   , formSpec :: form FormSpec
   , initialInputs :: form Internal.Input
   , formResult :: Maybe out
@@ -114,9 +116,10 @@ instance showValidStatus :: Show ValidStatus where
 -- | The component's input type
 type Input pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) out m =
   { formSpec :: form FormSpec
-  -- TODO: form InputField -> m (V (form InputField) out), provide helpers?
   , validator :: form InputField -> m (form InputField)
-  , parser :: form OutputField -> out
+  -- Can be monadic in case you need to submit to the server and collect errors
+  -- or something like that
+  , submitter :: form OutputField -> m out
   , render :: State form out m -> HTML pq cq cs form out m
   }
 
@@ -159,10 +162,12 @@ component =
   where
 
   initialState :: Input pq cq cs form out m -> StateStore pq cq cs form out m
-  initialState { formSpec, validator, render, parser } = store render $
+  initialState { formSpec, validator, render, submitter } = store render $
     { validity: Incomplete
     , dirty: false
     , errors: 0
+    , submitAttempts: 0
+    , submitting: false
     , form: inputFields
     , internal: InternalState
       { formResult: Nothing
@@ -170,7 +175,7 @@ component =
       , allTouched: false
       , initialInputs: Internal.inputFieldsToInput inputFields
       , validator
-      , parser
+      , submitter
       }
     }
     where
@@ -221,6 +226,7 @@ component =
         { validity = Incomplete
         , dirty = false
         , errors = 0
+        , submitAttempts = 0
         , form = Internal.formSpecToInputFields (_.formSpec $ unwrap st.internal)
         , internal = over InternalState (_
             { formResult = Nothing
@@ -254,29 +260,33 @@ component =
   -- Run submission without raising messages or replies
   runSubmit :: DSL pq cq cs form out m (Maybe out)
   runSubmit = do
-    init <- getState
-    when (not (_.allTouched (unwrap init.internal))) do
+    init <- modifyState \st -> st
+      { submitAttempts = st.submitAttempts + 1
+      , submitting = true
+      }
+
+    -- For performance purposes, avoid running this if possible
+    let internal = unwrap init.internal
+    when (not internal.allTouched) do
       modifyState_ _
        { form = Internal.setInputFieldsTouched init.form
        , internal = over InternalState (_ { allTouched = true }) init.internal
        }
-    _ <- eval $ Validate unit
-    output <- runFormParser
-    modifyState_ \st -> st
-      { internal = over InternalState (_ { formResult = output }) st.internal }
-    pure output
 
-  -- Only attempt to parse the form to an output if it is already
-  -- valid, in order to save effort.
-  runFormParser :: DSL pq cq cs form out m (Maybe out)
-  runFormParser = do
-    st <- getState
-    pure $
-      if st.validity == Valid
-        then let internal = unwrap st.internal
-                 outputs = Internal.inputFieldToMaybeOutput st.form
-              in internal.parser <$> outputs
-        else Nothing
+    -- Necessary to validate after fields are touched, but before parsing
+    _ <- eval $ Validate unit
+
+    -- For performance purposes, only attempt to submit if the form is valid
+    validated <- getState
+    when (validated.validity == Valid) do
+      output <- H.lift $
+        traverse internal.submitter (Internal.inputFieldToMaybeOutput validated.form)
+      modifyState_ _
+        { internal = over InternalState (_ { formResult = output }) validated.internal }
+
+    -- Ensure the form is no longer marked submitting
+    result <- modifyState \st -> st { submitting = false }
+    pure $ _.formResult $ unwrap result.internal
 
 
 --------------------
