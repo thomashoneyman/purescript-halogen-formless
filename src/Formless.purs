@@ -24,6 +24,7 @@ import Formless.Internal as Internal
 import Formless.Spec (FormSpec, InputField, OutputField)
 import Formless.Spec as FSpec
 import Halogen as H
+import Halogen.Component.ChildPath (ChildPath, injQuery, injSlot)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
@@ -309,9 +310,21 @@ component =
     pure $ _.formResult $ unwrap result.internal
 
 
+
 --------------------
 -- External to the component
 --------------------
+
+-- | When you are using several different types of child components in Formless
+-- | the component needs a child path to be able to pick the right slot to send
+-- | a query to.
+send' :: ∀ pq cq' cs' cs cq form out m a
+  . ChildPath cq cq' cs cs'
+ -> cs
+ -> cq Unit
+ -> a
+ -> Query pq cq' cs' form out m a
+send' path p q = Send (injSlot path p) (injQuery path q)
 
 -- | Handles resetting a single field, but is only possible if the field is
 -- | a member of the Initial type class

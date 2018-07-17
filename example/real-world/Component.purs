@@ -109,8 +109,33 @@ component =
     -- We can reset both forms to their starting values by leveraging
     -- the `Reset` query from Formless. We also need to reset our various
     -- external components, as Formless doesn't know about them.
-    -- TODO: Currently can't send queries through to multiple child types
     Reset a -> do
+      -- To send a query through to a child component when Formless has multiple
+      -- child component types, use send'
+      _ <- H.query' CP.cp1 unit
+        $ H.action
+        $ Formless.send' CP.cp1 WhiskeyTypeahead
+        $ TA.ReplaceSelections (TA.One Nothing) unit
+      _ <- H.query' CP.cp1 unit
+        $ H.action
+        $ Formless.send' CP.cp1 ApplicationsTypeahead
+        $ TA.ReplaceSelections (TA.Many []) unit
+      _ <- H.query' CP.cp1 unit
+        $ H.action
+        $ Formless.send' CP.cp1 PixelsTypeahead
+        $ TA.ReplaceSelections (TA.Many []) unit
+      _ <- H.query' CP.cp1 unit
+        $ H.action
+        $ Formless.send' CP.cp2 unit
+        $ Dropdown.SetSelection Nothing unit
+
+      -- On the Options form, there is no child path to worry about, so we can stick
+      -- with the usual data constructor.
+      _ <- H.query' CP.cp2 unit
+        $ H.action
+        $ Formless.Send unit (Dropdown.SetSelection Nothing unit)
+
+      -- Finally, we can trigger a simple Formless reset on each form.
       _ <- H.query' CP.cp1 unit $ H.action Formless.Reset
       _ <- H.query' CP.cp2 unit $ H.action Formless.Reset
       pure a
