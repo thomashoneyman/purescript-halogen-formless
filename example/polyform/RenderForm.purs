@@ -6,7 +6,7 @@ import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
 import Example.Polyform.Spec (Form, User, _city, _email, _name, _state)
 import Example.Polyform.Types (FCQ, FCS, Query)
-import Example.Validation.Utils (showError)
+import Example.Utils (showError)
 import Formless as Formless
 import Formless.Spec (getField)
 import Halogen.HTML as HH

@@ -28,6 +28,42 @@ derive newtype instance eqInput :: Eq i => Eq (Input i e o)
 -----
 -- Functions
 
+-- | Unwraps all the fields in a record, so long as all fields have newtypes
+unwrapRecord
+  :: ∀ row xs row'
+   . RL.RowToList row xs
+  => UnwrapRecord xs row () row'
+  => Record row
+  -> Record row'
+unwrapRecord r = Builder.build builder {}
+  where
+    builder = unwrapRecordBuilder (RLProxy :: RLProxy xs) r
+
+-- | Wraps all the fields in a record, so long as all fields have proper newtype
+-- | instances
+wrapRecord
+  :: ∀ row xs row'
+   . RL.RowToList row xs
+  => WrapRecord xs row () row'
+  => Record row
+  -> Record row'
+wrapRecord r = Builder.build builder {}
+  where
+    builder = wrapRecordBuilder (RLProxy :: RLProxy xs) r
+
+-- | Sequences a record of applicatives. Useful when applying monadic field validation
+-- | so you can recover the proper type for the Formless validation function. Does not
+-- | operate on newtypes, so you'll want to unwrap / re-wrap your form type when using.
+sequenceRecord :: ∀ row row' rl m
+   . RL.RowToList row rl
+  => Applicative m
+  => SequenceRecord rl row () row' m
+  => Record row
+  -> m (Record row')
+sequenceRecord a = Builder.build <@> {} <$> builder
+  where
+		builder = sequenceRecordImpl (RLProxy :: RLProxy rl) a
+
 -- | A helper function that will count all errors in a record
 checkTouched
   :: ∀ form row xs
@@ -314,6 +350,60 @@ instance consAllTouched
        in val && tail'
 
 
+-- | The class to efficiently unwrap a record of newtypes
+class UnwrapRecord
+  (xs :: RL.RowList) (row :: # Type) (from :: # Type) (to :: # Type)
+  | xs -> from to where
+  unwrapRecordBuilder :: RLProxy xs -> Record row -> Builder { | from } { | to }
+
+instance unwrapRecordNil :: UnwrapRecord RL.Nil row () () where
+  unwrapRecordBuilder _ _ = identity
+
+instance unwrapRecordCons
+  :: ( IsSymbol name
+     , Row.Cons name wrapper trash row
+     , Newtype wrapper x
+     , UnwrapRecord tail row from from'
+     , Row.Lacks name from'
+     , Row.Cons name x from' to
+     )
+  => UnwrapRecord (RL.Cons name wrapper tail) row from to where
+  unwrapRecordBuilder _ r =
+    first <<< rest
+    where
+      _name = SProxy :: SProxy name
+      val = unwrap $ Record.get _name r
+      rest = unwrapRecordBuilder (RLProxy :: RLProxy tail) r
+      first = Builder.insert _name val
+
+-- | The class to efficiently wrap a record of newtypes
+class WrapRecord
+  (xs :: RL.RowList) (row :: # Type) (from :: # Type) (to :: # Type)
+  | xs -> from to where
+  wrapRecordBuilder :: RLProxy xs -> Record row -> Builder { | from } { | to }
+
+instance wrapRecordNil :: WrapRecord RL.Nil row () () where
+  wrapRecordBuilder _ _ = identity
+
+instance wrapRecordCons
+  :: ( IsSymbol name
+     , Row.Cons name x trash row
+     , Newtype wrapper x
+     , WrapRecord tail row from from'
+     , Row.Lacks name from'
+     , Row.Cons name wrapper from' to
+     )
+  => WrapRecord (RL.Cons name x tail) row from to where
+  wrapRecordBuilder _ r =
+    first <<< rest
+    where
+      _name = SProxy :: SProxy name
+      val = wrap $ Record.get _name r
+      rest = wrapRecordBuilder (RLProxy :: RLProxy tail) r
+      first = Builder.insert _name val
+
+
+
 -- | Credit: @LiamGoodacre
 -- | Applies a record of functions to a record of input values to produce
 -- | a record of outputs.
@@ -400,8 +490,8 @@ instance applyRowListCons
 rltail :: ∀ k v t. RLProxy (RL.Cons k v t) -> RLProxy t
 rltail _ = RLProxy
 
-
 -- | Credit: @justinw, @paluh, and @monoidmusician
+-- | The class to efficiently run the sequenceRecord function on a record.
 class Applicative m <= SequenceRecord rl row from to m
   | rl -> row from to m
   where
@@ -427,13 +517,3 @@ instance sequenceRecordCons ::
 instance sequenceRecordNil :: Applicative m => SequenceRecord RL.Nil row () () m where
   sequenceRecordImpl _ _ = pure identity
 
--- | A function to sequence a record of applicatives
-sequenceRecord :: ∀ row row' rl m
-   . RL.RowToList row rl
-  => Applicative m
-  => SequenceRecord rl row () row' m
-  => Record row
-  -> m (Record row')
-sequenceRecord a = Builder.build <@> {} <$> builder
-  where
-		builder = sequenceRecordImpl (RLProxy :: RLProxy rl) a

@@ -9,7 +9,7 @@ import Example.RealWorld.Data.Options as OP
 import Example.RealWorld.Render.Field (renderDropdown)
 import Example.RealWorld.Render.Field as Field
 import Example.RealWorld.Types (OptionsCQ, OptionsCS, Query(..))
-import Example.Validation.Utils (showError)
+import Example.Utils (showError)
 import Formless as Formless
 import Formless.Spec (getField, getInput)
 import Halogen as H

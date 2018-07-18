@@ -10,7 +10,7 @@ import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
 import Example.RealWorld.Data.Options (Options)
-import Example.Validation.Semigroup (Errs)
+import Example.Utils (Errs)
 import Formless.Spec as FSpec
 
 -----

@@ -5,9 +5,9 @@ import Prelude
 import Data.Maybe (Maybe, fromMaybe)
 import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
-import Example.Validation.Semigroup as V
-import Formless.Spec (Output, OutputField, unwrapOutput)
-import Formless.Spec as FSpec
+import Example.Utils as V
+import Formless.Spec (FormSpec, Input, InputField, Output, OutputField)
+import Formless.Spec.Transform (mkFormSpecFromRow, unwrapOutput)
 import Formless.Validation.Semigroup (applyOnInputFields)
 import Type.Row (RProxy(..))
 
@@ -40,15 +40,15 @@ _language = SProxy :: SProxy "language"
 -- | without you having to type anything. This is useful for especially
 -- | large forms where you don't want to have to stick newtypes everywhere.
 -- | If you already have a record of values, use `mkFormSpec` instead.
-formSpec :: Form FSpec.FormSpec
-formSpec = FSpec.mkFormSpecFromRow $ RProxy :: RProxy (FormRow FSpec.Input)
+formSpec :: Form FormSpec
+formSpec = mkFormSpecFromRow $ RProxy :: RProxy (FormRow Input)
 
 -- | You should provide your own validation. This example uses the PureScript
 -- | standard, `purescript-validation`.
-validator :: Form FSpec.InputField -> Form FSpec.InputField
+validator :: Form InputField -> Form InputField
 validator = applyOnInputFields
-    { name: (\i -> V.validateNonEmpty i *> V.validateMinimumLength i 7)
-    , email: (\i -> V.validateMaybe i *> V.validateEmailRegex (fromMaybe "" i))
+    { name: flip V.validateMinimumLength 7
+    , email: V.validateEmailRegex <<< fromMaybe ""
     , whiskey: \(i :: Maybe String) -> V.validateMaybe i
     , language: \(i :: Maybe String) -> V.validateMaybe i
     }

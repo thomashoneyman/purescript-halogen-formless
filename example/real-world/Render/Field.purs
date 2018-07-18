@@ -10,7 +10,7 @@ import Data.Symbol (class IsSymbol, SProxy)
 import Effect.Aff (Aff)
 import Example.RealWorld.Data.Group (Admin(..))
 import Example.RealWorld.Types (Query)
-import Example.Validation.Utils (showError)
+import Example.Utils (showError)
 import Formless as Formless
 import Formless.Spec (InputField, getField)
 import Halogen as H

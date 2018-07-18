@@ -9,7 +9,7 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Formless.Internal as Internal
-import Formless.Spec (class SequenceRecord, InputField(..), sequenceRecord)
+import Formless.Spec (InputField(..))
 import Polyform.Validation (V(..), Validation, runValidation)
 import Prim.Row as Row
 import Prim.RowList as RL
@@ -66,13 +66,13 @@ applyOnInputFields
   => RL.RowToList o oxs
   => OnInputFields fvxs fv () io
   => Internal.ApplyRecord io i o
-  => SequenceRecord oxs o () o' m
+  => Internal.SequenceRecord oxs o () o' m
   => Newtype (form InputField) (Record i)
   => Newtype (form' InputField) (Record o')
   => Record fv
   -> form InputField
   -> m (form' InputField)
-applyOnInputFields r = map wrap <<< sequenceRecord <<< Internal.applyRecord io <<< unwrap
+applyOnInputFields r = map wrap <<< Internal.sequenceRecord <<< Internal.applyRecord io <<< unwrap
   where
     io :: Record io
     io = Builder.build (onInputFieldsBuilder (RLProxy :: RLProxy fvxs) r) {}

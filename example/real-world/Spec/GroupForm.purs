@@ -6,21 +6,20 @@ import Data.List.NonEmpty (NonEmptyList)
 import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
 import Data.Validation.Semigroup (V)
-import Example.RealWorld.Data.Group
-  (Admin, Group(..), GroupForm, GroupFormRow, GroupId(..), _secretKey1, _secretKey2)
-import Example.Validation.Semigroup (InvalidPrimitive)
-import Example.Validation.Semigroup as V
-import Formless.Spec (OutputField, getInput, unwrapOutput)
-import Formless.Spec as FSpec
+import Example.RealWorld.Data.Group (Admin, Group(..), GroupForm, GroupFormRow, GroupId(..), _secretKey1, _secretKey2)
+import Example.Utils as V
+import Formless.Spec (OutputField, getInput)
+import Formless.Spec as Spec
+import Formless.Spec.Transform (mkFormSpecFromRow, unwrapOutput)
 import Formless.Validation.Semigroup (applyOnInputFields)
 import Record as Record
 import Type.Row (RProxy(..))
 
 -- | mkFormSpecFromRow can produce a valid input form spec from your row
 -- | without you having to type anything.
-groupFormSpec :: GroupForm FSpec.FormSpec
+groupFormSpec :: GroupForm Spec.FormSpec
 groupFormSpec =
-  FSpec.mkFormSpecFromRow $ RProxy :: RProxy (GroupFormRow FSpec.Input)
+  mkFormSpecFromRow $ RProxy :: RProxy (GroupFormRow Spec.Input)
 
 -- | We can use simple record manipulations to change the group form result
 -- | into our output type
@@ -41,8 +40,8 @@ groupFormSubmit form = do
 groupFormValidate
   :: ∀ m
    . Monad m
-  => GroupForm FSpec.InputField
-  -> m (GroupForm FSpec.InputField)
+  => GroupForm Spec.InputField
+  -> m (GroupForm Spec.InputField)
 groupFormValidate form = pure $ applyOnInputFields
   { name: V.validateNonEmpty
   , secretKey1:
@@ -55,21 +54,14 @@ groupFormValidate form = pure $ applyOnInputFields
         V.validateNonEmpty i
         *> V.validateEqual (getInput _secretKey1 form) i
       )
-  , admin: validateAdmin
-  , applications: validateStrings
-  , pixels: validateStrings
+  , admin: \(i :: Maybe Admin) -> V.validateMaybe i
+  , applications: V.validateNonEmptyArray
+  , pixels: V.validateNonEmptyArray
   , maxBudget: validateBudget
   , minBudget: V.validateInt
   , whiskey: \(i :: Maybe String) -> V.validateMaybe i
   }
   form
 
-
-validateAdmin :: Maybe Admin -> V (NonEmptyList InvalidPrimitive) Admin
-validateAdmin = V.validateMaybe
-
-validateStrings :: Array String -> V (NonEmptyList InvalidPrimitive) (Array String)
-validateStrings = V.validateNonEmptyF
-
-validateBudget :: String -> V (NonEmptyList InvalidPrimitive) (Maybe Int)
+validateBudget :: String -> V (NonEmptyList V.FieldError) (Maybe Int)
 validateBudget = const (pure $ Just 100)

@@ -15,7 +15,7 @@ import Example.RealWorld.Spec.GroupForm (groupFormSpec, groupFormSubmit, groupFo
 import Example.RealWorld.Spec.OptionsForm (optionsFormSpec, optionsFormValidate)
 import Example.RealWorld.Types (ChildQuery, ChildSlot, GroupTASlot(..), Query(..), State, Tab(..))
 import Formless as Formless
-import Formless.Spec (unwrapOutput)
+import Formless.Spec.Transform (unwrapOutput)
 import Halogen as H
 import Halogen.Component.ChildPath as CP
 import Halogen.HTML as HH

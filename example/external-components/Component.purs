@@ -5,7 +5,7 @@ import Prelude
 import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
-import Effect.Console (log) as Console
+import Effect.Console as Console
 import Example.ExternalComponents.RenderForm (formless)
 import Example.ExternalComponents.Spec (User, _email, _language, _whiskey, formSpec, submitter, validator)
 import Example.ExternalComponents.Types (ChildQuery, ChildSlot, Query(..), Slot(..), State)
