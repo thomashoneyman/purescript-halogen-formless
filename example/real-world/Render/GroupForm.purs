@@ -3,18 +3,16 @@ module Example.RealWorld.Render.GroupForm where
 import Prelude
 
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
-import Data.Newtype (class Newtype, unwrap)
+import Data.Newtype (class Newtype)
 import Data.Symbol (class IsSymbol)
 import Effect.Aff (Aff)
-import Example.RealWorld.Data.Group
-  (Admin(..), GroupId(..), _maxBudget, _minBudget)
+import Example.RealWorld.Data.Group (Admin(..), GroupId(..), _maxBudget, _minBudget)
 import Example.RealWorld.Data.Group as G
 import Example.RealWorld.Render.Field (FieldConfig)
 import Example.RealWorld.Render.Field as Field
-import Example.RealWorld.Types
-  (GroupCQ, GroupCS, GroupTASlot(..), Query(..))
+import Example.RealWorld.Types (GroupCQ, GroupCS, GroupTASlot(..), Query(..))
 import Formless as Formless
-import Formless.Spec (InputField)
+import Formless.Spec (InputField, getField)
 import Halogen as H
 import Halogen.Component.ChildPath as CP
 import Halogen.HTML as HH
@@ -29,7 +27,6 @@ import Ocelot.Components.Typeahead as TA
 import Ocelot.Components.Typeahead.Input as TA.Input
 import Ocelot.HTML.Properties (css)
 import Prim.Row (class Cons)
-import Record (get) as Record
 
 -- | A convenience synonym for the group Formless state
 type FormlessState
@@ -230,8 +227,8 @@ renderMinMaxBudget state =
         ]
     ]
   where
-    minBudget = unwrap $ Record.get _minBudget $ unwrap state.form
-    maxBudget = unwrap $ Record.get _maxBudget $ unwrap state.form
+    minBudget = getField _minBudget state.form
+    maxBudget = getField _maxBudget state.form
 
 
 -----

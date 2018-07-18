@@ -3,12 +3,12 @@ module Example.ExternalComponents.RenderForm where
 import Prelude
 
 import Data.Maybe (Maybe(..))
-import Data.Newtype (unwrap)
 import Effect.Aff (Aff)
 import Example.ExternalComponents.Spec (Form, User, _email, _language, _name, _whiskey)
 import Example.ExternalComponents.Types (FCQ, FCS, Query(..), Slot(..))
 import Example.Validation.Utils (showError)
 import Formless as Formless
+import Formless.Spec (getField)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -20,7 +20,6 @@ import Ocelot.Block.Input as Input
 import Ocelot.Components.Typeahead as TA
 import Ocelot.Components.Typeahead.Input as TA.Input
 import Ocelot.HTML.Properties (css)
-import Record as Record
 
 -- | Our render function has access to anything in Formless' State type, plus
 -- | anything additional in your own state type.
@@ -59,7 +58,9 @@ formless state =
 -- Helpers
 
 -- | A helper function to render a form text input
-renderName :: Formless.State Form User Aff -> Formless.HTML Query FCQ FCS Form User Aff
+renderName
+  :: Formless.State Form User Aff
+  -> Formless.HTML Query FCQ FCS Form User Aff
 renderName state =
   HH.div_
     [ FormField.field_
@@ -77,15 +78,17 @@ renderName state =
         ]
     ]
   where
-    field = unwrap $ Record.get _name $ unwrap state.form
+    field = getField _name state.form
 
-renderEmail :: Formless.State Form User Aff -> Formless.HTML Query FCQ FCS Form User Aff
+renderEmail
+  :: Formless.State Form User Aff
+  -> Formless.HTML Query FCQ FCS Form User Aff
 renderEmail state =
   HH.div_
     [ FormField.field_
         { label: "Email"
         , helpText: Just "Select an email address"
-        , error: showError field
+        , error: showError $ getField _email state.form
         , inputId: "email"
         }
         [ HH.slot
@@ -101,11 +104,14 @@ renderEmail state =
               ]
               TA.Input.renderItemString
             )
-            ( HE.input (Formless.Raise <<< H.action <<< HandleTypeahead EmailTypeahead) )
+            ( HE.input
+              ( Formless.Raise
+                <<< H.action
+                <<< HandleTypeahead EmailTypeahead
+              )
+            )
         ]
     ]
-  where
-    field = unwrap $ Record.get _email $ unwrap state.form
 
 renderWhiskey :: Formless.State Form User Aff -> Formless.HTML Query FCQ FCS Form User Aff
 renderWhiskey state =
@@ -113,7 +119,7 @@ renderWhiskey state =
     [ FormField.field_
         { label: "Whiskey"
         , helpText: Just "Select a favorite whiskey"
-        , error: showError field
+        , error: showError $ getField _whiskey state.form
         , inputId: "whiskey"
         }
         [ HH.slot
@@ -128,19 +134,24 @@ renderWhiskey state =
               ]
               TA.Input.renderItemString
             )
-            ( HE.input (Formless.Raise <<< H.action <<< HandleTypeahead WhiskeyTypeahead) )
+            ( HE.input
+              ( Formless.Raise
+                <<< H.action
+                <<< HandleTypeahead WhiskeyTypeahead
+              )
+            )
         ]
     ]
-  where
-    field = unwrap $ Record.get _whiskey $ unwrap state.form
 
-renderLanguage :: Formless.State Form User Aff -> Formless.HTML Query FCQ FCS Form User Aff
+renderLanguage
+  :: Formless.State Form User Aff
+  -> Formless.HTML Query FCQ FCS Form User Aff
 renderLanguage state =
   HH.div_
     [ FormField.field_
         { label: "Language"
         , helpText: Just "Select a favorite language"
-        , error: showError field
+        , error: showError $ getField _language state.form
         , inputId: "language"
         }
         [ HH.slot
@@ -163,8 +174,11 @@ renderLanguage state =
               ]
               TA.Input.renderItemString
             )
-            ( HE.input (Formless.Raise <<< H.action <<< HandleTypeahead LanguageTypeahead) )
+            ( HE.input
+              ( Formless.Raise
+                <<< H.action
+                <<< HandleTypeahead LanguageTypeahead
+              )
+            )
         ]
     ]
-  where
-    field = unwrap $ Record.get _language $ unwrap state.form

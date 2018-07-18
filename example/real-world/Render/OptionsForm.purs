@@ -3,7 +3,6 @@ module Example.RealWorld.Render.OptionsForm where
 import Prelude
 
 import Data.Maybe (Maybe(..))
-import Data.Newtype (unwrap)
 import Effect.Aff (Aff)
 import Example.RealWorld.Data.Options
   (Metric(..), Speed(..), _enable, _metric, _speed)
@@ -12,6 +11,7 @@ import Example.RealWorld.Render.Field as Field
 import Example.RealWorld.Types (OptionsCQ, OptionsCS, Query(..))
 import Example.Validation.Utils (showError)
 import Formless as Formless
+import Formless.Spec (getField, getInput)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -23,7 +23,6 @@ import Ocelot.Block.Radio as Radio
 import Ocelot.Block.Toggle as Toggle
 import Ocelot.Components.Dropdown as Dropdown
 import Ocelot.HTML.Properties (css)
-import Record as Record
 
 -- | A convenience synonym for the group Formless state
 type FormlessState
@@ -43,13 +42,11 @@ render state =
         , renderEnabled state
         ]
     , HH.div
-        [ if enable.input then css "" else css "hidden" ]
+        [ if (getInput _enable state.form) then css "" else css "hidden" ]
         [ renderMetrics state
         , renderOthers state
         ]
     ]
-  where
-    enable = unwrap $ Record.get _enable $ unwrap state.form
 
 -----
 -- Form parts
@@ -60,10 +57,9 @@ renderMetrics state =
     [ Format.subHeading_
       [ HH.text "Metrics" ]
     , renderMetric state
-    ,  renderMetricField metric.input
+    , renderMetricField $ getInput _metric state.form
     ]
   where
-    metric = unwrap $ Record.get _metric $ unwrap state.form
     renderMetricField = case _ of
       Just ViewCost -> renderViewCost state
       Just ClickCost -> renderClickCost state
@@ -99,7 +95,7 @@ renderEnabled state =
       ]
     ]
   where
-    enable = unwrap $ Record.get _enable $ unwrap state.form
+    enable = getField _enable state.form
 
 renderMetric :: FormlessState -> FormlessHTML
 renderMetric state =
@@ -203,4 +199,4 @@ renderSpeed state =
     ]
   ]
   where
-    speed = unwrap $ Record.get _speed $ unwrap state.form
+    speed = getField _speed state.form

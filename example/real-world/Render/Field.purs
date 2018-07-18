@@ -4,18 +4,17 @@ import Prelude
 
 import Data.Either (Either)
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Newtype (class Newtype, unwrap)
+import Data.Newtype (class Newtype)
 import Data.String (toLower) as String
 import Data.Symbol (class IsSymbol, SProxy)
 import Example.Validation.Utils (showError)
 import Formless as Formless
-import Formless.Spec (InputField)
+import Formless.Spec (InputField, getField)
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Ocelot.Block.FormField as FormField
 import Ocelot.Block.Input as Input
 import Prim.Row (class Cons)
-import Record as Record
 
 -----
 -- Types
@@ -90,5 +89,5 @@ formField state config html =
         [ html field ]
     ]
   where
-    field = unwrap $ Record.get config.field $ unwrap state.form
+    field = getField config.field state.form
 

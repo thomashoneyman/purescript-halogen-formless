@@ -5,7 +5,8 @@ import Prelude
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.Symbol (SProxy(..))
-import Example.RealWorld.Data.Group (Group(..), GroupForm(..), GroupFormRow, GroupId(..))
+import Example.RealWorld.Data.Group
+  (Group(..), GroupForm(..), GroupFormRow, GroupId(..))
 import Example.Validation.Semigroup as V
 import Formless.Spec (OutputField, unwrapOutput)
 import Formless.Spec as FSpec

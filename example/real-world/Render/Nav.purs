@@ -3,7 +3,8 @@ module Example.RealWorld.Render.Nav where
 import Prelude
 
 import Effect.Aff (Aff)
-import Example.RealWorld.Types (ChildQuery, ChildSlot, Query(..), State, Tab(..))
+import Example.RealWorld.Types
+  (ChildQuery, ChildSlot, Query(..), State, Tab(..))
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE

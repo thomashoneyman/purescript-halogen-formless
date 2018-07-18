@@ -5,13 +5,14 @@ import Prelude
 import Data.Const (Const)
 import Data.List.NonEmpty (NonEmptyList)
 import Data.Maybe (Maybe(..))
-import Data.Newtype (class Newtype, unwrap)
+import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Example.Validation.Semigroup (InvalidPrimitive, validateNonEmpty)
 import Example.Validation.Utils (showError)
 import Formless as Formless
-import Formless.Spec (FormSpec, InputField, OutputField, mkFormSpec, unwrapOutput)
+import Formless.Spec
+  (FormSpec, InputField, OutputField, mkFormSpec, unwrapOutput, getField)
 import Formless.Validation (onInputField)
 import Halogen as H
 import Halogen.HTML as HH
@@ -22,7 +23,6 @@ import Ocelot.Block.FormField as FormField
 import Ocelot.Block.Format as Format
 import Ocelot.Block.Input as Input
 import Ocelot.HTML.Properties (css)
-import Record as Record
 
 -----
 -- Form spec
@@ -127,7 +127,7 @@ formless state =
  HH.div_
    [ FormField.field_
      { label: "Name"
-     , helpText: Just $ "Write your name." <> (if name.touched then " (touched)" else "")
+     , helpText: Just "Write your name."
      , error: showError name
      , inputId: "name"
      }
@@ -139,7 +139,7 @@ formless state =
      ]
    , FormField.field_
      { label: "Message"
-     , helpText: Just $ "Write us a message!" <> (if text.touched then " (touched)" else "")
+     , helpText: Just "Write us a message!"
      , error: Nothing -- Errors are impossible.
      , inputId: "message"
      }
@@ -154,5 +154,5 @@ formless state =
      [ HH.text "Submit" ]
    ]
   where
-    name = unwrap $ Record.get _name $ unwrap state.form
-    text = unwrap $ Record.get _text $ unwrap state.form
+    name = getField _name state.form
+    text = getField _text state.form
