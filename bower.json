@@ -20,7 +20,7 @@
     "purescript-halogen-renderless": "^0.0.3"
   },
   "devDependencies": {
-    "purescript-ocelot": "git@github.com:citizennet/purescript-ocelot.git#master",
+    "purescript-ocelot": "git@github.com:citizennet/purescript-ocelot.git#v0.5.0",
     "purescript-halogen-storybook": "^0.4.0",
     "purescript-debug": "^4.0.0",
     "purescript-validation": "^4.0.0",

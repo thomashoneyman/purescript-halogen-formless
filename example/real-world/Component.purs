@@ -194,7 +194,8 @@ component =
       TA.Searched _ -> pure a
 
     HandleAdminDropdown m a -> case m of
-      Dropdown.ItemSelected x -> do
+      Dropdown.Emit q -> eval q *> pure a
+      Dropdown.Selected x -> do
         _ <- H.query' CP.cp1 unit $ Formless.handleBlurAndChange _admin (Just x)
         -- Changing this field should also clear the secret keys. Ensure you use `reset`
         -- instead of `change` as you want to clear errors, too.
@@ -217,6 +218,7 @@ component =
         pure a
 
     HandleMetricDropdown m a -> case m of
-      Dropdown.ItemSelected x -> do
+      Dropdown.Emit q -> eval q *> pure a
+      Dropdown.Selected x -> do
         _ <- H.query' CP.cp2 unit $ Formless.handleBlurAndChange _metric (Just x)
         pure a

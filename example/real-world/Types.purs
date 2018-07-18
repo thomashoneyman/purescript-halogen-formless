@@ -21,8 +21,8 @@ data Query a
   = HandleGroupForm (Formless.Message Query GroupForm Group) a
   | HandleOptionsForm (Formless.Message Query OptionsForm Options) a
   | HandleGroupTypeahead GroupTASlot (TA.Message Query String) a
-  | HandleAdminDropdown (Dropdown.Message Admin) a
-  | HandleMetricDropdown (Dropdown.Message Metric) a
+  | HandleAdminDropdown (Dropdown.Message Query Admin) a
+  | HandleMetricDropdown (Dropdown.Message Query Metric) a
   | Select Tab a
   | Reset a
   | Submit a
@@ -54,14 +54,14 @@ type ChildSlot = Either2
 -- | Types for the group form
 type GroupCQ = Coproduct2
   (TA.Query Query String String Aff)
-  (Dropdown.Query Admin)
+  (Dropdown.Query Query Admin Aff)
 
 type GroupCS = Either2
   GroupTASlot
   Unit
 
 -- | Types for the options form
-type OptionsCQ = Dropdown.Query Metric
+type OptionsCQ = Dropdown.Query Query Metric Aff
 type OptionsCS = Unit
 
 ----------
