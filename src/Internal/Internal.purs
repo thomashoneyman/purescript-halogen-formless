@@ -399,3 +399,41 @@ instance applyRowListCons
 
 rltail :: ∀ k v t. RLProxy (RL.Cons k v t) -> RLProxy t
 rltail _ = RLProxy
+
+
+-- | Credit: @justinw, @paluh, and @monoidmusician
+class Applicative m <= SequenceRecord rl row from to m
+  | rl -> row from to m
+  where
+    sequenceRecordImpl :: RLProxy rl -> Record row -> m (Builder { | from } { | to })
+
+instance sequenceRecordCons ::
+  ( IsSymbol name
+  , Applicative m
+  , Row.Cons name (m ty) trash row
+  , SequenceRecord tail row from from' m
+  , Row.Lacks name from'
+  , Row.Cons name ty from' to
+  ) => SequenceRecord (RL.Cons name (m ty) tail) row from to m where
+  sequenceRecordImpl _ a  =
+       fn <$> valA <*> rest
+    where
+      namep = SProxy :: SProxy name
+      valA = Record.get namep a
+      tailp = RLProxy :: RLProxy tail
+      rest = sequenceRecordImpl tailp a
+      fn valA' rest' = Builder.insert namep valA' <<< rest'
+
+instance sequenceRecordNil :: Applicative m => SequenceRecord RL.Nil row () () m where
+  sequenceRecordImpl _ _ = pure identity
+
+-- | A function to sequence a record of applicatives
+sequenceRecord :: ∀ row row' rl m
+   . RL.RowToList row rl
+  => Applicative m
+  => SequenceRecord rl row () row' m
+  => Record row
+  -> m (Record row')
+sequenceRecord a = Builder.build <@> {} <$> builder
+  where
+		builder = sequenceRecordImpl (RLProxy :: RLProxy rl) a
