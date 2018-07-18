@@ -11,9 +11,8 @@ import Effect.Aff (Aff)
 import Example.Validation.Semigroup (InvalidPrimitive, validateNonEmpty)
 import Example.Validation.Utils (showError)
 import Formless as Formless
-import Formless.Spec
-  (FormSpec, InputField, OutputField, mkFormSpec, unwrapOutput, getField)
-import Formless.Validation (onInputField)
+import Formless.Spec (FormSpec, InputField, OutputField, mkFormSpec, unwrapOutput, getField)
+import Formless.Validation.Semigroup (onInputField)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE

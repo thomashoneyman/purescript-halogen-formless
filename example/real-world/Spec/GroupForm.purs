@@ -2,15 +2,17 @@ module Example.RealWorld.Spec.GroupForm where
 
 import Prelude
 
+import Data.List.NonEmpty (NonEmptyList)
 import Data.Maybe (Maybe(..))
-import Data.Newtype (unwrap)
 import Data.Symbol (SProxy(..))
+import Data.Validation.Semigroup (V)
 import Example.RealWorld.Data.Group
-  (Group(..), GroupForm(..), GroupFormRow, GroupId(..))
+  (Admin, Group(..), GroupForm, GroupFormRow, GroupId(..), _secretKey1, _secretKey2)
+import Example.Validation.Semigroup (InvalidPrimitive)
 import Example.Validation.Semigroup as V
-import Formless.Spec (OutputField, unwrapOutput)
+import Formless.Spec (OutputField, getInput, unwrapOutput)
 import Formless.Spec as FSpec
-import Formless.Validation (onInputField)
+import Formless.Validation.Semigroup (applyOnInputFields)
 import Record as Record
 import Type.Row (RProxy(..))
 
@@ -41,26 +43,33 @@ groupFormValidate
    . Monad m
   => GroupForm FSpec.InputField
   -> m (GroupForm FSpec.InputField)
-groupFormValidate (GroupForm form) = pure $
-  GroupForm
-    { name: V.validateNonEmpty `onInputField` form.name
-    , secretKey1:
-        (\i ->
-          V.validateNonEmpty i
-          *> V.validateEqual (_.input $ unwrap form.secretKey2) i
-        )
-        `onInputField` form.secretKey1
-    , secretKey2:
-        (\i ->
-          V.validateNonEmpty i
-          *> V.validateEqual (_.input $ unwrap form.secretKey1) i
-        )
-        `onInputField` form.secretKey2
-    , admin: V.validateMaybe `onInputField` form.admin
-    , applications: V.validateNonEmptyF `onInputField` form.applications
-    , pixels: V.validateNonEmptyF `onInputField` form.pixels
-    , maxBudget: const (pure $ Just 100) `onInputField` form.maxBudget
-    , minBudget: V.validateInt `onInputField` form.minBudget
-    , whiskey: V.validateMaybe `onInputField` form.whiskey
-    }
+groupFormValidate form = pure $ applyOnInputFields
+  { name: V.validateNonEmpty
+  , secretKey1:
+      (\i ->
+        V.validateNonEmpty i
+        *> V.validateEqual (getInput _secretKey2 form) i
+      )
+  , secretKey2:
+      (\i ->
+        V.validateNonEmpty i
+        *> V.validateEqual (getInput _secretKey1 form) i
+      )
+  , admin: validateAdmin
+  , applications: validateStrings
+  , pixels: validateStrings
+  , maxBudget: validateBudget
+  , minBudget: V.validateInt
+  , whiskey: \(i :: Maybe String) -> V.validateMaybe i
+  }
+  form
 
+
+validateAdmin :: Maybe Admin -> V (NonEmptyList InvalidPrimitive) Admin
+validateAdmin = V.validateMaybe
+
+validateStrings :: Array String -> V (NonEmptyList InvalidPrimitive) (Array String)
+validateStrings = V.validateNonEmptyF
+
+validateBudget :: String -> V (NonEmptyList InvalidPrimitive) (Maybe Int)
+validateBudget = const (pure $ Just 100)

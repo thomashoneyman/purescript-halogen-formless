@@ -134,21 +134,22 @@ type Output input error output = output
 ----------
 -- Class
 
--- | A function to unwrap a record of successful results into an equivalent record without
--- | any newtypes.
+-- | A function to unwrap a record of successful results into an equivalent
+-- | record without any newtypes.
+-- |
+-- | For example, the below User type is identical to the Form type, if it
+-- | only held the proper output type Name. You can unwrap a form of output
+-- | fields directly into the User type:
 -- |
 -- | ```purescript
--- | eval (Formless.Submitted result) a = do
--- |   case result of
--- |     Left err -> ...
--- |     Right vals ->
--- |       -- Now you have just your form labels with their success values and nothing else.
--- |       let form = unwrapOutput vals
--- |           email :: Email
--- |           email = form.email
--- |       ...
--- |   pure a
+-- | type User = { name :: Name }
+-- | newtype Form f = { name :: f String Error Name }
+-- |
+-- | formToUser :: Form OutputField -> User
+-- | formToUser = unwrapOutput
 -- | ```
+-- |
+-- | This is especially useful when creating a submitter function.
 unwrapOutput
   :: ∀ row xs row' form wrapper
    . RL.RowToList row xs
@@ -160,8 +161,8 @@ unwrapOutput r = Builder.build builder {}
   where
     builder = unwrapOutputBuilder (RLProxy :: RLProxy xs) (unwrap r)
 
--- | The class that provides the Builder implementation to efficiently unpack a record of
--- | output fields into a simple record of only the values.
+-- | The class that provides the Builder implementation to efficiently unpack
+-- | a record of output fields into a simple record of only the values.
 class UnwrapOutput
   (xs :: RL.RowList) (row :: # Type) (from :: # Type) (to :: # Type)
   | xs -> from to where
@@ -188,8 +189,8 @@ instance unwrapOutputCons
       first = Builder.insert _name val
 
 
--- | A function to transform a record of initial values into a FormSpec. Exists to save
--- | you from too many redundant key strokes.
+-- | A function to transform a record of initial values into a FormSpec.
+-- | Exists to save you from too many redundant key strokes.
 -- |
 -- | ```purescript
 -- | newtype Form f = Form
@@ -210,8 +211,8 @@ mkFormSpec r = wrap $ Builder.build builder {}
   where
     builder = mkFormSpecBuilder (RLProxy :: RLProxy xs) r
 
--- | The class that provides the Builder implementation to efficiently transform a normal
--- | into a proper FormSpec by wrapping it in newtypes
+-- | The class that provides the Builder implementation to efficiently
+-- | transform a record into a proper FormSpec by wrapping it in newtypes
 class MakeFormSpec
   (xs :: RL.RowList) (row :: # Type) (from :: # Type) (to :: # Type)
   | xs -> from to where
@@ -236,10 +237,11 @@ instance mkFormSpecCons
       rest = mkFormSpecBuilder (RLProxy :: RLProxy tail) r
       first = Builder.insert _name val
 
--- | A function to transform a row of labels into a FormSpec. This allows you to go directly
--- | from a custom form newtype to a spec without having to fill in any values at all. Requires
--- | that all members have an instance of the `Initial` type class (all monoidal values do by
--- | default, along with some other primitives).
+-- | A function to transform a row of labels into a FormSpec. This allows you
+-- | to go directly from a custom form newtype to a spec without having to
+-- | fill in any values. Requires that all members have an instance of the
+-- | `Initial` type class (all monoidal values do by default, along with some
+-- | other primitives).
 -- |
 -- | ```purescript
 -- | newtype Form f = Form (Record (MyRow f))
@@ -266,8 +268,9 @@ mkFormSpecFromRow r = wrap $ Builder.build builder {}
   where
     builder = mkFormSpecFromRowBuilder (RLProxy :: RLProxy xs) r
 
--- | The class that provides the Builder implementation to efficiently transform a normal
--- | into a proper FormSpec by wrapping it in newtypes
+-- | The class that provides the Builder implementation to efficiently
+-- | transform a row into a proper FormSpec by wrapping it in newtypes and
+-- | supplying initial values
 class MakeFormSpecFromRow
   (xs :: RL.RowList) (row :: # Type) (from :: # Type) (to :: # Type)
   | xs -> from to where

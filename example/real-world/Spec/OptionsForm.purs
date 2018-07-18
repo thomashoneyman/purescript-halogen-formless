@@ -9,7 +9,7 @@ import Example.RealWorld.Data.Options
   (Dollars(..), Metric(..), OptionsForm(..), OptionsRow)
 import Example.Validation.Semigroup as V
 import Formless.Spec as FSpec
-import Formless.Validation (onInputField)
+import Formless.Validation.Semigroup (onInputField)
 import Type.Row (RProxy(..))
 
 -- | mkFormSpecFromRow can produce a valid input form spec from your row

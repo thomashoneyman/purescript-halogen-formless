@@ -54,7 +54,7 @@ component =
         unit
         Formless.component
         { formSpec
-        , validator
+        , validator: pure <$> validator
         , submitter
         , render: formless
         }

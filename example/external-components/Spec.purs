@@ -8,7 +8,7 @@ import Data.Symbol (SProxy(..))
 import Example.Validation.Semigroup as V
 import Formless.Spec (Output, OutputField, unwrapOutput)
 import Formless.Spec as FSpec
-import Formless.Validation (onInputField)
+import Formless.Validation.Semigroup (applyOnInputFields)
 import Type.Row (RProxy(..))
 
 -- | You must provide a newtype around your form record in this format. Here,
@@ -45,13 +45,12 @@ formSpec = FSpec.mkFormSpecFromRow $ RProxy :: RProxy (FormRow FSpec.Input)
 
 -- | You should provide your own validation. This example uses the PureScript
 -- | standard, `purescript-validation`.
-validator :: ∀ m. Monad m => Form FSpec.InputField -> m (Form FSpec.InputField)
-validator (Form form) = pure $
-  Form
-    { name: (\i -> V.validateNonEmpty i *> V.validateMinimumLength i 7) `onInputField` form.name
-    , email: (\i -> V.validateMaybe i *> V.validateEmailRegex (fromMaybe "" i)) `onInputField` form.email
-    , whiskey: V.validateMaybe `onInputField` form.whiskey
-    , language: V.validateMaybe `onInputField` form.language
+validator :: Form FSpec.InputField -> Form FSpec.InputField
+validator = applyOnInputFields
+    { name: (\i -> V.validateNonEmpty i *> V.validateMinimumLength i 7)
+    , email: (\i -> V.validateMaybe i *> V.validateEmailRegex (fromMaybe "" i))
+    , whiskey: \(i :: Maybe String) -> V.validateMaybe i
+    , language: \(i :: Maybe String) -> V.validateMaybe i
     }
 
 -- | You should provide a function from the form with only output values to your ideal

@@ -14,6 +14,7 @@ import Record as Record
 import Record.Builder (Builder)
 import Record.Builder as Builder
 import Type.Data.RowList (RLProxy(..))
+import Type.Row (class ListToRow)
 
 -----
 -- Types
@@ -311,3 +312,90 @@ instance consAllTouched
       let tail' = allTouchedImpl (RLProxy :: RLProxy tail) r
           val = _.touched $ unwrap $ Record.get (SProxy :: SProxy name) r
        in val && tail'
+
+
+-- | Credit: @LiamGoodacre
+-- | Applies a record of functions to a record of input values to produce
+-- | a record of outputs.
+-- TODO: investigate performance improvements.
+class ApplyRecord (io :: # Type) (i :: # Type) (o :: # Type)
+  | io -> i o
+  , i -> io o
+  , o -> i io
+  where
+  applyRecord :: Record io -> Record i -> Record o
+
+instance applyRecordImpl
+  :: ( RL.RowToList io lio
+     , RL.RowToList i li
+     , RL.RowToList o lo
+     , ApplyRowList lio li lo io i o
+     , ListToRow lio io
+     , ListToRow li i
+     , ListToRow lo o
+     )
+  => ApplyRecord io i o where
+  applyRecord =
+    applyRowList
+      (RLProxy :: RLProxy lio)
+      (RLProxy :: RLProxy li)
+      (RLProxy :: RLProxy lo)
+
+class
+  ( ListToRow io ior
+  , ListToRow i ir
+  , ListToRow o or ) <=
+  ApplyRowList
+    (io :: RL.RowList)
+    (i :: RL.RowList)
+    (o :: RL.RowList)
+    (ior :: # Type)
+    (ir :: # Type)
+    (or :: # Type)
+    | io -> i o ior ir or
+    , i -> io o ior ir or
+    , o -> io i ior ir or
+  where
+  applyRowList
+    :: RLProxy io
+    -> RLProxy i
+    -> RLProxy o
+    -> Record ior
+    -> Record ir
+    -> Record or
+
+instance applyRowListNil :: ApplyRowList RL.Nil RL.Nil RL.Nil () () () where
+  applyRowList _ _ _ _ e = e
+
+instance applyRowListCons
+  :: ( Row.Cons k (i -> o) tior ior
+     , Row.Cons k i tir ir
+     , Row.Cons k o tor or
+     , Row.Lacks k tior
+     , Row.Lacks k tir
+     , Row.Lacks k tor
+     , ListToRow tio tior
+     , ListToRow ti tir
+     , ListToRow to tor
+     , ApplyRowList tio ti to tior tir tor
+     , IsSymbol k
+     )
+  => ApplyRowList
+       (RL.Cons k (i -> o) tio)
+       (RL.Cons k i ti)
+       (RL.Cons k o to)
+       ior
+       ir
+       or
+  where
+    applyRowList io i o ior ir =
+      let key = SProxy :: SProxy k
+          f = Record.get key ior
+          x = Record.get key ir
+          tior = Record.delete key ior :: Record tior
+          tir = Record.delete key ir :: Record tir
+          tor = applyRowList (rltail io) (rltail i) (rltail o) tior tir
+       in Record.insert key (f x) tor
+
+rltail :: ∀ k v t. RLProxy (RL.Cons k v t) -> RLProxy t
+rltail _ = RLProxy
