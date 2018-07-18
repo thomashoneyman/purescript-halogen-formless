@@ -6,7 +6,7 @@ import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
 import Example.ExternalComponents.Spec (Form, User, _email, _language, _name, _whiskey)
 import Example.ExternalComponents.Types (FCQ, FCS, Query(..), Slot(..))
-import Example.Validation.Utils (showError)
+import Example.Utils (showError)
 import Formless as Formless
 import Formless.Spec (getField)
 import Halogen as H

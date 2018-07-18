@@ -2,13 +2,13 @@ module Example.RealWorld.Render.GroupForm where
 
 import Prelude
 
-import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (class Newtype)
 import Data.Symbol (class IsSymbol)
 import Effect.Aff (Aff)
 import Example.RealWorld.Data.Group (Admin(..), GroupId(..), _maxBudget, _minBudget)
 import Example.RealWorld.Data.Group as G
-import Example.RealWorld.Render.Field (FieldConfig)
+import Example.RealWorld.Render.Field (FieldConfig, adminToString, renderDropdown)
 import Example.RealWorld.Render.Field as Field
 import Example.RealWorld.Types (GroupCQ, GroupCS, GroupTASlot(..), Query(..))
 import Formless as Formless
@@ -18,6 +18,7 @@ import Halogen.Component.ChildPath as CP
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Ocelot.Block.Button as Button
 import Ocelot.Block.Card as Card
 import Ocelot.Block.Format as Format
 import Ocelot.Block.Input as Input
@@ -105,12 +106,10 @@ renderAdmin state =
         HH.slot'
           CP.cp2
           unit
-          Dropdown.dropdown
+          Dropdown.component
           { selectedItem: Nothing
           , items
-          , label: "Select an admin"
-          , toString: \(Admin { id }) -> maybe "None" show id
-          , disabled: false
+          , render: renderDropdown Button.button adminToString "Choose an admin"
           }
           ( HE.input
             ( Formless.Raise

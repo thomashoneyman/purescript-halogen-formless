@@ -3,17 +3,23 @@ module Example.RealWorld.Render.Field where
 import Prelude
 
 import Data.Either (Either)
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Newtype (class Newtype)
 import Data.String (toLower) as String
 import Data.Symbol (class IsSymbol, SProxy)
-import Example.Validation.Utils (showError)
+import Effect.Aff (Aff)
+import Example.RealWorld.Data.Group (Admin(..))
+import Example.RealWorld.Types (Query)
+import Example.Utils (showError)
 import Formless as Formless
 import Formless.Spec (InputField, getField)
+import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Ocelot.Block.FormField as FormField
 import Ocelot.Block.Input as Input
+import Ocelot.Components.Dropdown as Dropdown
+import Ocelot.Components.Dropdown.Render as DR
 import Prim.Row (class Cons)
 
 -----
@@ -91,3 +97,19 @@ formField state config html =
   where
     field = getField config.field state.form
 
+
+-----
+-- Dropdowns
+
+adminToString :: Admin -> String
+adminToString (Admin { id }) = maybe "None" show id
+
+renderDropdown
+ :: ∀ item
+  . Eq item
+ => (∀ p i. DR.ButtonFn p i)
+ -> (item -> String)
+ -> String
+ -> Dropdown.State item
+ -> H.ParentHTML (Dropdown.Query Query item Aff) (Dropdown.ChildQuery Query item) Dropdown.ChildSlot Aff
+renderDropdown btnFn change label = DR.render $ DR.defDropdown btnFn [ ] change label

@@ -5,10 +5,10 @@ import Prelude
 import Data.Maybe (Maybe, fromMaybe)
 import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
-import Example.Validation.Semigroup as V
-import Formless.Spec (Output, OutputField, unwrapOutput)
-import Formless.Spec as FSpec
-import Formless.Validation (onInputField)
+import Example.Utils as V
+import Formless.Spec (FormSpec, Input, InputField, Output, OutputField)
+import Formless.Spec.Transform (mkFormSpecFromRow, unwrapOutput)
+import Formless.Validation.Semigroup (applyOnInputFields)
 import Type.Row (RProxy(..))
 
 -- | You must provide a newtype around your form record in this format. Here,
@@ -40,18 +40,17 @@ _language = SProxy :: SProxy "language"
 -- | without you having to type anything. This is useful for especially
 -- | large forms where you don't want to have to stick newtypes everywhere.
 -- | If you already have a record of values, use `mkFormSpec` instead.
-formSpec :: Form FSpec.FormSpec
-formSpec = FSpec.mkFormSpecFromRow $ RProxy :: RProxy (FormRow FSpec.Input)
+formSpec :: Form FormSpec
+formSpec = mkFormSpecFromRow $ RProxy :: RProxy (FormRow Input)
 
 -- | You should provide your own validation. This example uses the PureScript
 -- | standard, `purescript-validation`.
-validator :: ∀ m. Monad m => Form FSpec.InputField -> m (Form FSpec.InputField)
-validator (Form form) = pure $
-  Form
-    { name: (\i -> V.validateNonEmpty i *> V.validateMinimumLength i 7) `onInputField` form.name
-    , email: (\i -> V.validateMaybe i *> V.validateEmailRegex (fromMaybe "" i)) `onInputField` form.email
-    , whiskey: V.validateMaybe `onInputField` form.whiskey
-    , language: V.validateMaybe `onInputField` form.language
+validator :: Form InputField -> Form InputField
+validator = applyOnInputFields
+    { name: flip V.validateMinimumLength 7
+    , email: V.validateEmailRegex <<< fromMaybe ""
+    , whiskey: \(i :: Maybe String) -> V.validateMaybe i
+    , language: \(i :: Maybe String) -> V.validateMaybe i
     }
 
 -- | You should provide a function from the form with only output values to your ideal

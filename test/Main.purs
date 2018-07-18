@@ -11,3 +11,4 @@ main = runTest do
   suite "pure form validation" do
     test "validates" do
       pure unit
+

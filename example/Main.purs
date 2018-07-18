@@ -7,6 +7,7 @@ import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Aff (Aff)
 import Example.Basic.Component as Basic
+import Example.Polyform.Component as Polyform
 import Example.ExternalComponents.Component as ExternalComponents
 import Example.Home as Home
 import Example.RealWorld.Component as RealWorld
@@ -19,6 +20,7 @@ stories :: Stories Aff
 stories = Object.fromFoldable
   [ Tuple "" $ proxy Home.component
   , Tuple "basic" $ proxy Basic.component
+  , Tuple "polyform" $ proxy Polyform.component
   , Tuple "external-components" $ proxy ExternalComponents.component
   , Tuple "real-world" $ proxy RealWorld.component
   ]

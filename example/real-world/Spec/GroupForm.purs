@@ -2,23 +2,24 @@ module Example.RealWorld.Spec.GroupForm where
 
 import Prelude
 
+import Data.List.NonEmpty (NonEmptyList)
 import Data.Maybe (Maybe(..))
-import Data.Newtype (unwrap)
 import Data.Symbol (SProxy(..))
-import Example.RealWorld.Data.Group
-  (Group(..), GroupForm(..), GroupFormRow, GroupId(..))
-import Example.Validation.Semigroup as V
-import Formless.Spec (OutputField, unwrapOutput)
-import Formless.Spec as FSpec
-import Formless.Validation (onInputField)
+import Data.Validation.Semigroup (V)
+import Example.RealWorld.Data.Group (Admin, Group(..), GroupForm, GroupFormRow, GroupId(..), _secretKey1, _secretKey2)
+import Example.Utils as V
+import Formless.Spec (OutputField, getInput)
+import Formless.Spec as Spec
+import Formless.Spec.Transform (mkFormSpecFromRow, unwrapOutput)
+import Formless.Validation.Semigroup (applyOnInputFields)
 import Record as Record
 import Type.Row (RProxy(..))
 
 -- | mkFormSpecFromRow can produce a valid input form spec from your row
 -- | without you having to type anything.
-groupFormSpec :: GroupForm FSpec.FormSpec
+groupFormSpec :: GroupForm Spec.FormSpec
 groupFormSpec =
-  FSpec.mkFormSpecFromRow $ RProxy :: RProxy (GroupFormRow FSpec.Input)
+  mkFormSpecFromRow $ RProxy :: RProxy (GroupFormRow Spec.Input)
 
 -- | We can use simple record manipulations to change the group form result
 -- | into our output type
@@ -39,28 +40,28 @@ groupFormSubmit form = do
 groupFormValidate
   :: ∀ m
    . Monad m
-  => GroupForm FSpec.InputField
-  -> m (GroupForm FSpec.InputField)
-groupFormValidate (GroupForm form) = pure $
-  GroupForm
-    { name: V.validateNonEmpty `onInputField` form.name
-    , secretKey1:
-        (\i ->
-          V.validateNonEmpty i
-          *> V.validateEqual (_.input $ unwrap form.secretKey2) i
-        )
-        `onInputField` form.secretKey1
-    , secretKey2:
-        (\i ->
-          V.validateNonEmpty i
-          *> V.validateEqual (_.input $ unwrap form.secretKey1) i
-        )
-        `onInputField` form.secretKey2
-    , admin: V.validateMaybe `onInputField` form.admin
-    , applications: V.validateNonEmptyF `onInputField` form.applications
-    , pixels: V.validateNonEmptyF `onInputField` form.pixels
-    , maxBudget: const (pure $ Just 100) `onInputField` form.maxBudget
-    , minBudget: V.validateInt `onInputField` form.minBudget
-    , whiskey: V.validateMaybe `onInputField` form.whiskey
-    }
+  => GroupForm Spec.InputField
+  -> m (GroupForm Spec.InputField)
+groupFormValidate form = pure $ applyOnInputFields
+  { name: V.validateNonEmpty
+  , secretKey1:
+      (\i ->
+        V.validateNonEmpty i
+        *> V.validateEqual (getInput _secretKey2 form) i
+      )
+  , secretKey2:
+      (\i ->
+        V.validateNonEmpty i
+        *> V.validateEqual (getInput _secretKey1 form) i
+      )
+  , admin: \(i :: Maybe Admin) -> V.validateMaybe i
+  , applications: V.validateNonEmptyArray
+  , pixels: V.validateNonEmptyArray
+  , maxBudget: validateBudget
+  , minBudget: V.validateInt
+  , whiskey: \(i :: Maybe String) -> V.validateMaybe i
+  }
+  form
 
+validateBudget :: String -> V (NonEmptyList V.FieldError) (Maybe Int)
+validateBudget = const (pure $ Just 100)

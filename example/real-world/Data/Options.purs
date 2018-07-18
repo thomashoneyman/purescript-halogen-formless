@@ -12,7 +12,7 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Data.String.Read (class Read)
 import Data.Symbol (SProxy(..))
-import Example.Validation.Semigroup (Errs)
+import Example.Utils (Errs)
 import Formless.Class.Initial (class Initial)
 import Formless.Spec as FSpec
 

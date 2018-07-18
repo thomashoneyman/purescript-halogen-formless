@@ -2,27 +2,27 @@ module Example.RealWorld.Spec.OptionsForm where
 
 import Prelude
 
-import Data.Int (toNumber) as Int
+import Data.Int as Int
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
-import Example.RealWorld.Data.Options
-  (Dollars(..), Metric(..), OptionsForm(..), OptionsRow)
-import Example.Validation.Semigroup as V
-import Formless.Spec as FSpec
-import Formless.Validation (onInputField)
+import Example.RealWorld.Data.Options (Dollars(..), Metric(..), OptionsForm(..), OptionsRow)
+import Example.Utils as V
+import Formless.Spec as Spec
+import Formless.Spec.Transform (mkFormSpecFromRow)
+import Formless.Validation.Semigroup (onInputField)
 import Type.Row (RProxy(..))
 
 -- | mkFormSpecFromRow can produce a valid input form spec from your row
 -- | without you having to type anything.
-optionsFormSpec :: OptionsForm FSpec.FormSpec
+optionsFormSpec :: OptionsForm Spec.FormSpec
 optionsFormSpec =
-  FSpec.mkFormSpecFromRow $ RProxy :: RProxy (OptionsRow FSpec.Input)
+  mkFormSpecFromRow $ RProxy :: RProxy (OptionsRow Spec.Input)
 
 -- | You should provide your own validation. This example uses the PureScript
 -- | standard, `purescript-validation`.
 optionsFormValidate
-  :: OptionsForm FSpec.InputField
-  -> OptionsForm FSpec.InputField
+  :: OptionsForm Spec.InputField
+  -> OptionsForm Spec.InputField
 optionsFormValidate (OptionsForm form) =
   case (_.input $ unwrap form.enable) of
     false -> OptionsForm form

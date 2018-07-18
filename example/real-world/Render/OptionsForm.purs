@@ -4,18 +4,19 @@ import Prelude
 
 import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
-import Example.RealWorld.Data.Options
-  (Metric(..), Speed(..), _enable, _metric, _speed)
+import Example.RealWorld.Data.Options (Metric(..), Speed(..), _enable, _metric, _speed)
 import Example.RealWorld.Data.Options as OP
+import Example.RealWorld.Render.Field (renderDropdown)
 import Example.RealWorld.Render.Field as Field
 import Example.RealWorld.Types (OptionsCQ, OptionsCS, Query(..))
-import Example.Validation.Utils (showError)
+import Example.Utils (showError)
 import Formless as Formless
 import Formless.Spec (getField, getInput)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Ocelot.Block.Button (button) as Button
 import Ocelot.Block.Card as Card
 import Ocelot.Block.FormField as FormField
 import Ocelot.Block.Format as Format
@@ -109,12 +110,10 @@ renderMetric state =
       \metric ->
         HH.slot
           unit
-          Dropdown.dropdown
+          Dropdown.component
           { selectedItem: Nothing
           , items: [ ViewCost, ClickCost, InstallCost ]
-          , label: "Select a metric"
-          , toString: show
-          , disabled: false
+          , render: renderDropdown Button.button show "Choose a metric"
           }
           ( HE.input
             ( Formless.Raise

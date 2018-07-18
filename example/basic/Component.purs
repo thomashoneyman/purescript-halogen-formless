@@ -8,12 +8,11 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
-import Example.Validation.Semigroup (InvalidPrimitive, validateNonEmpty)
-import Example.Validation.Utils (showError)
+import Example.Utils (FieldError, validateNonEmpty, showError)
 import Formless as Formless
-import Formless.Spec
-  (FormSpec, InputField, OutputField, mkFormSpec, unwrapOutput, getField)
-import Formless.Validation (onInputField)
+import Formless.Spec (FormSpec, InputField, OutputField, getField)
+import Formless.Spec.Transform (mkFormSpec, unwrapOutput)
+import Formless.Validation.Semigroup (onInputField)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -36,7 +35,7 @@ type Contact =
 -- | The same type represented as a form: the possible input,
 -- | error, and output types for each field.
 newtype Form f = Form
-  { name :: f String (NonEmptyList InvalidPrimitive) String
+  { name :: f String (NonEmptyList FieldError) String
   , text :: f String Void String
   }
 derive instance newtypeForm :: Newtype (Form f) _
