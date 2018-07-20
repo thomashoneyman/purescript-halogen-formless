@@ -47,6 +47,7 @@ data Query pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) out m a
   | Send cs (cq Unit) a
   | Raise (pq Unit) a
   | Receive (Input pq cq cs form out m) a
+  | AndThen (Query pq cq cs form out m Unit) (Query pq cq cs form out m Unit) a
 
 -- | The overall component state type, which contains the local state type
 -- | and also the render function
@@ -271,6 +272,11 @@ component =
       modifyStore_ render (\s -> s)
       pure a
 
+    AndThen q1 q2 a -> do
+      _ <- eval q1
+      _ <- eval q2
+      pure a
+
   ----------
   -- Effectful eval helpers
 
@@ -326,6 +332,36 @@ send' :: ∀ pq cq' cs' cs cq form out m a
  -> Query pq cq' cs' form out m a
 send' path p q = Send (injSlot path p) (injQuery path q)
 
+-- | Provided as a query
+modify
+  :: ∀ sym pq cq cs out m form form' i e o r
+   . IsSymbol sym
+  => Cons sym (InputField i e o) r form
+  => Newtype (form' InputField) (Record form)
+  => SProxy sym
+  -> (i -> i)
+  -> Query pq cq cs form' out m Unit
+modify sym f = HandleChange (modify' sym f) unit
+
+-- | Allows you to modify a field rather than set its value
+modify'
+  :: ∀ sym form form' inp err out r
+   . IsSymbol sym
+  => Cons sym (InputField inp err out) r form
+  => Newtype form' (Record form)
+  => SProxy sym
+  -> (inp -> inp)
+  -> form'
+  -> form'
+modify' sym f = wrap <<< setInput f <<< setTouched true <<< unwrap
+  where
+    _sym :: Lens.Lens' (Record form) (InputField inp err out)
+    _sym = prop sym
+    setInput =
+      Lens.over (_sym <<< _Newtype <<< prop FSpec._input)
+    setTouched =
+      Lens.set (_sym <<< _Newtype <<< prop FSpec._touched)
+
 -- | Handles resetting a single field, but is only possible if the field is
 -- | a member of the Initial type class
 handleReset
@@ -335,7 +371,7 @@ handleReset
   => Newtype (form' InputField) (Record form)
   => Initial i
   => SProxy sym
-  -> Query pq cq cs form' m out Unit
+  -> Query pq cq cs form' out m Unit
 handleReset sym = HandleReset (handleReset' sym) unit
 
 handleReset'

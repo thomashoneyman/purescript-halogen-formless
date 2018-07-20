@@ -69,6 +69,9 @@ renderName state =
         [ Input.input
           [ HP.placeholder "Dale"
           , HP.value field.input
+          , HE.onDoubleClick $ HE.input_ $ Formless.AndThen
+              (Formless.handleBlur _name)
+              (Formless.modify _name (\i -> i <> i))
           , Formless.onBlurWith _name
           , Formless.onValueInputWith _name
           ]
