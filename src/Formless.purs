@@ -41,6 +41,7 @@ data Query pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) out m a
   | HandleChange (form InputField -> form InputField) a
   | HandleReset (form InputField -> form InputField) a
   | Reset a
+  | Reply (State' form -> a)
   | Validate a
   | Submit a
   | SubmitReply (Maybe out -> a)
@@ -258,6 +259,10 @@ component =
         }
       H.raise $ Changed $ getPublicState new
       pure a
+
+    Reply reply -> do
+      st <- getState
+      pure $ reply $ getPublicState st
 
     -- Only allows actions; always returns nothing.
     Send cs cq a -> do
