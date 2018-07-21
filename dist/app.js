@@ -3801,6 +3801,13 @@ var PS = {};
   var state = function (dict) {
       return dict.state;
   };
+  var put = function (dictMonadState) {
+      return function (s) {
+          return state(dictMonadState)(function (v) {
+              return new Data_Tuple.Tuple(Data_Unit.unit, s);
+          });
+      };
+  };
   var modify_ = function (dictMonadState) {
       return function (f) {
           return state(dictMonadState)(function (s) {
@@ -3824,6 +3831,7 @@ var PS = {};
   exports["state"] = state;
   exports["MonadState"] = MonadState;
   exports["get"] = get;
+  exports["put"] = put;
   exports["modify"] = modify;
   exports["modify_"] = modify_;
 })(PS["Control.Monad.State.Class"] = PS["Control.Monad.State.Class"] || {});
@@ -14308,9 +14316,23 @@ var PS = {};
           return Data_Functor.map((((dictMonadState.Monad0()).Bind1()).Apply0()).Functor0())(Data_Tuple.snd)(Control_Applicative.pure((dictMonadState.Monad0()).Applicative0())(Control_Comonad_Store.runStore($11)));
       })(Control_Monad_State_Class.get(dictMonadState));
   };
+  var getRender = function (dictMonadState) {
+      return Control_Bind.bindFlipped((dictMonadState.Monad0()).Bind1())(function ($12) {
+          return Data_Functor.map((((dictMonadState.Monad0()).Bind1()).Apply0()).Functor0())(Data_Tuple.fst)(Control_Applicative.pure((dictMonadState.Monad0()).Applicative0())(Control_Comonad_Store.runStore($12)));
+      })(Control_Monad_State_Class.get(dictMonadState));
+  };
+  var putState = function (dictMonadState) {
+      return function (s) {
+          return Control_Bind.bindFlipped((dictMonadState.Monad0()).Bind1())(function ($13) {
+              return Control_Monad_State_Class.put(dictMonadState)(Data_Function.flip(Control_Comonad_Store.store)(s)($13));
+          })(getRender(dictMonadState));
+      };
+  };
   exports["getState"] = getState;
+  exports["getRender"] = getRender;
   exports["modifyState"] = modifyState;
   exports["modifyState_"] = modifyState_;
+  exports["putState"] = putState;
   exports["updateStore"] = updateStore;
   exports["modifyStore_"] = modifyStore_;
 })(PS["Renderless.State"] = PS["Renderless.State"] || {});
@@ -14319,6 +14341,7 @@ var PS = {};
   "use strict";
   var Control_Applicative = PS["Control.Applicative"];
   var Control_Bind = PS["Control.Bind"];
+  var Control_Category = PS["Control.Category"];
   var Control_Comonad = PS["Control.Comonad"];
   var Control_Comonad_Store = PS["Control.Comonad.Store"];
   var Control_Comonad_Store_Trans = PS["Control.Comonad.Store.Trans"];
@@ -14362,6 +14385,7 @@ var PS = {};
   var Prelude = PS["Prelude"];
   var Record = PS["Record"];
   var Renderless_State = PS["Renderless.State"];
+  var Type_Row = PS["Type.Row"];
   var Web_Event_Event = PS["Web.Event.Event"];
   var Web_UIEvent_FocusEvent = PS["Web.UIEvent.FocusEvent"];
   var Web_UIEvent_MouseEvent = PS["Web.UIEvent.MouseEvent"];                 
@@ -14524,6 +14548,18 @@ var PS = {};
       };
       return Raise;
   })();
+  var Replace = (function () {
+      function Replace(value0, value1) {
+          this.value0 = value0;
+          this.value1 = value1;
+      };
+      Replace.create = function (value0) {
+          return function (value1) {
+              return new Replace(value0, value1);
+          };
+      };
+      return Replace;
+  })();
   var Receive = (function () {
       function Receive(value0, value1) {
           this.value0 = value0;
@@ -14569,18 +14605,18 @@ var PS = {};
                       var _sym = function (dictStrong) {
                           return Data_Lens_Record.prop(dictIsSymbol)(dictCons)(dictCons)(sym)(dictStrong);
                       };
-                      var setInput = Data_Lens_Setter.over(function ($190) {
+                      var setInput = Data_Lens_Setter.over(function ($195) {
                           return _sym(Data_Profunctor_Strong.strongFn)(Data_Lens_Iso_Newtype._Newtype(Formless_Spec.newtypeInputField)(Formless_Spec.newtypeInputField)(Data_Profunctor.profunctorFn)(Data_Lens_Record.prop(new Data_Symbol.IsSymbol(function () {
                               return "input";
-                          }))()()(Formless_Spec._input)(Data_Profunctor_Strong.strongFn)($190)));
+                          }))()()(Formless_Spec._input)(Data_Profunctor_Strong.strongFn)($195)));
                       });
-                      var setTouched = Data_Lens_Setter.set(function ($191) {
+                      var setTouched = Data_Lens_Setter.set(function ($196) {
                           return _sym(Data_Profunctor_Strong.strongFn)(Data_Lens_Iso_Newtype._Newtype(Formless_Spec.newtypeInputField)(Formless_Spec.newtypeInputField)(Data_Profunctor.profunctorFn)(Data_Lens_Record.prop(new Data_Symbol.IsSymbol(function () {
                               return "touched";
-                          }))()()(Formless_Spec._touched)(Data_Profunctor_Strong.strongFn)($191)));
+                          }))()()(Formless_Spec._touched)(Data_Profunctor_Strong.strongFn)($196)));
                       });
-                      return function ($192) {
-                          return Data_Newtype.wrap(dictNewtype)(setInput(f)(setTouched(true)(Data_Newtype.unwrap(dictNewtype)($192))));
+                      return function ($197) {
+                          return Data_Newtype.wrap(dictNewtype)(setInput(f)(setTouched(true)(Data_Newtype.unwrap(dictNewtype)($197))));
                       };
                   };
               };
@@ -14606,23 +14642,23 @@ var PS = {};
                       var _sym = function (dictStrong) {
                           return Data_Lens_Record.prop(dictIsSymbol)(dictCons)(dictCons)(sym)(dictStrong);
                       };
-                      var unsetResult = Data_Lens_Setter.set(function ($193) {
+                      var unsetResult = Data_Lens_Setter.set(function ($198) {
                           return _sym(Data_Profunctor_Strong.strongFn)(Data_Lens_Iso_Newtype._Newtype(Formless_Spec.newtypeInputField)(Formless_Spec.newtypeInputField)(Data_Profunctor.profunctorFn)(Data_Lens_Record.prop(new Data_Symbol.IsSymbol(function () {
                               return "result";
-                          }))()()(Formless_Spec._result)(Data_Profunctor_Strong.strongFn)($193)));
+                          }))()()(Formless_Spec._result)(Data_Profunctor_Strong.strongFn)($198)));
                       })(Data_Maybe.Nothing.value);
-                      var unsetTouched = Data_Lens_Setter.set(function ($194) {
+                      var unsetTouched = Data_Lens_Setter.set(function ($199) {
                           return _sym(Data_Profunctor_Strong.strongFn)(Data_Lens_Iso_Newtype._Newtype(Formless_Spec.newtypeInputField)(Formless_Spec.newtypeInputField)(Data_Profunctor.profunctorFn)(Data_Lens_Record.prop(new Data_Symbol.IsSymbol(function () {
                               return "touched";
-                          }))()()(Formless_Spec._touched)(Data_Profunctor_Strong.strongFn)($194)));
+                          }))()()(Formless_Spec._touched)(Data_Profunctor_Strong.strongFn)($199)));
                       })(false);
-                      var unsetValue = Data_Lens_Setter.set(function ($195) {
+                      var unsetValue = Data_Lens_Setter.set(function ($200) {
                           return _sym(Data_Profunctor_Strong.strongFn)(Data_Lens_Iso_Newtype._Newtype(Formless_Spec.newtypeInputField)(Formless_Spec.newtypeInputField)(Data_Profunctor.profunctorFn)(Data_Lens_Record.prop(new Data_Symbol.IsSymbol(function () {
                               return "input";
-                          }))()()(Formless_Spec._input)(Data_Profunctor_Strong.strongFn)($195)));
+                          }))()()(Formless_Spec._input)(Data_Profunctor_Strong.strongFn)($200)));
                       })(Formless_Class_Initial.initial(dictInitial));
-                      return function ($196) {
-                          return Data_Newtype.wrap(dictNewtype)(unsetTouched(unsetResult(unsetValue(Data_Newtype.unwrap(dictNewtype)($196)))));
+                      return function ($201) {
+                          return Data_Newtype.wrap(dictNewtype)(unsetTouched(unsetResult(unsetValue(Data_Newtype.unwrap(dictNewtype)($201)))));
                       };
                   };
               };
@@ -14648,18 +14684,18 @@ var PS = {};
                       var _sym = function (dictStrong) {
                           return Data_Lens_Record.prop(dictIsSymbol)(dictCons)(dictCons)(sym)(dictStrong);
                       };
-                      var setInput = Data_Lens_Setter.set(function ($197) {
+                      var setInput = Data_Lens_Setter.set(function ($202) {
                           return _sym(Data_Profunctor_Strong.strongFn)(Data_Lens_Iso_Newtype._Newtype(Formless_Spec.newtypeInputField)(Formless_Spec.newtypeInputField)(Data_Profunctor.profunctorFn)(Data_Lens_Record.prop(new Data_Symbol.IsSymbol(function () {
                               return "input";
-                          }))()()(Formless_Spec._input)(Data_Profunctor_Strong.strongFn)($197)));
+                          }))()()(Formless_Spec._input)(Data_Profunctor_Strong.strongFn)($202)));
                       });
-                      var setTouched = Data_Lens_Setter.set(function ($198) {
+                      var setTouched = Data_Lens_Setter.set(function ($203) {
                           return _sym(Data_Profunctor_Strong.strongFn)(Data_Lens_Iso_Newtype._Newtype(Formless_Spec.newtypeInputField)(Formless_Spec.newtypeInputField)(Data_Profunctor.profunctorFn)(Data_Lens_Record.prop(new Data_Symbol.IsSymbol(function () {
                               return "touched";
-                          }))()()(Formless_Spec._touched)(Data_Profunctor_Strong.strongFn)($198)));
+                          }))()()(Formless_Spec._touched)(Data_Profunctor_Strong.strongFn)($203)));
                       });
-                      return function ($199) {
-                          return Data_Newtype.wrap(dictNewtype)(setInput(val)(setTouched(true)(Data_Newtype.unwrap(dictNewtype)($199))));
+                      return function ($204) {
+                          return Data_Newtype.wrap(dictNewtype)(setInput(val)(setTouched(true)(Data_Newtype.unwrap(dictNewtype)($204))));
                       };
                   };
               };
@@ -14733,10 +14769,10 @@ var PS = {};
                       var _sym = function (dictStrong) {
                           return Data_Lens_Record.prop(dictIsSymbol)(dictCons)(dictCons)(sym)(dictStrong);
                       };
-                      var setTouched = Data_Lens_Setter.set(function ($200) {
+                      var setTouched = Data_Lens_Setter.set(function ($205) {
                           return _sym(Data_Profunctor_Strong.strongFn)(Data_Lens_Iso_Newtype._Newtype(Formless_Spec.newtypeInputField)(Formless_Spec.newtypeInputField)(Data_Profunctor.profunctorFn)(Data_Lens_Record.prop(new Data_Symbol.IsSymbol(function () {
                               return "touched";
-                          }))()()(Formless_Spec._touched)(Data_Profunctor_Strong.strongFn)($200)));
+                          }))()()(Formless_Spec._touched)(Data_Profunctor_Strong.strongFn)($205)));
                       })(true);
                       return Data_Newtype.wrap(dictNewtype)(setTouched(Data_Newtype.unwrap(dictNewtype)(form)));
                   };
@@ -14749,8 +14785,8 @@ var PS = {};
           return function (dictNewtype) {
               return function (sym) {
                   return function (val) {
-                      return new HandleBlur(function ($201) {
-                          return handleBlur$prime(dictIsSymbol)(dictCons)(dictNewtype)(sym)(handleChange$prime(dictIsSymbol)(dictCons)(dictNewtype)(sym)(val)($201));
+                      return new HandleBlur(function ($206) {
+                          return handleBlur$prime(dictIsSymbol)(dictCons)(dictNewtype)(sym)(handleChange$prime(dictIsSymbol)(dictCons)(dictNewtype)(sym)(val)($206));
                       }, Data_Unit.unit);
                   };
               };
@@ -14785,7 +14821,7 @@ var PS = {};
       if (x instanceof Valid) {
           return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(Data_Generic_Rep.NoArguments.value));
       };
-      throw new Error("Failed pattern match at Formless line 115, column 8 - line 115, column 60: " + [ x.constructor.name ]);
+      throw new Error("Failed pattern match at Formless line 126, column 8 - line 126, column 60: " + [ x.constructor.name ]);
   }, function (x) {
       if (x instanceof Data_Generic_Rep.Inl) {
           return Invalid.value;
@@ -14796,7 +14832,7 @@ var PS = {};
       if (x instanceof Data_Generic_Rep.Inr && x.value0 instanceof Data_Generic_Rep.Inr) {
           return Valid.value;
       };
-      throw new Error("Failed pattern match at Formless line 115, column 8 - line 115, column 60: " + [ x.constructor.name ]);
+      throw new Error("Failed pattern match at Formless line 126, column 8 - line 126, column 60: " + [ x.constructor.name ]);
   });
   var showValidStatus = new Data_Show.Show(Data_Generic_Rep_Show.genericShow(genericValidStatus)(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
       return "Invalid";
@@ -15064,8 +15100,8 @@ var PS = {};
                                                                               };
                                                                               if (v instanceof Submit) {
                                                                                   return Data_Functor.voidRight(Halogen_Query_HalogenM.functorHalogenM)(v.value0)(Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(runSubmit)(function (v1) {
-                                                                                      return Data_Foldable.traverse_(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Foldable.foldableMaybe)(function ($202) {
-                                                                                          return Halogen_Query_HalogenM.raise(Submitted.create($202));
+                                                                                      return Data_Foldable.traverse_(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Foldable.foldableMaybe)(function ($207) {
+                                                                                          return Halogen_Query_HalogenM.raise(Submitted.create($207));
                                                                                       })(v1);
                                                                                   }));
                                                                               };
@@ -15117,10 +15153,32 @@ var PS = {};
                                                                                       return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(v.value1);
                                                                                   });
                                                                               };
+                                                                              if (v instanceof Replace) {
+                                                                                  var inputFields = Formless_Internal.formSpecToInputFields(dictRowToList)(dictFormSpecToInputField)(dictNewtype)(dictNewtype1)(v.value0.formSpec);
+                                                                                  var $$new = {
+                                                                                      validity: Incomplete.value,
+                                                                                      dirty: false,
+                                                                                      errors: 0,
+                                                                                      submitAttempts: 0,
+                                                                                      submitting: false,
+                                                                                      form: inputFields,
+                                                                                      internal: {
+                                                                                          formResult: Data_Maybe.Nothing.value,
+                                                                                          formSpec: v.value0.formSpec,
+                                                                                          allTouched: false,
+                                                                                          initialInputs: Formless_Internal.inputFieldsToInput(dictRowToList1)(dictInputFieldsToInput)(dictNewtype1)(dictNewtype3)(inputFields),
+                                                                                          validator: v.value0.validator,
+                                                                                          submitter: v.value0.submitter
+                                                                                      }
+                                                                                  };
+                                                                                  return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Renderless_State.putState(Halogen_Query_HalogenM.monadStateHalogenM)($$new))(function () {
+                                                                                      return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Halogen_Query_HalogenM.raise(Changed.create(getPublicState($$new))))(function () {
+                                                                                          return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(v.value1);
+                                                                                      });
+                                                                                  });
+                                                                              };
                                                                               if (v instanceof Receive) {
-                                                                                  return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Renderless_State.modifyStore_(Halogen_Query_HalogenM.monadStateHalogenM)(v.value0.render)(function (s) {
-                                                                                      return s;
-                                                                                  }))(function () {
+                                                                                  return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Renderless_State.modifyStore_(Halogen_Query_HalogenM.monadStateHalogenM)(v.value0.render)(Control_Category.identity(Control_Category.categoryFn)))(function () {
                                                                                       return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(v.value1);
                                                                                   });
                                                                               };
@@ -15131,7 +15189,7 @@ var PS = {};
                                                                                       });
                                                                                   });
                                                                               };
-                                                                              throw new Error("Failed pattern match at Formless line 189, column 10 - line 283, column 13: " + [ v.constructor.name ]);
+                                                                              throw new Error("Failed pattern match at Formless line 198, column 10 - line 314, column 13: " + [ v.constructor.name ]);
                                                                           };
                                                                           return Halogen_Component.parentComponent(dictOrd)({
                                                                               initialState: initialState,
@@ -15167,6 +15225,7 @@ var PS = {};
   exports["SubmitReply"] = SubmitReply;
   exports["Send"] = Send;
   exports["Raise"] = Raise;
+  exports["Replace"] = Replace;
   exports["Receive"] = Receive;
   exports["AndThen"] = AndThen;
   exports["InternalState"] = InternalState;
