@@ -14726,19 +14726,6 @@ var PS = {};
           };
       };
   };
-  var onClickWith = function (dictIsSymbol) {
-      return function (dictCons) {
-          return function (dictNewtype) {
-              return function (sym) {
-                  return function (i) {
-                      return Halogen_HTML_Events.onClick(function (v) {
-                          return new Data_Maybe.Just(handleChange(dictIsSymbol)(dictCons)(dictNewtype)(sym)(i));
-                      });
-                  };
-              };
-          };
-      };
-  };
   var onValueChangeWith = function (dictIsSymbol) {
       return function (dictCons) {
           return function (dictNewtype) {
@@ -14788,6 +14775,19 @@ var PS = {};
                       return new HandleBlur(function ($206) {
                           return handleBlur$prime(dictIsSymbol)(dictCons)(dictNewtype)(sym)(handleChange$prime(dictIsSymbol)(dictCons)(dictNewtype)(sym)(val)($206));
                       }, Data_Unit.unit);
+                  };
+              };
+          };
+      };
+  };
+  var onClickWith = function (dictIsSymbol) {
+      return function (dictCons) {
+          return function (dictNewtype) {
+              return function (sym) {
+                  return function (i) {
+                      return Halogen_HTML_Events.onClick(function (v) {
+                          return new Data_Maybe.Just(handleBlurAndChange(dictIsSymbol)(dictCons)(dictNewtype)(sym)(i));
+                      });
                   };
               };
           };
@@ -15239,13 +15239,13 @@ var PS = {};
   exports["send'"] = send$prime;
   exports["modify"] = modify;
   exports["handleReset"] = handleReset;
+  exports["onClickWith"] = onClickWith;
   exports["handleBlurAndChange"] = handleBlurAndChange;
   exports["onBlurWith"] = onBlurWith;
   exports["handleBlur"] = handleBlur;
   exports["onValueInputWith"] = onValueInputWith;
   exports["onValueChangeWith"] = onValueChangeWith;
   exports["onChangeWith"] = onChangeWith;
-  exports["onClickWith"] = onClickWith;
   exports["handleChange"] = handleChange;
   exports["newtypeInternalState"] = newtypeInternalState;
   exports["genericValidStatus"] = genericValidStatus;
