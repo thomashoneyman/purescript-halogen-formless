@@ -427,6 +427,17 @@ handleReset' sym = wrap <<< unsetTouched <<< unsetResult <<< unsetValue <<< unwr
     unsetResult = Lens.set (_sym <<< _Newtype <<< prop FSpec._result) Nothing
     unsetValue = Lens.set (_sym <<< _Newtype <<< prop FSpec._input) initial
 
+onClickWith
+  :: ∀ pq cq cs m sym form' form i e o out r props
+   . IsSymbol sym
+  => Cons sym (InputField i e o) r form
+  => Newtype (form' InputField) (Record form)
+  => SProxy sym
+  -> i
+  -> HP.IProp (onClick :: MouseEvent | props) (Query pq cq cs form' out m Unit)
+onClickWith sym i =
+  HE.onClick \_ -> Just (handleBlurAndChange sym i)
+
 -- | Performs behaviors for both blur and change events
 handleBlurAndChange
   :: ∀ pq cq cs m sym form' form i e o out r
@@ -503,17 +514,6 @@ onChangeWith
   -> HP.IProp (onChange :: Event | props) (Query pq cq cs form' out m Unit)
 onChangeWith sym i =
   HE.onChange \_ -> Just (handleChange sym i)
-
-onClickWith
-  :: ∀ pq cq cs m sym form' form i e o out r props
-   . IsSymbol sym
-  => Cons sym (InputField i e o) r form
-  => Newtype (form' InputField) (Record form)
-  => SProxy sym
-  -> i
-  -> HP.IProp (onClick :: MouseEvent | props) (Query pq cq cs form' out m Unit)
-onClickWith sym i =
-  HE.onClick \_ -> Just (handleChange sym i)
 
 handleChange
   :: ∀ pq cq cs m sym form' form i e o out r
