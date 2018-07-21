@@ -479,7 +479,7 @@ class
     -> Record ir
     -> Builder (Record fir) (Record or)
 
-instance applyRowListNil :: ApplyRowList RL.Nil RL.Nil RL.Nil () () () () where
+instance applyRowListNil :: ApplyRowList RL.Nil RL.Nil RL.Nil ior io () () where
   applyRowList _ _ _ _ _ = identity
 
 instance applyRowListCons
