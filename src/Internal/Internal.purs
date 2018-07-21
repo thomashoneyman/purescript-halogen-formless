@@ -328,6 +328,7 @@ instance countErrorsCons
           Just (Left _) -> Additive 1
           _ -> Additive 0
 
+
 -- | A class to check if all fields in an InputField record have been touched or not
 class AllTouched (rl :: RL.RowList) (r :: # Type) where
   allTouchedImpl :: RLProxy rl -> Record r -> Boolean
@@ -376,6 +377,7 @@ instance unwrapRecordCons
       rest = unwrapRecordBuilder (RLProxy :: RLProxy tail) r
       first = Builder.insert _name val
 
+
 -- | The class to efficiently wrap a record of newtypes
 class WrapRecord
   (xs :: RL.RowList) (row :: # Type) (from :: # Type) (to :: # Type)
@@ -402,95 +404,6 @@ instance wrapRecordCons
       rest = wrapRecordBuilder (RLProxy :: RLProxy tail) r
       first = Builder.insert _name val
 
-
-
--- | Credit: @LiamGoodacre
--- | Applies a record of functions to a record of input values to produce
--- | a record of outputs.
--- TODO: investigate performance improvements.
-class ApplyRecord (io :: # Type) (i :: # Type) (o :: # Type)
-  | io -> i o
-  , i -> io o
-  , o -> i io
-  where
-  applyRecord :: Record io -> Record i -> Record o
-
-instance applyRecordImpl
-  :: ( RL.RowToList io lio
-     , RL.RowToList i li
-     , RL.RowToList o lo
-     , ApplyRowList lio li lo io i o
-     , ListToRow lio io
-     , ListToRow li i
-     , ListToRow lo o
-     )
-  => ApplyRecord io i o where
-  applyRecord =
-    applyRowList
-      (RLProxy :: RLProxy lio)
-      (RLProxy :: RLProxy li)
-      (RLProxy :: RLProxy lo)
-
-class
-  ( ListToRow io ior
-  , ListToRow i ir
-  , ListToRow o or ) <=
-  ApplyRowList
-    (io :: RL.RowList)
-    (i :: RL.RowList)
-    (o :: RL.RowList)
-    (ior :: # Type)
-    (ir :: # Type)
-    (or :: # Type)
-    | io -> i o ior ir or
-    , i -> io o ior ir or
-    , o -> io i ior ir or
-  where
-  applyRowList
-    :: RLProxy io
-    -> RLProxy i
-    -> RLProxy o
-    -> Record ior
-    -> Record ir
-    -> Record or
-
-instance applyRowListNil :: ApplyRowList RL.Nil RL.Nil RL.Nil () () () where
-  applyRowList _ _ _ _ e = e
-
-instance applyRowListCons
-  :: ( Row.Cons k (i -> o) tior ior
-     , Row.Cons k i tir ir
-     , Row.Cons k o tor or
-     , Row.Lacks k tior
-     , Row.Lacks k tir
-     , Row.Lacks k tor
-     , ListToRow tio tior
-     , ListToRow ti tir
-     , ListToRow to tor
-     , ApplyRowList tio ti to tior tir tor
-     , IsSymbol k
-     )
-  => ApplyRowList
-       (RL.Cons k (i -> o) tio)
-       (RL.Cons k i ti)
-       (RL.Cons k o to)
-       ior
-       ir
-       or
-  where
-    applyRowList io i o ior ir =
-      let key = SProxy :: SProxy k
-          f = Record.get key ior
-          x = Record.get key ir
-          tior = Record.delete key ior :: Record tior
-          tir = Record.delete key ir :: Record tir
-          tor = applyRowList (rltail io) (rltail i) (rltail o) tior tir
-       in Record.insert key (f x) tor
-
-rltail :: ∀ k v t. RLProxy (RL.Cons k v t) -> RLProxy t
-rltail _ = RLProxy
-
--- | Credit: @justinw, @paluh, and @monoidmusician
 -- | The class to efficiently run the sequenceRecord function on a record.
 class Applicative m <= SequenceRecord rl row from to m
   | rl -> row from to m
@@ -517,3 +430,95 @@ instance sequenceRecordCons ::
 instance sequenceRecordNil :: Applicative m => SequenceRecord RL.Nil row () () m where
   sequenceRecordImpl _ _ = pure identity
 
+-- | A class to reduce the type variables required to use applyRecord
+class ApplyRecord (io :: # Type) (i :: # Type) (o :: # Type)
+  | io -> i o
+  , i -> io o
+  , o -> i io
+  where
+  applyRecord :: Record io -> Record i -> Record o
+
+instance applyRecordImpl
+  :: ( RL.RowToList io lio
+     , RL.RowToList i li
+     , RL.RowToList o lo
+     , ApplyRowList lio li lo io i () o
+     , ListToRow lio io
+     , ListToRow li i
+     , ListToRow lo o
+     )
+  => ApplyRecord io i o where
+  applyRecord io i = Builder.build (builder io i) {}
+    where
+      builder =
+        applyRowList
+        (RLProxy :: RLProxy lio)
+        (RLProxy :: RLProxy li)
+        (RLProxy :: RLProxy lo)
+
+-- | Modified from the original by @LiamGoodacre
+-- | Applies a record of functions to a record of input values to produce
+-- | a record of outputs.
+class
+  ( ListToRow o or ) <=
+  ApplyRowList
+    (io :: RL.RowList)
+    (i :: RL.RowList)
+    (o :: RL.RowList)
+    (ior :: # Type)
+    (ir :: # Type)
+    (fir :: # Type)
+    (or :: # Type)
+    | o -> i io i ior ir fir or
+  where
+  applyRowList
+    :: RLProxy io
+    -> RLProxy i
+    -> RLProxy o
+    -> Record ior
+    -> Record ir
+    -> Builder (Record fir) (Record or)
+
+instance applyRowListNil :: ApplyRowList RL.Nil RL.Nil RL.Nil () () () () where
+  applyRowList _ _ _ _ _ = identity
+
+instance applyRowListCons
+  :: ( Row.Cons k (i -> o) tior ior
+     , Row.Cons k i tir ir
+     , Row.Cons k o tor or
+     , Row.Lacks k tior
+     , Row.Lacks k tir
+     , Row.Lacks k tor
+     , ListToRow to tor
+     , ApplyRowList tio ti to ior ir fir tor
+     , IsSymbol k
+     )
+  => ApplyRowList
+       (RL.Cons k (i -> o) tio)
+       (RL.Cons k i ti)
+       (RL.Cons k o to)
+       ior
+       ir
+       fir
+       or
+  where
+    applyRowList io i o ior ir =
+      fir <<< tor
+      where
+        _key = SProxy :: SProxy k
+
+        f :: i -> o
+        f = Record.get _key ior
+
+        x :: i
+        x = Record.get _key ir
+
+        fir :: Builder { | tor } { | or }
+        fir = Builder.insert _key (f x)
+
+        tor :: Builder { | fir } { | tor }
+        tor = applyRowList (rltail io) (rltail i) (rltail o) ior ir
+
+
+rltail :: ∀ k v t. RLProxy (RL.Cons k v t) -> RLProxy t
+rltail _ = RLProxy
