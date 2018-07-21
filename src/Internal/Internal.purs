@@ -469,7 +469,9 @@ class
     (ir :: # Type)
     (fir :: # Type)
     (or :: # Type)
-    | o -> i io i ior ir fir or
+    | o -> i io ior ir fir or
+    , i -> io o ior ir fir or
+    , io -> i o ior ir fir or
   where
   applyRowList
     :: RLProxy io
