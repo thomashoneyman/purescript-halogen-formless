@@ -14,7 +14,6 @@ import Record as Record
 import Record.Builder (Builder)
 import Record.Builder as Builder
 import Type.Data.RowList (RLProxy(..))
-import Type.Row (class ListToRow)
 
 -----
 -- Types
@@ -443,9 +442,6 @@ instance applyRecordImpl
      , RL.RowToList i li
      , RL.RowToList o lo
      , ApplyRowList lio li lo io i () o
-     , ListToRow lio io
-     , ListToRow li i
-     , ListToRow lo o
      )
   => ApplyRecord io i o where
   applyRecord io i = Builder.build (builder io i) {}
@@ -460,7 +456,6 @@ instance applyRecordImpl
 -- | Applies a record of functions to a record of input values to produce
 -- | a record of outputs.
 class
-  ( ListToRow o or ) <=
   ApplyRowList
     (io :: RL.RowList)
     (i :: RL.RowList)
@@ -491,7 +486,6 @@ instance applyRowListCons
      , Row.Lacks k tior
      , Row.Lacks k tir
      , Row.Lacks k tor
-     , ListToRow to tor
      , ApplyRowList tio ti to ior ir fir tor
      , IsSymbol k
      )
