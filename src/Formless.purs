@@ -31,7 +31,8 @@ import Halogen.HTML.Properties as HP
 import Prim.Row (class Cons)
 import Prim.RowList (class RowToList) as RL
 import Record as Record
-import Renderless.State (getState, modifyState, modifyState_, modifyStore_)
+import Renderless.State (getState, modifyState, modifyState_, modifyStore_, putState)
+import Type.Row (type (+))
 import Web.Event.Event (Event)
 import Web.UIEvent.FocusEvent (FocusEvent)
 import Web.UIEvent.MouseEvent (MouseEvent)
@@ -47,6 +48,7 @@ data Query pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) out m a
   | SubmitReply (Maybe out -> a)
   | Send cs (cq Unit) a
   | Raise (pq Unit) a
+  | Replace (Record (SpecRow form out m ())) a
   | Receive (Input pq cq cs form out m) a
   | AndThen (Query pq cq cs form out m Unit) (Query pq cq cs form out m Unit) a
 
@@ -84,7 +86,7 @@ type State form out m = Record (StateRow form (internal :: InternalState form ou
 -- | The component's public state
 type State' form = Record (StateRow form ())
 
--- | The component's state as a row type
+-- | The component's public state
 type StateRow form r =
   ( validity :: ValidStatus
   , dirty :: Boolean
@@ -95,16 +97,25 @@ type StateRow form r =
   | r
   )
 
+-- | Values provided by the user but maintained by the component
+type SpecRow form out m r =
+  ( validator :: form InputField -> m (form InputField)
+  , submitter :: form OutputField -> m out
+  , formSpec :: form FormSpec
+  | r
+  )
+
+-- | Values created and maintained by the component
+type InternalStateRow form out =
+  ( initialInputs :: form Internal.Input
+  , formResult :: Maybe out
+  , allTouched :: Boolean
+  )
+
 -- | A newtype to make easier type errors for end users to
 -- | read by hiding internal fields
 newtype InternalState form out m = InternalState
-  { validator :: form InputField -> m (form InputField)
-  , submitter :: form OutputField -> m out
-  , formSpec :: form FormSpec
-  , initialInputs :: form Internal.Input
-  , formResult :: Maybe out
-  , allTouched :: Boolean
-  }
+  (Record (SpecRow form out m + InternalStateRow form out))
 derive instance newtypeInternalState :: Newtype (InternalState form out m) _
 
 -- | A type to represent validation status
@@ -119,12 +130,10 @@ instance showValidStatus :: Show ValidStatus where
   show = genericShow
 
 -- | The component's input type
-type Input pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) out m =
-  { formSpec :: form FormSpec
-  , validator :: form InputField -> m (form InputField)
-  , submitter :: form OutputField -> m out
-  , render :: State form out m -> HTML pq cq cs form out m
-  }
+type Input pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) out m = Record
+  ( SpecRow form out m
+  + (render :: State form out m -> HTML pq cq cs form out m)
+  )
 
 -- | The component tries to require as few messages to be handled as possible. You
 -- | can always use the *Reply variants of queries to perform actions and receive
@@ -273,8 +282,30 @@ component =
       H.raise (Emit query)
       pure a
 
+    Replace { formSpec, validator, submitter } a -> do
+      let inputFields = Internal.formSpecToInputFields formSpec
+          new =
+            { validity: Incomplete
+            , dirty: false
+            , errors: 0
+            , submitAttempts: 0
+            , submitting: false
+            , form: inputFields
+            , internal: InternalState
+              { formResult: Nothing
+              , formSpec
+              , allTouched: false
+              , initialInputs: Internal.inputFieldsToInput inputFields
+              , validator
+              , submitter
+              }
+            }
+      putState new
+      H.raise $ Changed $ getPublicState new
+      pure a
+
     Receive { render } a -> do
-      modifyStore_ render (\s -> s)
+      modifyStore_ render identity
       pure a
 
     AndThen q1 q2 a -> do
