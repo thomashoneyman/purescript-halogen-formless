@@ -37,7 +37,7 @@ import Web.Event.Event (Event)
 import Web.UIEvent.FocusEvent (FocusEvent)
 import Web.UIEvent.MouseEvent (MouseEvent)
 
-data Query pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) out m a
+data Query pq cq cs form out m a
   = HandleBlur (form InputField -> form InputField) a
   | HandleChange (form InputField -> form InputField) a
   | HandleReset (form InputField -> form InputField) a
@@ -130,7 +130,7 @@ instance showValidStatus :: Show ValidStatus where
   show = genericShow
 
 -- | The component's input type
-type Input pq cq cs (form :: (Type -> Type -> Type -> Type) -> Type) out m = Record
+type Input pq cq cs form out m = Record
   ( SpecRow form out m
   + (render :: State form out m -> HTML pq cq cs form out m)
   )
