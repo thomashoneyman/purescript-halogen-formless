@@ -14571,18 +14571,18 @@ var PS = {};
                       var _sym = function (dictStrong) {
                           return Data_Lens_Record.prop(dictIsSymbol)(dictCons)(dictCons)(sym)(dictStrong);
                       };
-                      var setInput = Data_Lens_Setter.over(function ($195) {
+                      var setInput = Data_Lens_Setter.over(function ($196) {
                           return _sym(Data_Profunctor_Strong.strongFn)(Data_Lens_Iso_Newtype._Newtype(Formless_Spec.newtypeInputField)(Formless_Spec.newtypeInputField)(Data_Profunctor.profunctorFn)(Data_Lens_Record.prop(new Data_Symbol.IsSymbol(function () {
                               return "input";
-                          }))()()(Formless_Spec._input)(Data_Profunctor_Strong.strongFn)($195)));
+                          }))()()(Formless_Spec._input)(Data_Profunctor_Strong.strongFn)($196)));
                       });
-                      var setTouched = Data_Lens_Setter.set(function ($196) {
+                      var setTouched = Data_Lens_Setter.set(function ($197) {
                           return _sym(Data_Profunctor_Strong.strongFn)(Data_Lens_Iso_Newtype._Newtype(Formless_Spec.newtypeInputField)(Formless_Spec.newtypeInputField)(Data_Profunctor.profunctorFn)(Data_Lens_Record.prop(new Data_Symbol.IsSymbol(function () {
                               return "touched";
-                          }))()()(Formless_Spec._touched)(Data_Profunctor_Strong.strongFn)($196)));
+                          }))()()(Formless_Spec._touched)(Data_Profunctor_Strong.strongFn)($197)));
                       });
-                      return function ($197) {
-                          return Data_Newtype.wrap(dictNewtype)(setInput(f)(setTouched(true)(Data_Newtype.unwrap(dictNewtype)($197))));
+                      return function ($198) {
+                          return Data_Newtype.wrap(dictNewtype)(setInput(f)(setTouched(true)(Data_Newtype.unwrap(dictNewtype)($198))));
                       };
                   };
               };
@@ -14608,23 +14608,23 @@ var PS = {};
                       var _sym = function (dictStrong) {
                           return Data_Lens_Record.prop(dictIsSymbol)(dictCons)(dictCons)(sym)(dictStrong);
                       };
-                      var unsetResult = Data_Lens_Setter.set(function ($198) {
+                      var unsetResult = Data_Lens_Setter.set(function ($199) {
                           return _sym(Data_Profunctor_Strong.strongFn)(Data_Lens_Iso_Newtype._Newtype(Formless_Spec.newtypeInputField)(Formless_Spec.newtypeInputField)(Data_Profunctor.profunctorFn)(Data_Lens_Record.prop(new Data_Symbol.IsSymbol(function () {
                               return "result";
-                          }))()()(Formless_Spec._result)(Data_Profunctor_Strong.strongFn)($198)));
+                          }))()()(Formless_Spec._result)(Data_Profunctor_Strong.strongFn)($199)));
                       })(Data_Maybe.Nothing.value);
-                      var unsetTouched = Data_Lens_Setter.set(function ($199) {
+                      var unsetTouched = Data_Lens_Setter.set(function ($200) {
                           return _sym(Data_Profunctor_Strong.strongFn)(Data_Lens_Iso_Newtype._Newtype(Formless_Spec.newtypeInputField)(Formless_Spec.newtypeInputField)(Data_Profunctor.profunctorFn)(Data_Lens_Record.prop(new Data_Symbol.IsSymbol(function () {
                               return "touched";
-                          }))()()(Formless_Spec._touched)(Data_Profunctor_Strong.strongFn)($199)));
+                          }))()()(Formless_Spec._touched)(Data_Profunctor_Strong.strongFn)($200)));
                       })(false);
-                      var unsetValue = Data_Lens_Setter.set(function ($200) {
+                      var unsetValue = Data_Lens_Setter.set(function ($201) {
                           return _sym(Data_Profunctor_Strong.strongFn)(Data_Lens_Iso_Newtype._Newtype(Formless_Spec.newtypeInputField)(Formless_Spec.newtypeInputField)(Data_Profunctor.profunctorFn)(Data_Lens_Record.prop(new Data_Symbol.IsSymbol(function () {
                               return "input";
-                          }))()()(Formless_Spec._input)(Data_Profunctor_Strong.strongFn)($200)));
+                          }))()()(Formless_Spec._input)(Data_Profunctor_Strong.strongFn)($201)));
                       })(Formless_Class_Initial.initial(dictInitial));
-                      return function ($201) {
-                          return Data_Newtype.wrap(dictNewtype)(unsetTouched(unsetResult(unsetValue(Data_Newtype.unwrap(dictNewtype)($201)))));
+                      return function ($202) {
+                          return Data_Newtype.wrap(dictNewtype)(unsetTouched(unsetResult(unsetValue(Data_Newtype.unwrap(dictNewtype)($202)))));
                       };
                   };
               };
@@ -14650,18 +14650,18 @@ var PS = {};
                       var _sym = function (dictStrong) {
                           return Data_Lens_Record.prop(dictIsSymbol)(dictCons)(dictCons)(sym)(dictStrong);
                       };
-                      var setInput = Data_Lens_Setter.set(function ($202) {
+                      var setInput = Data_Lens_Setter.set(function ($203) {
                           return _sym(Data_Profunctor_Strong.strongFn)(Data_Lens_Iso_Newtype._Newtype(Formless_Spec.newtypeInputField)(Formless_Spec.newtypeInputField)(Data_Profunctor.profunctorFn)(Data_Lens_Record.prop(new Data_Symbol.IsSymbol(function () {
                               return "input";
-                          }))()()(Formless_Spec._input)(Data_Profunctor_Strong.strongFn)($202)));
+                          }))()()(Formless_Spec._input)(Data_Profunctor_Strong.strongFn)($203)));
                       });
-                      var setTouched = Data_Lens_Setter.set(function ($203) {
+                      var setTouched = Data_Lens_Setter.set(function ($204) {
                           return _sym(Data_Profunctor_Strong.strongFn)(Data_Lens_Iso_Newtype._Newtype(Formless_Spec.newtypeInputField)(Formless_Spec.newtypeInputField)(Data_Profunctor.profunctorFn)(Data_Lens_Record.prop(new Data_Symbol.IsSymbol(function () {
                               return "touched";
-                          }))()()(Formless_Spec._touched)(Data_Profunctor_Strong.strongFn)($203)));
+                          }))()()(Formless_Spec._touched)(Data_Profunctor_Strong.strongFn)($204)));
                       });
-                      return function ($204) {
-                          return Data_Newtype.wrap(dictNewtype)(setInput(val)(setTouched(true)(Data_Newtype.unwrap(dictNewtype)($204))));
+                      return function ($205) {
+                          return Data_Newtype.wrap(dictNewtype)(setInput(val)(setTouched(true)(Data_Newtype.unwrap(dictNewtype)($205))));
                       };
                   };
               };
@@ -14722,10 +14722,10 @@ var PS = {};
                       var _sym = function (dictStrong) {
                           return Data_Lens_Record.prop(dictIsSymbol)(dictCons)(dictCons)(sym)(dictStrong);
                       };
-                      var setTouched = Data_Lens_Setter.set(function ($205) {
+                      var setTouched = Data_Lens_Setter.set(function ($206) {
                           return _sym(Data_Profunctor_Strong.strongFn)(Data_Lens_Iso_Newtype._Newtype(Formless_Spec.newtypeInputField)(Formless_Spec.newtypeInputField)(Data_Profunctor.profunctorFn)(Data_Lens_Record.prop(new Data_Symbol.IsSymbol(function () {
                               return "touched";
-                          }))()()(Formless_Spec._touched)(Data_Profunctor_Strong.strongFn)($205)));
+                          }))()()(Formless_Spec._touched)(Data_Profunctor_Strong.strongFn)($206)));
                       })(true);
                       return Data_Newtype.wrap(dictNewtype)(setTouched(Data_Newtype.unwrap(dictNewtype)(form)));
                   };
@@ -14738,8 +14738,8 @@ var PS = {};
           return function (dictNewtype) {
               return function (sym) {
                   return function (val) {
-                      return new HandleBlur(function ($206) {
-                          return handleBlur$prime(dictIsSymbol)(dictCons)(dictNewtype)(sym)(handleChange$prime(dictIsSymbol)(dictCons)(dictNewtype)(sym)(val)($206));
+                      return new HandleBlur(function ($207) {
+                          return handleBlur$prime(dictIsSymbol)(dictCons)(dictNewtype)(sym)(handleChange$prime(dictIsSymbol)(dictCons)(dictNewtype)(sym)(val)($207));
                       }, Data_Unit.unit);
                   };
               };
@@ -14862,26 +14862,26 @@ var PS = {};
                                                                               return "internal";
                                                                           }))()()(Data_Symbol.SProxy.value);
                                                                           var runSubmit = Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Renderless_State.modifyState(Halogen_Query_HalogenM.monadStateHalogenM)(function (st) {
-                                                                              var $128 = {};
-                                                                              for (var $129 in st) {
-                                                                                  if ({}.hasOwnProperty.call(st, $129)) {
-                                                                                      $128[$129] = st[$129];
+                                                                              var $129 = {};
+                                                                              for (var $130 in st) {
+                                                                                  if ({}.hasOwnProperty.call(st, $130)) {
+                                                                                      $129[$130] = st[$130];
                                                                                   };
                                                                               };
-                                                                              $128.submitAttempts = st.submitAttempts + 1 | 0;
-                                                                              $128.submitting = true;
-                                                                              return $128;
+                                                                              $129.submitAttempts = st.submitAttempts + 1 | 0;
+                                                                              $129.submitting = true;
+                                                                              return $129;
                                                                           }))(function (v) {
                                                                               var internal = Data_Newtype.unwrap(newtypeInternalState)(v.internal);
                                                                               return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Control_Applicative.when(Halogen_Query_HalogenM.applicativeHalogenM)(!internal.allTouched)(Renderless_State.modifyState_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v1) {
-                                                                                  var $132 = {};
-                                                                                  for (var $133 in v1) {
-                                                                                      if ({}.hasOwnProperty.call(v1, $133)) {
-                                                                                          $132[$133] = v1[$133];
+                                                                                  var $133 = {};
+                                                                                  for (var $134 in v1) {
+                                                                                      if ({}.hasOwnProperty.call(v1, $134)) {
+                                                                                          $133[$134] = v1[$134];
                                                                                       };
                                                                                   };
-                                                                                  $132.form = Formless_Internal.setInputFieldsTouched(dictRowToList1)(dictSetInputFieldsTouched)(dictNewtype1)(v.form);
-                                                                                  $132.internal = Data_Newtype.over(newtypeInternalState)(newtypeInternalState)(InternalState)(function (v2) {
+                                                                                  $133.form = Formless_Internal.setInputFieldsTouched(dictRowToList1)(dictSetInputFieldsTouched)(dictNewtype1)(v.form);
+                                                                                  $133.internal = Data_Newtype.over(newtypeInternalState)(newtypeInternalState)(InternalState)(function (v2) {
                                                                                       return {
                                                                                           allTouched: true,
                                                                                           formResult: v2.formResult,
@@ -14891,19 +14891,19 @@ var PS = {};
                                                                                           validator: v2.validator
                                                                                       };
                                                                                   })(v.internal);
-                                                                                  return $132;
+                                                                                  return $133;
                                                                               })))(function () {
                                                                                   return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)($$eval(new Validate(Data_Unit.unit)))(function (v1) {
                                                                                       return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Renderless_State.getState(Halogen_Query_HalogenM.monadStateHalogenM))(function (v2) {
                                                                                           return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Control_Applicative.when(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Eq.eq(eqValidStatus)(v2.validity)(Valid.value))(Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_Trans_Class.lift(Halogen_Query_HalogenM.monadTransHalogenM)(dictMonad)(Data_Traversable.traverse(Data_Traversable.traversableMaybe)(dictMonad.Applicative0())(internal.submitter)(Formless_Internal.inputFieldToMaybeOutput(dictRowToList1)(dictInputFieldToMaybeOutput)(dictNewtype1)(dictNewtype2)(v2.form))))(function (v3) {
                                                                                               return Renderless_State.modifyState_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v4) {
-                                                                                                  var $137 = {};
-                                                                                                  for (var $138 in v4) {
-                                                                                                      if ({}.hasOwnProperty.call(v4, $138)) {
-                                                                                                          $137[$138] = v4[$138];
+                                                                                                  var $138 = {};
+                                                                                                  for (var $139 in v4) {
+                                                                                                      if ({}.hasOwnProperty.call(v4, $139)) {
+                                                                                                          $138[$139] = v4[$139];
                                                                                                       };
                                                                                                   };
-                                                                                                  $137.internal = Data_Newtype.over(newtypeInternalState)(newtypeInternalState)(InternalState)(function (v5) {
+                                                                                                  $138.internal = Data_Newtype.over(newtypeInternalState)(newtypeInternalState)(InternalState)(function (v5) {
                                                                                                       return {
                                                                                                           formResult: v3,
                                                                                                           allTouched: v5.allTouched,
@@ -14913,18 +14913,18 @@ var PS = {};
                                                                                                           validator: v5.validator
                                                                                                       };
                                                                                                   })(v2.internal);
-                                                                                                  return $137;
+                                                                                                  return $138;
                                                                                               });
                                                                                           })))(function () {
                                                                                               return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Renderless_State.modifyState(Halogen_Query_HalogenM.monadStateHalogenM)(function (st) {
-                                                                                                  var $140 = {};
-                                                                                                  for (var $141 in st) {
-                                                                                                      if ({}.hasOwnProperty.call(st, $141)) {
-                                                                                                          $140[$141] = st[$141];
+                                                                                                  var $141 = {};
+                                                                                                  for (var $142 in st) {
+                                                                                                      if ({}.hasOwnProperty.call(st, $142)) {
+                                                                                                          $141[$142] = st[$142];
                                                                                                       };
                                                                                                   };
-                                                                                                  $140.submitting = false;
-                                                                                                  return $140;
+                                                                                                  $141.submitting = false;
+                                                                                                  return $141;
                                                                                               }))(function (v3) {
                                                                                                   return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)((function (v4) {
                                                                                                       return v4.formResult;
@@ -14938,42 +14938,52 @@ var PS = {};
                                                                           var $$eval = function (v) {
                                                                               if (v instanceof HandleBlur) {
                                                                                   return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Renderless_State.modifyState_(Halogen_Query_HalogenM.monadStateHalogenM)(function (st) {
-                                                                                      var $145 = {};
-                                                                                      for (var $146 in st) {
-                                                                                          if ({}.hasOwnProperty.call(st, $146)) {
-                                                                                              $145[$146] = st[$146];
+                                                                                      var $146 = {};
+                                                                                      for (var $147 in st) {
+                                                                                          if ({}.hasOwnProperty.call(st, $147)) {
+                                                                                              $146[$147] = st[$147];
                                                                                           };
                                                                                       };
-                                                                                      $145.form = v.value0(st.form);
-                                                                                      return $145;
+                                                                                      $146.form = v.value0(st.form);
+                                                                                      return $146;
                                                                                   }))(function () {
                                                                                       return $$eval(new Validate(v.value1));
                                                                                   });
                                                                               };
                                                                               if (v instanceof HandleChange) {
                                                                                   return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Renderless_State.modifyState_(Halogen_Query_HalogenM.monadStateHalogenM)(function (st) {
-                                                                                      var $150 = {};
-                                                                                      for (var $151 in st) {
-                                                                                          if ({}.hasOwnProperty.call(st, $151)) {
-                                                                                              $150[$151] = st[$151];
+                                                                                      var $151 = {};
+                                                                                      for (var $152 in st) {
+                                                                                          if ({}.hasOwnProperty.call(st, $152)) {
+                                                                                              $151[$152] = st[$152];
                                                                                           };
                                                                                       };
-                                                                                      $150.form = v.value0(st.form);
-                                                                                      return $150;
+                                                                                      $151.form = v.value0(st.form);
+                                                                                      return $151;
                                                                                   }))(function () {
                                                                                       return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(v.value1);
                                                                                   });
                                                                               };
                                                                               if (v instanceof HandleReset) {
                                                                                   return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Renderless_State.modifyState_(Halogen_Query_HalogenM.monadStateHalogenM)(function (st) {
-                                                                                      var $155 = {};
-                                                                                      for (var $156 in st) {
-                                                                                          if ({}.hasOwnProperty.call(st, $156)) {
-                                                                                              $155[$156] = st[$156];
+                                                                                      var $156 = {};
+                                                                                      for (var $157 in st) {
+                                                                                          if ({}.hasOwnProperty.call(st, $157)) {
+                                                                                              $156[$157] = st[$157];
                                                                                           };
                                                                                       };
-                                                                                      $155.form = v.value0(st.form);
-                                                                                      return $155;
+                                                                                      $156.form = v.value0(st.form);
+                                                                                      $156.internal = Data_Newtype.over(newtypeInternalState)(newtypeInternalState)(InternalState)(function (v2) {
+                                                                                          return {
+                                                                                              allTouched: false,
+                                                                                              formResult: v2.formResult,
+                                                                                              formSpec: v2.formSpec,
+                                                                                              initialInputs: v2.initialInputs,
+                                                                                              submitter: v2.submitter,
+                                                                                              validator: v2.validator
+                                                                                          };
+                                                                                      })(st.internal);
+                                                                                      return $156;
                                                                                   }))(function () {
                                                                                       return $$eval(new Validate(v.value1));
                                                                                   });
@@ -14984,24 +14994,24 @@ var PS = {};
                                                                                       return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_Trans_Class.lift(Halogen_Query_HalogenM.monadTransHalogenM)(dictMonad)(internal.validator(v1.form)))(function (v2) {
                                                                                           var errors = Formless_Internal.countErrors(dictRowToList1)(dictRowToList2)(dictCountErrors)(dictSumRecord)(dictNewtype1)(v2);
                                                                                           return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Renderless_State.modifyState_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v3) {
-                                                                                              var $162 = {};
-                                                                                              for (var $163 in v3) {
-                                                                                                  if ({}.hasOwnProperty.call(v3, $163)) {
-                                                                                                      $162[$163] = v3[$163];
+                                                                                              var $163 = {};
+                                                                                              for (var $164 in v3) {
+                                                                                                  if ({}.hasOwnProperty.call(v3, $164)) {
+                                                                                                      $163[$164] = v3[$164];
                                                                                                   };
                                                                                               };
-                                                                                              $162.form = v2;
-                                                                                              $162.errors = errors;
-                                                                                              $162.dirty = !Data_Eq.eq(Data_Eq.eqRec(dictRowToList3)(dictEqRecord))(Data_Newtype.unwrap(dictNewtype3)(Formless_Internal.inputFieldsToInput(dictRowToList1)(dictInputFieldsToInput)(dictNewtype1)(dictNewtype3)(v2)))(Data_Newtype.unwrap(dictNewtype3)(internal.initialInputs));
-                                                                                              return $162;
+                                                                                              $163.form = v2;
+                                                                                              $163.errors = errors;
+                                                                                              $163.dirty = !Data_Eq.eq(Data_Eq.eqRec(dictRowToList3)(dictEqRecord))(Data_Newtype.unwrap(dictNewtype3)(Formless_Internal.inputFieldsToInput(dictRowToList1)(dictInputFieldsToInput)(dictNewtype1)(dictNewtype3)(v2)))(Data_Newtype.unwrap(dictNewtype3)(internal.initialInputs));
+                                                                                              return $163;
                                                                                           }))(function () {
                                                                                               return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)((function () {
                                                                                                   if (internal.allTouched) {
                                                                                                       return Renderless_State.modifyState(Halogen_Query_HalogenM.monadStateHalogenM)(function (v3) {
                                                                                                           return {
                                                                                                               validity: (function () {
-                                                                                                                  var $166 = !(errors === 0);
-                                                                                                                  if ($166) {
+                                                                                                                  var $167 = !(errors === 0);
+                                                                                                                  if ($167) {
                                                                                                                       return Invalid.value;
                                                                                                                   };
                                                                                                                   return Valid.value;
@@ -15020,8 +15030,8 @@ var PS = {};
                                                                                                       return Renderless_State.modifyState(Halogen_Query_HalogenM.monadStateHalogenM)(function (st) {
                                                                                                           return {
                                                                                                               validity: (function () {
-                                                                                                                  var $168 = !(errors === 0);
-                                                                                                                  if ($168) {
+                                                                                                                  var $169 = !(errors === 0);
+                                                                                                                  if ($169) {
                                                                                                                       return Invalid.value;
                                                                                                                   };
                                                                                                                   return Valid.value;
@@ -15066,8 +15076,8 @@ var PS = {};
                                                                               };
                                                                               if (v instanceof Submit) {
                                                                                   return Data_Functor.voidRight(Halogen_Query_HalogenM.functorHalogenM)(v.value0)(Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(runSubmit)(function (v1) {
-                                                                                      return Data_Foldable.traverse_(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Foldable.foldableMaybe)(function ($207) {
-                                                                                          return Halogen_Query_HalogenM.raise(Submitted.create($207));
+                                                                                      return Data_Foldable.traverse_(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Foldable.foldableMaybe)(function ($208) {
+                                                                                          return Halogen_Query_HalogenM.raise(Submitted.create($208));
                                                                                       })(v1);
                                                                                   }));
                                                                               };
@@ -15155,7 +15165,7 @@ var PS = {};
                                                                                       });
                                                                                   });
                                                                               };
-                                                                              throw new Error("Failed pattern match at Formless line 198, column 10 - line 314, column 13: " + [ v.constructor.name ]);
+                                                                              throw new Error("Failed pattern match at Formless line 198, column 10 - line 317, column 13: " + [ v.constructor.name ]);
                                                                           };
                                                                           return Halogen_Component.parentComponent(dictOrd)({
                                                                               initialState: initialState,
