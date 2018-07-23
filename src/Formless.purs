@@ -205,7 +205,10 @@ component =
       pure a
 
     HandleReset fs a -> do
-      modifyState_ \st -> st { form = fs st.form }
+      modifyState_ \st -> st
+        { form = fs st.form
+        , internal = over InternalState (_ { allTouched = false }) st.internal
+        }
       eval $ Validate a
 
     Validate a -> do
