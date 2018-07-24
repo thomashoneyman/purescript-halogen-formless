@@ -153,11 +153,11 @@ component
   => RL.RowToList count countxs
   => RL.RowToList inputs inputsxs
   => EqRecord inputsxs inputs
-  => Internal.FormSpecToInputField specxs spec () field
-  => Internal.InputFieldsToInput fieldxs field () inputs
-  => Internal.SetInputFieldsTouched fieldxs field () field
-  => Internal.InputFieldToMaybeOutput fieldxs field () output
-  => Internal.CountErrors fieldxs field () count
+  => Internal.FormSpecToInputField specxs spec field
+  => Internal.InputFieldsToInput fieldxs field inputs
+  => Internal.SetInputFieldsTouched fieldxs field field
+  => Internal.InputFieldToMaybeOutput fieldxs field output
+  => Internal.CountErrors fieldxs field count
   => Internal.AllTouched fieldxs field
   => Internal.SumRecord countxs count (Additive Int)
   => Newtype (form FormSpec) (Record spec)

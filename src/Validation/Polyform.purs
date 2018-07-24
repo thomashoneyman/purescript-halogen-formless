@@ -14,7 +14,6 @@ import Polyform.Validation (V(..), Validation, runValidation)
 import Prim.Row as Row
 import Prim.RowList as RL
 import Record as Record
-import Record.Builder (Builder)
 import Record.Builder as Builder
 import Type.Row (RLProxy(..))
 
@@ -64,9 +63,9 @@ applyOnInputFields
    . Monad m
   => RL.RowToList fv fvxs
   => RL.RowToList o oxs
-  => OnInputFields fvxs fv () io
+  => OnInputFields fvxs fv io
   => Internal.ApplyRecord io i o
-  => Internal.SequenceRecord oxs o () o' m
+  => Internal.SequenceRecord oxs o o' m
   => Newtype (form InputField) (Record i)
   => Newtype (form' InputField) (Record o')
   => Record fv
@@ -79,23 +78,20 @@ applyOnInputFields r = map wrap <<< Internal.sequenceRecord <<< Internal.applyRe
 
 -- | The class that provides the Builder implementation to efficiently unpack a record of
 -- | output fields into a simple record of only the values.
-class OnInputFields
-  (xs :: RL.RowList) (row :: # Type) (from :: # Type) (to :: # Type)
-  | xs -> from to where
-  onInputFieldsBuilder :: RLProxy xs -> Record row -> Builder { | from } { | to }
+class OnInputFields (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
+  onInputFieldsBuilder :: RLProxy xs -> Record row -> Internal.FromScratch to
 
-instance onInputFieldsNil :: OnInputFields RL.Nil row () () where
+instance onInputFieldsNil :: OnInputFields RL.Nil row () where
   onInputFieldsBuilder _ _ = identity
 
 instance onInputFieldsCons
   :: ( IsSymbol name
      , Monad m
      , Row.Cons name (Validation m e i o) trash row
-     , OnInputFields tail row from from'
-     , Row.Lacks name from'
-     , Row.Cons name (InputField i e o -> m (InputField i e o)) from' to
+     , OnInputFields tail row from
+     , Internal.Row1Cons name (InputField i e o -> m (InputField i e o)) from to
      )
-  => OnInputFields (RL.Cons name (Validation m e i o) tail) row from to where
+  => OnInputFields (RL.Cons name (Validation m e i o) tail) row to where
   onInputFieldsBuilder _ r =
     first <<< rest
     where

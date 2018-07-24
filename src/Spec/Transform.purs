@@ -9,7 +9,6 @@ import Formless.Internal as Internal
 import Formless.Spec (FormSpec(..), OutputField)
 import Prim.Row as Row
 import Prim.RowList as RL
-import Record.Builder (Builder)
 import Record.Builder as Builder
 import Type.Row (RLProxy(..), RProxy)
 
@@ -35,7 +34,7 @@ import Type.Row (RLProxy(..), RProxy)
 unwrapOutput
   :: ∀ row xs row' form
    . RL.RowToList row xs
-  => Internal.UnwrapRecord xs row () row'
+  => Internal.UnwrapRecord xs row row'
   => Newtype (form OutputField) (Record row)
   => form OutputField
   -> Record row'
@@ -58,12 +57,11 @@ unwrapOutput = Internal.unwrapRecord <<< unwrap
 mkFormSpec
   :: ∀ row xs row' form
    . RL.RowToList row xs
-  => Internal.WrapRecord xs row () row'
+  => Internal.WrapRecord xs row row'
   => Newtype (form FormSpec) (Record row')
   => Record row
   -> form FormSpec
 mkFormSpec = wrap <<< Internal.wrapRecord
-
 
 -- | A function to transform a row of labels into a FormSpec. This allows you
 -- | to go directly from a custom form newtype to a spec without having to
@@ -88,34 +86,30 @@ mkFormSpec = wrap <<< Internal.wrapRecord
 mkFormSpecFromRow
   :: ∀ row xs row' form
    . RL.RowToList row xs
-  => MakeFormSpecFromRow xs row () row'
+  => MakeFormSpecFromRow xs row row'
   => Newtype (form FormSpec) (Record row')
   => RProxy row
   -> form FormSpec
-mkFormSpecFromRow r = wrap $ Builder.build builder {}
-  where
-    builder = mkFormSpecFromRowBuilder (RLProxy :: RLProxy xs) r
+mkFormSpecFromRow r = wrap $ Internal.fromScratch builder
+  where builder = mkFormSpecFromRowBuilder (RLProxy :: RLProxy xs) r
 
 -- | The class that provides the Builder implementation to efficiently
 -- | transform a row into a proper FormSpec by wrapping it in newtypes and
 -- | supplying initial values
-class MakeFormSpecFromRow
-  (xs :: RL.RowList) (row :: # Type) (from :: # Type) (to :: # Type)
-  | xs -> from to where
-  mkFormSpecFromRowBuilder :: RLProxy xs -> RProxy row -> Builder { | from } { | to }
+class MakeFormSpecFromRow (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
+  mkFormSpecFromRowBuilder :: RLProxy xs -> RProxy row -> Internal.FromScratch to
 
-instance mkFormSpecFromRowNil :: MakeFormSpecFromRow RL.Nil row () () where
+instance mkFormSpecFromRowNil :: MakeFormSpecFromRow RL.Nil row () where
   mkFormSpecFromRowBuilder _ _ = identity
 
 instance mkFormSpecFromRowCons
   :: ( IsSymbol name
      , Initial i
      , Row.Cons name i trash row
-     , MakeFormSpecFromRow tail row from from'
-     , Row.Lacks name from'
-     , Row.Cons name (FormSpec i e o) from' to
+     , MakeFormSpecFromRow tail row from
+     , Internal.Row1Cons name (FormSpec i e o) from to
      )
-  => MakeFormSpecFromRow (RL.Cons name i tail) row from to where
+  => MakeFormSpecFromRow (RL.Cons name i tail) row to where
   mkFormSpecFromRowBuilder _ r =
     first <<< rest
     where
