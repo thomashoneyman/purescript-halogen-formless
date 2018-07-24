@@ -14,7 +14,6 @@ import Record as Record
 import Record.Builder (Builder)
 import Record.Builder as Builder
 import Type.Data.RowList (RLProxy(..))
-import Type.Row (class ListToRow)
 
 -----
 -- Types
@@ -37,18 +36,14 @@ class (Row.Cons s t r r', Row.Lacks s r) <= Row1Cons s t r r' | s t r -> r', s r
 instance row1Cons :: (Row.Cons s t r r', Row.Lacks s r) => Row1Cons s t r r'
 
 -- | @monoidmusician
-class (RL.RowToList r rl, ListToRow rl r) <= RowRowList r rl | r -> rl, rl -> r
-instance rowRowList :: (RL.RowToList r rl, ListToRow rl r) => RowRowList r rl
-
--- | @monoidmusician
-class (Row1Cons s t r r', RowRowList r rl, RowRowList r' rl')
+class (Row1Cons s t r r', RL.RowToList r rl, RL.RowToList r' rl')
   <= Row3 s t r r' rl rl'
   | rl' -> s t r r' rl
   , rl -> r
   , s t r -> r' rl rl'
   , s t rl -> r r' rl'
 instance row3 ::
-  (Row1Cons s t r r', RowRowList r rl, RowRowList r' (RL.Cons s t rl))
+  (Row1Cons s t r r', RL.RowToList r rl, RL.RowToList r' (RL.Cons s t rl))
   => Row3 s t r r' rl (RL.Cons s t rl)
 
 -----
@@ -422,9 +417,9 @@ class ApplyRecord (io :: # Type) (i :: # Type) (o :: # Type)
   applyRecord :: Record io -> Record i -> Record o
 
 instance applyRecordImpl
-  :: ( RowRowList io lio
-     , RowRowList i li
-     , RowRowList o lo
+  :: ( RL.RowToList io lio
+     , RL.RowToList i li
+     , RL.RowToList o lo
      , ApplyRowList lio li lo io i io i o
      )
   => ApplyRecord io i o where
@@ -442,9 +437,9 @@ instance applyRecordImpl
 -- | Applies a record of functions to a record of input values to produce
 -- | a record of outputs.
 class
-  ( RowRowList ior io
-  , RowRowList ir i
-  , RowRowList or o
+  ( RL.RowToList ior io
+  , RL.RowToList ir i
+  , RL.RowToList or o
   ) <=
   ApplyRowList
     (io :: RL.RowList)
@@ -476,8 +471,6 @@ instance applyRowListCons
      , Row3 k (i -> o) tior ior tio (RL.Cons k (i -> o) tio)
      , Row3 k i tir ir ti (RL.Cons k i ti)
      , Row3 k o tor or to (RL.Cons k o to)
-     , ListToRow (RL.Cons k (i -> o) tio) ior
-     , ListToRow (RL.Cons k i ti) ir
      , ApplyRowList tio ti to tior tir iorf irf tor
      , IsSymbol k
      )

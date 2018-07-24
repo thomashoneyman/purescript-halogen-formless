@@ -54,22 +54,18 @@ formSpec = mkFormSpecFromRow $ RProxy :: RProxy (FormRow Input)
 
 -- | You should provide your own validation. This example uses the composable
 -- | validation toolkit `purescript-polyform`
-validator :: forall m. MonadEffect m => Form InputField -> m (Form InputField)
+validator :: ∀ m. MonadEffect m => Form InputField -> m (Form InputField)
 validator = applyOnInputFields
-  ( Form
-    { name: Name <$> (minLength 5 *> maxLength 10)
-    , email: emailFormat >>> emailIsUsed
-    , city: minLength 0
-    , state: Validation.hoistFnV pure
-    }
-  )
+  { name: Name <$> (minLength 5 *> maxLength 10)
+  , email: emailFormat >>> emailIsUsed
+  , city: minLength 0
+  , state: Validation.hoistFnV pure
+  }
 
 -- | You should provide a function from the form with only output values to your ideal
 -- | parsed type.
 submitter :: ∀ m. Monad m => Form OutputField -> m User
 submitter = pure <<< unwrapOutput
-
-
 
 ----------
 -- Validation via Polyform

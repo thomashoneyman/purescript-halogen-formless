@@ -52,9 +52,9 @@ render state =
     , Card.card_
       [ Format.subHeading_
         [ HH.text "Applications & Pixels" ]
-      , renderApplications state
-      , renderPixels state
-      , renderWhiskey state
+      --  , renderApplications state
+      --  , renderPixels state
+      --  , renderWhiskey state
       ]
     , Card.card_
       [ Format.subHeading_
@@ -169,7 +169,7 @@ renderPixels =
     { label: "Pixels"
     , placeholder: Just "My unique pixel"
     , helpText: "Select one or more tracking pixels for the group."
-    , field: G._name
+    , field: G._pixels
     }
     [ "My favorite pixel"
     , "Your favorite pixel"
@@ -185,7 +185,7 @@ renderApplications =
    { label: "Applications"
    , placeholder: Just "Facebook"
    , helpText: "Select one or more applications for the group."
-   , field: G._name
+   , field: G._applications
    }
    [ "Facebook", "Google", "Twitter", "Pinterest" ]
 
@@ -238,7 +238,7 @@ multiTypeahead
    . IsSymbol sym
   => Show e
   => Newtype (G.GroupForm InputField) (Record fields)
-  => Cons sym (InputField String e o) t0 fields
+  => Cons sym (InputField e (Array String) o) t0 fields
   => GroupTASlot
   -> (GroupTASlot -> TA.Message Query String -> Unit -> Query Unit)
   -> FieldConfig sym

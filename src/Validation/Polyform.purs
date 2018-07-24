@@ -67,13 +67,13 @@ applyOnInputFields
   => Newtype (form (Validation m)) (Record fv)
   => Newtype (form InputField) (Record i)
   => Newtype (form' InputField) (Record o')
-  => form (Validation m)
+  => Record fv
   -> form InputField
   -> m (form' InputField)
 applyOnInputFields r = map wrap <<< Internal.sequenceRecord <<< Internal.applyRecord io <<< unwrap
   where
     io :: Record io
-    io = Internal.fromScratch (onInputFieldsBuilder (RLProxy :: RLProxy fvxs) (unwrap r))
+    io = Internal.fromScratch (onInputFieldsBuilder (RLProxy :: RLProxy fvxs) r)
 
 -- | The class that provides the Builder implementation to efficiently unpack a record of
 -- | output fields into a simple record of only the values.

@@ -105,8 +105,8 @@ derive instance newtypeGroupForm :: Newtype (GroupForm f) _
 -- | In order to generate our fields automatically using mkFormSpecFromRow, we'll make
 -- | sure to have the new row as a new type.
 type GroupFormRow f = GroupRow f
-  ( secretKey1 :: f String Errs String
-  , secretKey2 :: f String Errs String
+  ( secretKey1 :: f Errs String String
+  , secretKey2 :: f Errs String String
   )
 
 _secretKey1 = SProxy :: SProxy "secretKey1"
