@@ -30,8 +30,8 @@ import Type.Row (RLProxy(..))
 onInputField
   :: ∀ i e o
    . (i -> V e o)
-  -> InputField i e o
-  -> InputField i e o
+  -> InputField e i o
+  -> InputField e i o
 onInputField validator field@(InputField i)
   | not i.touched = field
   | otherwise = InputField $ unV
@@ -87,7 +87,7 @@ instance onInputFieldsCons
      , Row.Cons name (i -> V e o) trash row
      , OnInputFields tail row from from'
      , Row.Lacks name from'
-     , Row.Cons name (InputField i e o -> InputField i e o) from' to
+     , Row.Cons name (InputField e i o -> InputField e i o) from' to
      )
   => OnInputFields (RL.Cons name (i -> V e o) tail) row from to where
   onInputFieldsBuilder _ r =

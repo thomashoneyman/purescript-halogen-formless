@@ -6,7 +6,7 @@ import Data.List.NonEmpty (NonEmptyList)
 import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
 import Data.Validation.Semigroup (V)
-import Example.RealWorld.Data.Group (Admin, Group(..), GroupForm, GroupFormRow, GroupId(..), _secretKey1, _secretKey2)
+import Example.RealWorld.Data.Group (Admin, Group(..), GroupForm(..), GroupFormRow, GroupId(..), _secretKey1, _secretKey2)
 import Example.Utils as V
 import Formless.Spec (OutputField, getInput)
 import Formless.Spec as Spec

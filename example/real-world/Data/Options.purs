@@ -71,14 +71,14 @@ instance initialSpeed :: Initial Speed where
 -- | closed row. In the case of the 'enable' option, we know there's no validation
 -- | for it, so we'll use `Void` as the error type.
 type OptionsRow f =
-  ( enable       :: f Boolean        Void Boolean
-  , metric       :: f (Maybe Metric) Errs Metric
-  , viewCost     :: f String         Errs (Maybe Dollars)
-  , clickCost    :: f String         Errs (Maybe Dollars)
-  , installCost  :: f String         Errs (Maybe Dollars)
-  , size         :: f String         Errs Number
-  , dimensions   :: f String         Errs Number
-  , speed        :: f Speed          Void Speed
+  ( enable       :: f Unit Boolean        Boolean
+  , metric       :: f Errs (Maybe Metric) Metric
+  , viewCost     :: f Errs String         (Maybe Dollars)
+  , clickCost    :: f Errs String         (Maybe Dollars)
+  , installCost  :: f Errs String         (Maybe Dollars)
+  , size         :: f Errs String         Number
+  , dimensions   :: f Errs String         Number
+  , speed        :: f Unit Speed          Speed
   )
 
 _enable = SProxy :: SProxy "enable"

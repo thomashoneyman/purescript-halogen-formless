@@ -21,9 +21,9 @@ import Type.Row (class ListToRow)
 
 -- | Never exposed to the user, but used to aid equality instances for
 -- | checking dirty states.
-newtype Input i e o = Input i
-derive instance newtypeInput :: Newtype (Input i e o) _
-derive newtype instance eqInput :: Eq i => Eq (Input i e o)
+newtype Input e i o = Input i
+derive instance newtypeInput :: Newtype (Input e i o) _
+derive newtype instance eqInput :: Eq i => Eq (Input e i o)
 
 -- | Represents building some output record from an empty record
 type FromScratch r = Builder {} (Record r)
@@ -179,11 +179,11 @@ instance setInputFieldsTouchedNil :: SetInputFieldsTouched RL.Nil row () where
 
 instance setInputFieldsTouchedCons
   :: ( IsSymbol name
-     , Row.Cons name (InputField i e o) trash row
-     , Row1Cons name (InputField i e o) from to
+     , Row.Cons name (InputField e i o) trash row
+     , Row1Cons name (InputField e i o) from to
      , SetInputFieldsTouched tail row from
      )
-  => SetInputFieldsTouched (RL.Cons name (InputField i e o) tail) row to where
+  => SetInputFieldsTouched (RL.Cons name (InputField e i o) tail) row to where
   setInputFieldsTouchedBuilder _ r =
     first <<< rest
     where
@@ -203,11 +203,11 @@ instance inputFieldsToInputNil :: InputFieldsToInput RL.Nil row () where
 
 instance inputFieldsToInputCons
   :: ( IsSymbol name
-     , Row.Cons name (InputField i e o) trash row
+     , Row.Cons name (InputField e i o) trash row
      , InputFieldsToInput tail row from
-     , Row1Cons name (Input i e o) from to
+     , Row1Cons name (Input e i o) from to
      )
-  => InputFieldsToInput (RL.Cons name (InputField i e o) tail) row to where
+  => InputFieldsToInput (RL.Cons name (InputField e i o) tail) row to where
   inputFieldsToInputBuilder _ r =
     first <<< rest
     where
@@ -227,11 +227,11 @@ instance formSpecToInputFieldNil :: FormSpecToInputField RL.Nil row () where
 
 instance formSpecToInputFieldCons
   :: ( IsSymbol name
-     , Row.Cons name (FormSpec i e o) trash row
+     , Row.Cons name (FormSpec e i o) trash row
      , FormSpecToInputField tail row from
-     , Row1Cons name (InputField i e o) from to
+     , Row1Cons name (InputField e i o) from to
      )
-  => FormSpecToInputField (RL.Cons name (FormSpec i e o) tail) row to where
+  => FormSpecToInputField (RL.Cons name (FormSpec e i o) tail) row to where
   formSpecToInputFieldBuilder _ r =
     first <<< rest
     where
@@ -256,23 +256,23 @@ instance inputFieldToMaybeOutputNil :: InputFieldToMaybeOutput RL.Nil row () whe
 
 instance inputFieldToMaybeOutputCons
   :: ( IsSymbol name
-     , Row.Cons name (InputField i e o) trash row
+     , Row.Cons name (InputField e i o) trash row
      , InputFieldToMaybeOutput tail row from
-     , Row1Cons name (OutputField i e o) from to
+     , Row1Cons name (OutputField e i o) from to
      )
-  => InputFieldToMaybeOutput (RL.Cons name (InputField i e o) tail) row to where
+  => InputFieldToMaybeOutput (RL.Cons name (InputField e i o) tail) row to where
   inputFieldToMaybeOutputBuilder _ r =
     transform <$> val <*> rest
     where
       _name = SProxy :: SProxy name
 
-      val :: Maybe (OutputField i e o)
+      val :: Maybe (OutputField e i o)
       val = map OutputField $ join $ map hush $ _.result $ unwrap $ Record.get _name r
 
       rest :: Maybe (FromScratch from)
       rest = inputFieldToMaybeOutputBuilder (RLProxy :: RLProxy tail) r
 
-      transform :: OutputField i e o -> FromScratch from -> FromScratch to
+      transform :: OutputField e i o -> FromScratch from -> FromScratch to
       transform v builder' = Builder.insert _name v <<< builder'
 
 -- | A class to sum a monoidal record
@@ -306,11 +306,11 @@ instance countErrorsNil :: CountErrors RL.Nil row () where
 
 instance countErrorsCons
   :: ( IsSymbol name
-     , Row.Cons name (InputField i e o) trash row
+     , Row.Cons name (InputField e i o) trash row
      , CountErrors tail row from
      , Row1Cons name (Additive Int) from to
      )
-  => CountErrors (RL.Cons name (InputField i e o) tail) row to where
+  => CountErrors (RL.Cons name (InputField e i o) tail) row to where
   countErrorsBuilder _ r =
     first <<< rest
     where
@@ -333,10 +333,10 @@ instance nilAllTouched :: AllTouched RL.Nil r where
 
 instance consAllTouched
   :: ( IsSymbol name
-     , Row.Cons name (InputField i e o) t0 r
+     , Row.Cons name (InputField e i o) t0 r
      , AllTouched tail r
      )
-  => AllTouched (RL.Cons name (InputField i e o) tail) r
+  => AllTouched (RL.Cons name (InputField e i o) tail) r
   where
     allTouchedImpl _ r =
       if (unwrap (Record.get (SProxy :: SProxy name) r)).touched
