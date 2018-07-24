@@ -24,10 +24,10 @@ type User = Record (FormRow Output)
 -- | We'll use this row to generate our form spec, but also to represent the
 -- | available fields in the record.
 type FormRow f =
-  ( name     :: f String         V.Errs String
-  , email    :: f (Maybe String) V.Errs String
-  , whiskey  :: f (Maybe String) V.Errs String
-  , language :: f (Maybe String) V.Errs String
+  ( name     :: f V.Errs String         String
+  , email    :: f V.Errs (Maybe String) String
+  , whiskey  :: f V.Errs (Maybe String) String
+  , language :: f V.Errs (Maybe String) String
   )
 
 -- | You'll usually want symbol proxies for convenience

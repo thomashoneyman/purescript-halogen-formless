@@ -107,7 +107,7 @@ instance mkFormSpecFromRowCons
      , Initial i
      , Row.Cons name i trash row
      , MakeFormSpecFromRow tail row from
-     , Internal.Row1Cons name (FormSpec i e o) from to
+     , Internal.Row1Cons name (FormSpec e i o) from to
      )
   => MakeFormSpecFromRow (RL.Cons name i tail) row to where
   mkFormSpecFromRowBuilder _ r =

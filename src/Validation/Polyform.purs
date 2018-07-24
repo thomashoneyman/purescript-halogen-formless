@@ -27,14 +27,12 @@ import Type.Row (RLProxy(..))
 -- | , email :: validateEmailRegex `onInputField` form.email
 -- | }
 -- | ```
--- |
--- | Once you have
 onInputField
   :: ∀ m e i o
    . Monad m
   => Validation m e i o
-  -> InputField i e o
-  -> m (InputField i e o)
+  -> InputField e i o
+  -> m (InputField e i o)
 onInputField validator field@(InputField i)
   | not i.touched = pure field
   | otherwise = do
@@ -66,6 +64,7 @@ applyOnInputFields
   => OnInputFields fvxs fv io
   => Internal.ApplyRecord io i o
   => Internal.SequenceRecord oxs o o' m
+  => Newtype (form (Validation m)) (Record fv)
   => Newtype (form InputField) (Record i)
   => Newtype (form' InputField) (Record o')
   => Record fv
@@ -74,7 +73,7 @@ applyOnInputFields
 applyOnInputFields r = map wrap <<< Internal.sequenceRecord <<< Internal.applyRecord io <<< unwrap
   where
     io :: Record io
-    io = Builder.build (onInputFieldsBuilder (RLProxy :: RLProxy fvxs) r) {}
+    io = Internal.fromScratch (onInputFieldsBuilder (RLProxy :: RLProxy fvxs) r)
 
 -- | The class that provides the Builder implementation to efficiently unpack a record of
 -- | output fields into a simple record of only the values.
@@ -89,7 +88,7 @@ instance onInputFieldsCons
      , Monad m
      , Row.Cons name (Validation m e i o) trash row
      , OnInputFields tail row from
-     , Internal.Row1Cons name (InputField i e o -> m (InputField i e o)) from to
+     , Internal.Row1Cons name (InputField e i o -> m (InputField e i o)) from to
      )
   => OnInputFields (RL.Cons name (Validation m e i o) tail) row to where
   onInputFieldsBuilder _ r =

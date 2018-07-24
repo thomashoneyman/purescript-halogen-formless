@@ -375,7 +375,7 @@ send' path p q = Send (injSlot path p) (injQuery path q)
 modify
   :: ∀ sym pq cq cs out m form form' i e o r
    . IsSymbol sym
-  => Cons sym (InputField i e o) r form
+  => Cons sym (InputField e i o) r form
   => Newtype (form' InputField) (Record form)
   => SProxy sym
   -> (i -> i)
@@ -384,17 +384,17 @@ modify sym f = HandleChange (modify' sym f) unit
 
 -- | Allows you to modify a field rather than set its value
 modify'
-  :: ∀ sym form form' inp err out r
+  :: ∀ sym form form' e i o r
    . IsSymbol sym
-  => Cons sym (InputField inp err out) r form
+  => Cons sym (InputField e i o) r form
   => Newtype form' (Record form)
   => SProxy sym
-  -> (inp -> inp)
+  -> (i -> i)
   -> form'
   -> form'
 modify' sym f = wrap <<< setInput f <<< setTouched true <<< unwrap
   where
-    _sym :: Lens.Lens' (Record form) (InputField inp err out)
+    _sym :: Lens.Lens' (Record form) (InputField e i o)
     _sym = prop sym
     setInput =
       Lens.over (_sym <<< _Newtype <<< prop FSpec._input)
@@ -406,7 +406,7 @@ modify' sym f = wrap <<< setInput f <<< setTouched true <<< unwrap
 handleReset
   :: ∀ pq cq cs m sym form' form i e o out r
    . IsSymbol sym
-  => Cons sym (InputField i e o) r form
+  => Cons sym (InputField e i o) r form
   => Newtype (form' InputField) (Record form)
   => Initial i
   => SProxy sym
@@ -416,7 +416,7 @@ handleReset sym = HandleReset (handleReset' sym) unit
 handleReset'
   :: ∀ sym form' form i e o r
    . IsSymbol sym
-  => Cons sym (InputField i e o) r form
+  => Cons sym (InputField e i o) r form
   => Newtype form' (Record form)
   => Initial i
   => SProxy sym
@@ -424,7 +424,7 @@ handleReset'
   -> form'
 handleReset' sym = wrap <<< unsetTouched <<< unsetResult <<< unsetValue <<< unwrap
   where
-    _sym :: Lens.Lens' (Record form) (InputField i e o)
+    _sym :: Lens.Lens' (Record form) (InputField e i o)
     _sym = prop sym
     unsetTouched = Lens.set (_sym <<< _Newtype <<< prop FSpec._touched) false
     unsetResult = Lens.set (_sym <<< _Newtype <<< prop FSpec._result) Nothing
@@ -433,7 +433,7 @@ handleReset' sym = wrap <<< unsetTouched <<< unsetResult <<< unsetValue <<< unwr
 onClickWith
   :: ∀ pq cq cs m sym form' form i e o out r props
    . IsSymbol sym
-  => Cons sym (InputField i e o) r form
+  => Cons sym (InputField e i o) r form
   => Newtype (form' InputField) (Record form)
   => SProxy sym
   -> i
@@ -445,7 +445,7 @@ onClickWith sym i =
 handleBlurAndChange
   :: ∀ pq cq cs m sym form' form i e o out r
    . IsSymbol sym
-  => Cons sym (InputField i e o) r form
+  => Cons sym (InputField e i o) r form
   => Newtype (form' InputField) (Record form)
   => SProxy sym
   -> i
@@ -457,7 +457,7 @@ handleBlurAndChange sym val = HandleBlur (handleBlur' sym <<< handleChange' sym 
 onBlurWith
   :: ∀ pq cq cs m sym form' form i e o out r props
    . IsSymbol sym
-  => Cons sym (InputField i e o) r form
+  => Cons sym (InputField e i o) r form
   => Newtype (form' InputField) (Record form)
   => SProxy sym
   -> HP.IProp (onBlur :: FocusEvent | props) (Query pq cq cs form' out m Unit)
@@ -466,7 +466,7 @@ onBlurWith sym = HE.onBlur $ const $ Just $ handleBlur sym
 handleBlur
   :: ∀ pq cq cs m sym form' form i e o out r
    . IsSymbol sym
-  => Cons sym (InputField i e o) r form
+  => Cons sym (InputField e i o) r form
   => Newtype (form' InputField) (Record form)
   => SProxy sym
   -> Query pq cq cs form' m out Unit
@@ -475,14 +475,14 @@ handleBlur sym = HandleBlur (handleBlur' sym) unit
 handleBlur'
   :: ∀ sym form' form i e o r
    . IsSymbol sym
-  => Cons sym (InputField i e o) r form
+  => Cons sym (InputField e i o) r form
   => Newtype form' (Record form)
   => SProxy sym
   -> form'
   -> form'
 handleBlur' sym form = wrap <<< setTouched $ unwrap form
   where
-    _sym :: Lens.Lens' (Record form) (InputField i e o)
+    _sym :: Lens.Lens' (Record form) (InputField e i o)
     _sym = prop sym
     setTouched = Lens.set (_sym <<< _Newtype <<< prop FSpec._touched) true
 
@@ -490,7 +490,7 @@ handleBlur' sym form = wrap <<< setTouched $ unwrap form
 onValueInputWith
   :: ∀ pq cq cs m sym form' form e o out r props
    . IsSymbol sym
-  => Cons sym (InputField String e o) r form
+  => Cons sym (InputField e String o) r form
   => Newtype (form' InputField) (Record form)
   => SProxy sym
   -> HP.IProp (onInput :: Event, value :: String | props) (Query pq cq cs form' out m Unit)
@@ -500,7 +500,7 @@ onValueInputWith sym =
 onValueChangeWith
   :: ∀ pq cq cs m sym form' form e o out r props
    . IsSymbol sym
-  => Cons sym (InputField String e o) r form
+  => Cons sym (InputField e String o) r form
   => Newtype (form' InputField) (Record form)
   => SProxy sym
   -> HP.IProp (onChange :: Event, value :: String | props) (Query pq cq cs form' out m Unit)
@@ -510,7 +510,7 @@ onValueChangeWith sym =
 onChangeWith
   :: ∀ pq cq cs m sym form' form i e o out r props
    . IsSymbol sym
-  => Cons sym (InputField i e o) r form
+  => Cons sym (InputField e i o) r form
   => Newtype (form' InputField) (Record form)
   => SProxy sym
   -> i
@@ -521,7 +521,7 @@ onChangeWith sym i =
 handleChange
   :: ∀ pq cq cs m sym form' form i e o out r
    . IsSymbol sym
-  => Cons sym (InputField i e o) r form
+  => Cons sym (InputField e i o) r form
   => Newtype (form' InputField) (Record form)
   => SProxy sym
   -> i
@@ -529,17 +529,17 @@ handleChange
 handleChange sym val = HandleChange (handleChange' sym val) unit
 
 handleChange'
-  :: ∀ sym form form' inp err out r
+  :: ∀ sym form form' e i o r
    . IsSymbol sym
-  => Cons sym (InputField inp err out) r form
+  => Cons sym (InputField e i o) r form
   => Newtype form' (Record form)
   => SProxy sym
-  -> inp
+  -> i
   -> form'
   -> form'
 handleChange' sym val = wrap <<< setInput val <<< setTouched true <<< unwrap
   where
-    _sym :: Lens.Lens' (Record form) (InputField inp err out)
+    _sym :: Lens.Lens' (Record form) (InputField e i o)
     _sym = prop sym
     setInput =
       Lens.set (_sym <<< _Newtype <<< prop FSpec._input)

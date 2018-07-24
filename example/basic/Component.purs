@@ -35,8 +35,8 @@ type Contact =
 -- | The same type represented as a form: the possible input,
 -- | error, and output types for each field.
 newtype Form f = Form
-  { name :: f String (NonEmptyList FieldError) String
-  , text :: f String Void String
+  { name :: f (NonEmptyList FieldError) String String
+  , text :: f Void String String
   }
 derive instance newtypeForm :: Newtype (Form f) _
 
@@ -44,6 +44,7 @@ derive instance newtypeForm :: Newtype (Form f) _
 -- | for each field.
 _name = SProxy :: SProxy "name"
 _text = SProxy :: SProxy "text"
+
 
 -- | The initial values for the form, which you must provide. If
 -- | this seems tedious, it is! For a much less boilerplate-heavy

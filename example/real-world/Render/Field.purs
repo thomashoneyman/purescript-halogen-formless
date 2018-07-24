@@ -45,7 +45,7 @@ input
    . IsSymbol sym
   => Show e
   => Newtype (form InputField) (Record fields)
-  => Cons sym (InputField String e o) t0 fields
+  => Cons sym (InputField e String o) t0 fields
   => FieldConfig sym
   -> FieldType
   -> Formless.State form out m
@@ -74,7 +74,7 @@ formField
    . IsSymbol sym
   => Show e
   => Newtype (form InputField) (Record fields)
-  => Cons sym (InputField i e o) t0 fields
+  => Cons sym (InputField e i o) t0 fields
   => Formless.State form out m
   -> FieldConfig sym
   -> ( { result :: Maybe (Either e o)

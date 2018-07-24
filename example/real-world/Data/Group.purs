@@ -43,21 +43,18 @@ derive newtype instance showAdmin :: Show Admin
 -- | have only one, and of a different name altogether.
 -- |
 -- | In order to be able to define a form, you'll need to leave a type variable
--- | free that takes 3 types as arguments: the input (what the user provides),
--- | error type (produced by validation), and output (what results from
--- | successful validation).
+-- | free that takes 3 types as arguments: the error, input, and output types.
 -- |
 -- | In order for this row to be extensible, you'll need another type variable open
 -- | to take possible additional rows
--- |                  Input          Error Output
 type GroupRow f r =
-  ( name         :: f String         Errs String
-  , admin        :: f (Maybe Admin)  Errs Admin
-  , applications :: f (Array String) Errs (Array String)
-  , pixels       :: f (Array String) Errs (Array String)
-  , maxBudget    :: f String         Errs (Maybe Int)
-  , minBudget    :: f String         Errs Int
-  , whiskey      :: f (Maybe String) Errs String
+  ( name         :: f Errs String         String
+  , admin        :: f Errs (Maybe Admin)  Admin
+  , applications :: f Errs (Array String) (Array String)
+  , pixels       :: f Errs (Array String) (Array String)
+  , maxBudget    :: f Errs String         (Maybe Int)
+  , minBudget    :: f Errs String         Int
+  , whiskey      :: f Errs (Maybe String) String
   | r
   )
 
@@ -108,8 +105,8 @@ derive instance newtypeGroupForm :: Newtype (GroupForm f) _
 -- | In order to generate our fields automatically using mkFormSpecFromRow, we'll make
 -- | sure to have the new row as a new type.
 type GroupFormRow f = GroupRow f
-  ( secretKey1 :: f String Errs String
-  , secretKey2 :: f String Errs String
+  ( secretKey1 :: f Errs String String
+  , secretKey2 :: f Errs String String
   )
 
 _secretKey1 = SProxy :: SProxy "secretKey1"

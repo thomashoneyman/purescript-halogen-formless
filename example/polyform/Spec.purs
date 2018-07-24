@@ -7,15 +7,14 @@ import Data.String (Pattern(..), contains, length)
 import Data.Symbol (SProxy(..))
 import Data.Tuple (Tuple(..))
 import Data.Variant (Variant, inj)
-import Effect.Aff (Aff)
-import Effect.Class (liftEffect)
+import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Random (random)
 import Formless.Spec (FormSpec, Input, InputField, Output, OutputField)
 import Formless.Spec.Transform (mkFormSpecFromRow, unwrapOutput)
 import Formless.Validation.Polyform (applyOnInputFields)
 import Polyform.Validation (V(..), Validation(..))
 import Polyform.Validation as Validation
-import Type.Row (RProxy(..))
+import Type.Row (type (+), RProxy(..))
 
 -- | Our overall form type, derived from the form row.
 newtype Form f = Form (Record (FormRow f))
@@ -36,10 +35,10 @@ type User = Record (FormRow Output)
 -- | We'll use this row to generate our form spec, but also to represent the
 -- | available fields in the record.
 type FormRow f =
-  ( name  :: f String (Errs (minLength :: Tuple Int String, maxLength :: Tuple Int String)) Name
-  , email :: f String (Errs (emailFormat :: String, emailIsUsed :: Email)) Email
-  , city  :: f String (Errs (minLength :: Tuple Int String)) String
-  , state :: f String (Errs (minLength :: Tuple Int String)) String
+  ( name  :: f (Errs (Min + Max ()))       String Name
+  , email :: f (Errs (EFormat + EUsed ())) String Email
+  , city  :: f (Errs (Min ()))             String String
+  , state :: f (Errs ())                   String String
   )
 
 -- | You'll usually want symbol proxies for convenience
@@ -55,12 +54,12 @@ formSpec = mkFormSpecFromRow $ RProxy :: RProxy (FormRow Input)
 
 -- | You should provide your own validation. This example uses the composable
 -- | validation toolkit `purescript-polyform`
-validator :: Form InputField -> Aff (Form InputField)
+validator :: ∀ m. MonadEffect m => Form InputField -> m (Form InputField)
 validator = applyOnInputFields
   { name: Name <$> (minLength 5 *> maxLength 10)
   , email: emailFormat >>> emailIsUsed
   , city: minLength 0
-  , state: minLength 0
+  , state: Validation.hoistFnV pure
   }
 
 -- | You should provide a function from the form with only output values to your ideal
@@ -68,12 +67,14 @@ validator = applyOnInputFields
 submitter :: ∀ m. Monad m => Form OutputField -> m User
 submitter = pure <<< unwrapOutput
 
-
-
 ----------
 -- Validation via Polyform
 
 type Errs r = Array (Variant r)
+type EFormat r = (emailFormat :: String | r)
+type EUsed r = (emailIsUsed :: Email | r)
+type Min r = (minLength :: Tuple Int String | r)
+type Max r = (maxLength :: Tuple Int String | r)
 
 -- | This is a pure validator, so we'll leave `m` polymorphic. It parses to a different
 -- | output type than its input: an email
@@ -91,8 +92,9 @@ emailFormat = Validation.hoistFnV \e →
 -- | is in use (faked with `random`). It expects that the email being validated is
 -- | already valid.
 emailIsUsed
-  :: ∀ r
-   . Validation Aff (Array (Variant (emailIsUsed :: Email | r))) Email Email
+  :: ∀ r m
+   . MonadEffect m
+  => Validation m (Array (Variant (emailIsUsed :: Email | r))) Email Email
 emailIsUsed = Validation \e -> do
   v <- liftEffect random
   pure $ if v > 0.5
