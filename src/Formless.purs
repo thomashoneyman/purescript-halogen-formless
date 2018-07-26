@@ -36,11 +36,12 @@ import Data.Monoid.Additive (Additive)
 import Data.Newtype (class Newtype, over, unwrap)
 import Data.Symbol (SProxy(..))
 import Data.Traversable (traverse, traverse_)
-import Formless.Internal as Internal
-import Formless.Spec (Error, FormSpec(..), InputField(..), Output, OutputField(..), _input, _result, _touched, getError, getField, getInput, getOutput, getResult, getTouched)
-import Formless.Spec.Transform (class MakeFormSpecFromRow, mkFormSpec, mkFormSpecFromRow, mkFormSpecFromRowBuilder, unwrapOutput)
 import Formless.Class.Initial (class Initial, initial)
+import Formless.Internal as Internal
+import Formless.Spec (ErrorType, FormSpec(..), InputField(..), InputFieldRow, InputType, OutputField(..), OutputType, _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched)
+import Formless.Spec.Transform (class MakeFormSpecFromRow, mkFormSpec, mkFormSpecFromRow, mkFormSpecFromRowBuilder, unwrapOutput)
 import Halogen as H
+import Halogen.Component.ChildPath (ChildPath, injQuery, injSlot)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Prim.RowList (class RowToList) as RL
@@ -49,10 +50,10 @@ import Renderless.State (getState, modifyState, modifyState_, modifyStore_, putS
 import Type.Row (type (+))
 
 data Query pq cq cs form out m a
-  = HandleBlur (form InputField -> form InputField) a
-  | HandleChange (form InputField -> form InputField) a
-  | HandleReset (form InputField -> form InputField) a
-  | Reset a
+  = Modify (form InputField -> form InputField) a
+  | ModifyValidate (form InputField -> form InputField) a
+  | Reset (form InputField -> form InputField) a
+  | ResetAll a
   | Reply (State' form -> a)
   | Validate a
   | Submit a
@@ -154,6 +155,17 @@ data Message pq form out
   | Changed (State' form)
   | Emit (pq Unit)
 
+-- | When you are using several different types of child components in Formless
+-- | the component needs a child path to be able to pick the right slot to send
+-- | a query to.
+send' :: ∀ pq cq' cs' cs cq form out m a
+  . ChildPath cq cq' cs cs'
+ -> cs
+ -> cq Unit
+ -> a
+ -> Query pq cq' cs' form out m a
+send' path p q = Send (injSlot path p) (injQuery path q)
+
 -- | The component itself
 component
   :: ∀ pq cq cs form out m spec specxs field fieldxs output countxs count inputs inputsxs
@@ -207,15 +219,16 @@ component =
 
   eval :: Query pq cq cs form out m ~> DSL pq cq cs form out m
   eval = case _ of
-    HandleBlur fs a -> do
+    Modify fs a -> do
+      new <- modifyState \st -> st { form = fs st.form }
+      H.raise $ Changed $ getPublicState new
+      pure a
+
+    ModifyValidate fs a -> do
       modifyState_ \st -> st { form = fs st.form }
       eval $ Validate a
 
-    HandleChange fs a -> do
-      modifyState_ \st -> st { form = fs st.form }
-      pure a
-
-    HandleReset fs a -> do
+    Reset fs a -> do
       modifyState_ \st -> st
         { form = fs st.form
         , internal = over InternalState (_ { allTouched = false }) st.internal
@@ -267,7 +280,7 @@ component =
        pure $ reply st
 
     -- | Should completely reset the form to its initial state
-    Reset a -> do
+    ResetAll a -> do
       new <- modifyState \st -> st
         { validity = Incomplete
         , dirty = false
@@ -361,3 +374,4 @@ component =
     -- Ensure the form is no longer marked submitting
     result <- modifyState \st -> st { submitting = false }
     pure $ _.formResult $ unwrap result.internal
+

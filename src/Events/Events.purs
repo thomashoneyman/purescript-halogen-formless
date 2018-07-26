@@ -11,7 +11,6 @@ import Data.Symbol (class IsSymbol, SProxy)
 import Formless (Query(..))
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Spec as Spec
-import Halogen.Component.ChildPath (ChildPath, injQuery, injSlot)
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Prim.Row (class Cons)
@@ -19,16 +18,48 @@ import Web.Event.Event (Event)
 import Web.UIEvent.FocusEvent (FocusEvent)
 import Web.UIEvent.MouseEvent (MouseEvent)
 
--- | When you are using several different types of child components in Formless
--- | the component needs a child path to be able to pick the right slot to send
--- | a query to.
-send' :: ∀ pq cq' cs' cs cq form out m a
-  . ChildPath cq cq' cs cs'
- -> cs
- -> cq Unit
- -> a
- -> Query pq cq' cs' form out m a
-send' path p q = Send (injSlot path p) (injQuery path q)
+---------------
+-- | Events
+---------------
+
+-- Not all events are included yet.
+
+-- onChange
+-- onInput
+-- onClick
+-- onMouseDown
+-- onBlur
+-- onFocus
+-- onValueChange
+-- onValueInput
+-- onSelectedIndexChange
+-- onChecked
+
+---------------
+-- | Actions
+---------------
+
+-- set
+-- modify
+-- modifyValidate
+
+-- setField
+-- modifyField
+-- modifyValidateField
+
+-- reset
+
+---------------
+-- | Queries
+---------------
+
+-- Modify
+-- ModifyValidate
+-- Reset
+
+---------------
+-- | Lenses
+---------------
 
 -- | Provided as a query
 modify
