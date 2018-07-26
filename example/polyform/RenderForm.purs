@@ -2,13 +2,13 @@ module Example.Polyform.RenderForm where
 
 import Prelude
 
+import Data.Lens as Lens
 import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
 import Example.Polyform.Spec (Form, User, _city, _email, _name, _state)
 import Example.Polyform.Types (FCQ, FCS, Query)
 import Example.Utils (showError)
 import Formless as F
-import Formless.Events as FE
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
@@ -46,7 +46,7 @@ formless state =
     , Button.button
       [ if not state.dirty
           then HP.disabled true
-          else HE.onClick $ HE.input_ F.Reset
+          else HE.onClick $ HE.input_ F.ResetAll
       ]
       [ HH.text "Reset" ]
     ]
@@ -69,16 +69,13 @@ renderName state =
         [ Input.input
           [ HP.placeholder "Dale"
           , HP.value field.input
-          , HE.onDoubleClick $ HE.input_ $ F.AndThen
-              (FE.handleBlur _name)
-              (FE.modify _name (\i -> i <> i))
-          , FE.onBlurWith _name
-          , FE.onValueInputWith _name
+          , HE.onBlur $ HE.input_ F.Validate
+          , HE.onValueInput $ HE.input $ F.Modify <<< F.setInput _name
           ]
         ]
     ]
   where
-    field = F.getField _name state.form
+    field = Lens.view (F._Field _name) state.form
 
 renderEmail
   :: F.State Form User Aff
@@ -94,13 +91,13 @@ renderEmail state =
         [ Input.input
           [ HP.placeholder "hello@me.com"
           , HP.value field.input
-          , FE.onBlurWith _email
-          , FE.onValueInputWith _email
+          , HE.onBlur $ HE.input_ F.Validate
+          , HE.onValueInput $ HE.input $ F.Modify <<< F.setInput _email
           ]
         ]
     ]
   where
-    field = F.getField _email state.form
+    field = Lens.view (F._Field _email) state.form
 
 renderCity
   :: F.State Form User Aff
@@ -116,13 +113,13 @@ renderCity state =
         [ Input.input
           [ HP.placeholder "Los Angeles"
           , HP.value field.input
-          , FE.onBlurWith _city
-          , FE.onValueInputWith _city
+          , HE.onBlur $ HE.input_ F.Validate
+          , HE.onValueInput $ HE.input $ F.Modify <<< F.setInput _city
           ]
         ]
     ]
   where
-    field = F.getField _city state.form
+    field = Lens.view (F._Field _city) state.form
 
 renderState
   :: F.State Form User Aff
@@ -137,10 +134,10 @@ renderState state =
         }
         [ Input.input
           [ HP.value field.input
-          , FE.onBlurWith _state
-          , FE.onValueInputWith _state
+          , HE.onBlur $ HE.input_ F.Validate
+          , HE.onValueInput $ HE.input $ F.Modify <<< F.setInput _state
           ]
         ]
     ]
   where
-    field = F.getField _state state.form
+    field = Lens.view (F._Field _state) state.form

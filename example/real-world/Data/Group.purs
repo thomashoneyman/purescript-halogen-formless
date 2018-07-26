@@ -81,7 +81,7 @@ _whiskey = SProxy :: SProxy "whiskey"
 -- | Formless.
 newtype Group = Group
   ( Record
-    ( GroupRow F.Output
+    ( GroupRow F.OutputType
       ( id :: GroupId
       , secretKey :: String
       , options :: Maybe Options

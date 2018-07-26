@@ -91,7 +91,7 @@ _speed = SProxy :: SProxy "speed"
 
 -- | This is the data type used throughout the application. In this case, it's the same
 -- | as the form and the underlying row.
-newtype Options = Options (Record (OptionsRow F.Output))
+newtype Options = Options (Record (OptionsRow F.OutputType))
 derive instance newtypeOptions :: Newtype Options _
 derive newtype instance eqOptions :: Eq Options
 derive newtype instance showOptions :: Show Options

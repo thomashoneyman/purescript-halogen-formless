@@ -2,6 +2,7 @@ module Example.RealWorld.Render.OptionsForm where
 
 import Prelude
 
+import Data.Lens as Lens
 import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
 import Example.RealWorld.Data.Options (Metric(..), Speed(..), _enable, _metric, _speed)
@@ -11,7 +12,6 @@ import Example.RealWorld.Render.Field as Field
 import Example.RealWorld.Types (OptionsCQ, OptionsCS, Query(..))
 import Example.Utils (showError)
 import Formless as F
-import Formless.Events as FE
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -43,7 +43,7 @@ render state =
         , renderEnabled state
         ]
     , HH.div
-        [ if (F.getInput _enable state.form) then css "" else css "hidden" ]
+        [ if (Lens.view (F._Input _enable) state.form) then css "" else css "hidden" ]
         [ renderMetrics state
         , renderOthers state
         ]
@@ -58,7 +58,7 @@ renderMetrics state =
     [ Format.subHeading_
       [ HH.text "Metrics" ]
     , renderMetric state
-    , renderMetricField $ F.getInput _metric state.form
+    , renderMetricField $ Lens.view (F._Input _metric) state.form
     ]
   where
     renderMetricField = case _ of
@@ -91,12 +91,12 @@ renderEnabled state =
     }
     [ Toggle.toggle
       [ HP.checked enable.input
-      , FE.onChangeWith _enable (not enable.input)
-      , FE.onBlurWith _enable
+      , HE.onChange $ HE.input_ $ F.Modify (F.modifyInput _enable not)
+      , HE.onBlur $ HE.input_ F.Validate
       ]
     ]
   where
-    enable = F.getField _enable state.form
+    enable = Lens.view (F._Field _enable) state.form
 
 renderMetric :: FormlessState -> FormlessHTML
 renderMetric state =
@@ -180,22 +180,22 @@ renderSpeed state =
     [ Radio.radio_
       [ HP.name "speed"
       , HP.checked $ speed.input == Low
-      , FE.onClickWith _speed Low
+      , HE.onClick $ HE.input_ $ F.ModifyValidate $ F.setInput _speed Low
       ]
       [ HH.text $ show Low ]
     , Radio.radio_
       [ HP.name "speed"
       , HP.checked $ speed.input == Medium
-      , FE.onClickWith _speed Medium
+      , HE.onClick $ HE.input_ $ F.ModifyValidate $ F.setInput _speed Medium
       ]
       [ HH.text $ show Medium ]
     , Radio.radio_
       [ HP.name "speed"
       , HP.checked $ speed.input == Fast
-      , FE.onClickWith _speed Fast
+      , HE.onClick $ HE.input_ $ F.ModifyValidate $ F.setInput _speed Fast
       ]
       [ HH.text $ show Fast ]
     ]
   ]
   where
-    speed = F.getField _speed state.form
+    speed = Lens.view (F._Field _speed) state.form

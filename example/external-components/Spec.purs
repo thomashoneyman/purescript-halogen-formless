@@ -6,7 +6,7 @@ import Data.Maybe (Maybe, fromMaybe)
 import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
 import Example.Utils as V
-import Formless.Spec (FormSpec, Input, InputField, Output, OutputField)
+import Formless.Spec (FormSpec, InputType, InputField, OutputType, OutputField)
 import Formless.Spec.Transform (mkFormSpecFromRow, unwrapOutput)
 import Formless.Validation.Semigroup (applyOnInputFields)
 import Type.Row (RProxy(..))
@@ -19,7 +19,7 @@ derive instance newtypeForm :: Newtype (Form f) _
 -- | This is the actual type you want to parse to and use throughout your program.
 -- | In this case, it'll be the exact record output by the form, but in many cases,
 -- | it may be another shape.
-type User = Record (FormRow Output)
+type User = Record (FormRow OutputType)
 
 -- | We'll use this row to generate our form spec, but also to represent the
 -- | available fields in the record.
@@ -41,7 +41,7 @@ _language = SProxy :: SProxy "language"
 -- | large forms where you don't want to have to stick newtypes everywhere.
 -- | If you already have a record of values, use `mkFormSpec` instead.
 formSpec :: Form FormSpec
-formSpec = mkFormSpecFromRow $ RProxy :: RProxy (FormRow Input)
+formSpec = mkFormSpecFromRow $ RProxy :: RProxy (FormRow InputType)
 
 -- | You should provide your own validation. This example uses the PureScript
 -- | standard, `purescript-validation`.

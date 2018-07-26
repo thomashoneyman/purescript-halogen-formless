@@ -3,6 +3,7 @@ module Example.Basic.Component where
 import Prelude
 
 import Data.Const (Const)
+import Data.Lens (view) as Lens
 import Data.List.NonEmpty (NonEmptyList)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
@@ -10,7 +11,6 @@ import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Example.Utils (FieldError, validateNonEmpty, showError)
 import Formless as F
-import Formless.Events as FE
 import Formless.Validation.Semigroup (onInputField)
 import Halogen as H
 import Halogen.HTML as HH
@@ -43,7 +43,6 @@ derive instance newtypeForm :: Newtype (Form f) _
 -- | for each field.
 _name = SProxy :: SProxy "name"
 _text = SProxy :: SProxy "text"
-
 
 -- | The initial values for the form, which you must provide. If
 -- | this seems tedious, it is! For a much less boilerplate-heavy
@@ -131,8 +130,8 @@ formless state =
      }
      [ Input.input
        [ HP.value name.input
-       , FE.onBlurWith _name
-       , FE.onValueInputWith _name
+       , HE.onBlur $ HE.input_ F.Validate
+       , HE.onValueInput $ HE.input $ F.Modify <<< F.setInput _name
        ]
      ]
    , FormField.field_
@@ -143,8 +142,8 @@ formless state =
      }
      [ Input.textarea
        [ HP.value text.input
-       , FE.onBlurWith _text
-       , FE.onValueInputWith _text
+       , HE.onBlur $ HE.input_ F.Validate
+       , HE.onValueInput $ HE.input $ F.Modify <<< F.setInput _text
        ]
      ]
    , Button.buttonPrimary
@@ -152,5 +151,5 @@ formless state =
      [ HH.text "Submit" ]
    ]
   where
-    name = F.getField _name state.form
-    text = F.getField _text state.form
+    name = Lens.view (F._Field _name) state.form
+    text = Lens.view (F._Field _text) state.form

@@ -10,7 +10,6 @@ import Example.ExternalComponents.RenderForm (formless)
 import Example.ExternalComponents.Spec (User, _email, _language, _whiskey, formSpec, submitter, validator)
 import Example.ExternalComponents.Types (ChildQuery, ChildSlot, Query(..), Slot(..), State)
 import Formless as F
-import Formless.Events as FE
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -84,10 +83,10 @@ component =
     -- values, it isn't aware of your external components, so you'll need to reset
     -- those yourself.
     Reset a -> do
-      _ <- H.query unit $ H.action $ F.Send EmailTypeahead (TA.ReplaceSelections (TA.One Nothing) unit)
-      _ <- H.query unit $ H.action $ F.Send WhiskeyTypeahead (TA.ReplaceSelections (TA.One Nothing) unit)
-      _ <- H.query unit $ H.action $ F.Send LanguageTypeahead (TA.ReplaceSelections (TA.One Nothing) unit)
-      _ <- H.query unit $ H.action F.Reset
+      _ <- H.query unit $ H.action $ F.Send EmailTypeahead $ H.action $ TA.ReplaceSelections (TA.One Nothing)
+      _ <- H.query unit $ H.action $ F.Send WhiskeyTypeahead $ H.action $ TA.ReplaceSelections (TA.One Nothing)
+      _ <- H.query unit $ H.action $ F.Send LanguageTypeahead $ H.action $ TA.ReplaceSelections (TA.One Nothing)
+      _ <- H.query unit $ H.action F.ResetAll
       pure a
 
     HandleTypeahead slot m a -> case m of
@@ -103,31 +102,31 @@ component =
         TA.ItemSelected x -> do
           case slot of
             EmailTypeahead -> do
-              _ <- H.query unit $ FE.handleBlurAndChange _email (Just x)
+              _ <- H.query unit $ H.action $ F.ModifyValidate (F.setInput _email (Just x))
               pure a
             WhiskeyTypeahead -> do
               -- We can use handleBlurAndChange to manage our component updates
-              _ <- H.query unit $ FE.handleBlurAndChange _whiskey (Just x)
+              _ <- H.query unit $ H.action $ F.ModifyValidate (F.setInput _whiskey (Just x))
               -- This is how you can clear a typeahead via Formless using your queries
-              _ <- H.query unit $ F.Send EmailTypeahead (TA.ReplaceSelections (TA.One Nothing) unit) unit
+              _ <- H.query unit $ H.action $ F.Send EmailTypeahead $ H.action $ TA.ReplaceSelections (TA.One Nothing)
               -- To reset a field, including 'touched' state, errors, and inputs, use handleReset
-              _ <- H.query unit $ FE.handleReset _email
+              _ <- H.query unit $ H.action $ F.Reset (F.resetField _email)
               pure a
             LanguageTypeahead -> do
-              _ <- H.query unit $ FE.handleBlurAndChange _language (Just x)
-              _ <- H.query unit $ F.Send EmailTypeahead (TA.ReplaceSelections (TA.One Nothing) unit) unit
-              _ <- H.query unit $ FE.handleReset _email
+              _ <- H.query unit $ H.action $ F.ModifyValidate (F.setInput _language (Just x))
+              _ <- H.query unit $ H.action $ F.Send EmailTypeahead $ H.action $ TA.ReplaceSelections (TA.One Nothing)
+              _ <- H.query unit $ H.action $ F.Reset (F.resetField _email)
               pure a
         _ -> do
           case slot of
             EmailTypeahead -> do
-              _ <- H.query unit $ FE.handleBlurAndChange _email Nothing
+              _ <- H.query unit $ H.action $ F.ModifyValidate (F.setInput _email Nothing)
               pure a
             WhiskeyTypeahead -> do
-              _ <- H.query unit $ FE.handleBlurAndChange _whiskey Nothing
+              _ <- H.query unit $ H.action $ F.ModifyValidate (F.setInput _whiskey Nothing)
               pure a
             LanguageTypeahead -> do
-              _ <- H.query unit $ FE.handleBlurAndChange _language Nothing
+              _ <- H.query unit $ H.action $ F.ModifyValidate (F.setInput _language Nothing)
               pure a
 
       -- Unfortunately, single-select typeaheads send blur events before

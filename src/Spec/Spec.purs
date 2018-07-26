@@ -125,3 +125,4 @@ type InputType error input output = input
 -- | A type synonym that lets you pick out just the output type from
 -- | your form row.
 type OutputType error input output = output
+

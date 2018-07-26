@@ -9,7 +9,7 @@ import Data.Tuple (Tuple(..))
 import Data.Variant (Variant, inj)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Random (random)
-import Formless.Spec (FormSpec, Input, InputField, Output, OutputField)
+import Formless.Spec (FormSpec, InputType, InputField, OutputType, OutputField)
 import Formless.Spec.Transform (mkFormSpecFromRow, unwrapOutput)
 import Formless.Validation.Polyform (applyOnInputFields)
 import Polyform.Validation (V(..), Validation(..))
@@ -30,7 +30,7 @@ derive instance newtypeEmail :: Newtype Email _
 derive newtype instance showEmail :: Show Email
 
 -- | Our ideal result type
-type User = Record (FormRow Output)
+type User = Record (FormRow OutputType)
 
 -- | We'll use this row to generate our form spec, but also to represent the
 -- | available fields in the record.
@@ -50,7 +50,7 @@ _state = SProxy :: SProxy "state"
 -- | mkFormSpecFromRow can produce a valid input form spec from your row
 -- | without you having to type anything.
 formSpec :: Form FormSpec
-formSpec = mkFormSpecFromRow $ RProxy :: RProxy (FormRow Input)
+formSpec = mkFormSpecFromRow $ RProxy :: RProxy (FormRow InputType)
 
 -- | You should provide your own validation. This example uses the composable
 -- | validation toolkit `purescript-polyform`

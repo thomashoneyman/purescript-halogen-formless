@@ -15,7 +15,6 @@ import Example.RealWorld.Spec.GroupForm (groupFormSpec, groupFormSubmit, groupFo
 import Example.RealWorld.Spec.OptionsForm (optionsFormSpec, optionsFormValidate)
 import Example.RealWorld.Types (ChildQuery, ChildSlot, GroupTASlot(..), Query(..), State, Tab(..))
 import Formless as F
-import Formless.Events as FE
 import Halogen as H
 import Halogen.Component.ChildPath as CP
 import Halogen.HTML as HH
@@ -114,19 +113,19 @@ component =
       -- child component types, use send'
       _ <- H.query' CP.cp1 unit
         $ H.action
-        $ FE.send' CP.cp1 WhiskeyTypeahead
+        $ F.send' CP.cp1 WhiskeyTypeahead
         $ TA.ReplaceSelections (TA.One Nothing) unit
       _ <- H.query' CP.cp1 unit
         $ H.action
-        $ FE.send' CP.cp1 ApplicationsTypeahead
+        $ F.send' CP.cp1 ApplicationsTypeahead
         $ TA.ReplaceSelections (TA.Many []) unit
       _ <- H.query' CP.cp1 unit
         $ H.action
-        $ FE.send' CP.cp1 PixelsTypeahead
+        $ F.send' CP.cp1 PixelsTypeahead
         $ TA.ReplaceSelections (TA.Many []) unit
       _ <- H.query' CP.cp1 unit
         $ H.action
-        $ FE.send' CP.cp2 unit
+        $ F.send' CP.cp2 unit
         $ Dropdown.SetSelection Nothing unit
 
       -- On the Options form, there is no child path to worry about, so we can stick
@@ -136,8 +135,8 @@ component =
         $ F.Send unit (Dropdown.SetSelection Nothing unit)
 
       -- Finally, we can trigger a simple Formless reset on each form.
-      _ <- H.query' CP.cp1 unit $ H.action F.Reset
-      _ <- H.query' CP.cp2 unit $ H.action F.Reset
+      _ <- H.query' CP.cp1 unit $ H.action F.ResetAll
+      _ <- H.query' CP.cp2 unit $ H.action F.ResetAll
       pure a
 
     -- On submit, we need to make sure both forms are run. We
@@ -178,17 +177,17 @@ component =
         let v' = TA.unpackSelections v
         case slot of
           ApplicationsTypeahead -> do
-            _ <- H.query' CP.cp1 unit $ FE.handleBlurAndChange _applications v'
+            _ <- H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput _applications v')
             pure a
           PixelsTypeahead -> do
-            _ <- H.query' CP.cp1 unit $ FE.handleBlurAndChange _pixels v'
+            _ <- H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput _pixels v')
             pure a
           WhiskeyTypeahead -> case s of
             TA.ItemSelected x -> do
-              _ <- H.query' CP.cp1 unit $ FE.handleBlurAndChange _whiskey (Just x)
+              _ <- H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput _whiskey (Just x))
               pure a
             _ -> do
-              _ <- H.query' CP.cp1 unit $ FE.handleBlurAndChange _whiskey Nothing
+              _ <- H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput _whiskey Nothing)
               pure a
       TA.VisibilityChanged _ -> pure a
       TA.Searched _ -> pure a
@@ -196,11 +195,11 @@ component =
     HandleAdminDropdown m a -> case m of
       Dropdown.Emit q -> eval q *> pure a
       Dropdown.Selected x -> do
-        _ <- H.query' CP.cp1 unit $ FE.handleBlurAndChange _admin (Just x)
+        _ <- H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput _admin (Just x))
         -- Changing this field should also clear the secret keys. Ensure you use `reset`
         -- instead of `change` as you want to clear errors, too.
-        _ <- H.query' CP.cp1 unit $ FE.handleReset _secretKey1
-        _ <- H.query' CP.cp1 unit $ FE.handleReset _secretKey2
+        _ <- H.query' CP.cp1 unit $ H.action $ F.Reset (F.resetField _secretKey1)
+        _ <- H.query' CP.cp1 unit $ H.action $ F.Reset (F.resetField _secretKey2)
         pure a
 
 
@@ -220,5 +219,5 @@ component =
     HandleMetricDropdown m a -> case m of
       Dropdown.Emit q -> eval q *> pure a
       Dropdown.Selected x -> do
-        _ <- H.query' CP.cp2 unit $ FE.handleBlurAndChange _metric (Just x)
+        _ <- H.query' CP.cp2 unit $ H.action $ F.ModifyValidate (F.setInput _metric (Just x))
         pure a

@@ -2,15 +2,67 @@ module Formless.Spec.Transform where
 
 import Prelude
 
+import Data.Lens (set)
+import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
-import Formless.Spec (FormSpec(..), OutputField)
+import Formless.Spec (FormSpec(..), InputField, OutputField, _Input, _Result, _Touched)
 import Prim.Row as Row
 import Prim.RowList as RL
 import Record.Builder as Builder
 import Type.Row (RLProxy(..), RProxy)
+
+---------------
+-- | Functions
+---------------
+
+setInput
+  :: ∀ sym form t0 fields e i o
+   . IsSymbol sym
+  => Newtype (form InputField) (Record fields)
+  => Row.Cons sym (InputField e i o) t0 fields
+  => SProxy sym
+  -> i
+  -> form InputField
+  -> form InputField
+setInput sym v = set (_Result sym) Nothing <<< set (_Touched sym) true <<< set (_Input sym) v
+
+modifyInput
+  :: ∀ sym form t0 fields e i o
+   . IsSymbol sym
+  => Newtype (form InputField) (Record fields)
+  => Row.Cons sym (InputField e i o) t0 fields
+  => SProxy sym
+  -> (i -> i)
+  -> form InputField
+  -> form InputField
+modifyInput sym f = set (_Result sym) Nothing <<< set (_Touched sym) true <<< (_Input sym) f
+
+touchField
+  :: ∀ sym form t0 fields e i o
+   . IsSymbol sym
+  => Newtype (form InputField) (Record fields)
+  => Row.Cons sym (InputField e i o) t0 fields
+  => SProxy sym
+  -> form InputField
+  -> form InputField
+touchField sym = set (_Touched sym) true
+
+resetField
+  :: ∀ sym form t0 fields e i o
+   . IsSymbol sym
+  => Initial i
+  => Newtype (form InputField) (Record fields)
+  => Row.Cons sym (InputField e i o) t0 fields
+  => SProxy sym
+  -> form InputField
+  -> form InputField
+resetField sym =
+  set (_Result sym) Nothing
+  <<< set (_Touched sym) false
+  <<< set (_Input sym) initial
 
 ----------
 -- Class

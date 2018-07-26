@@ -21,6 +21,7 @@ module Formless
   , module Formless.Spec
   , module Formless.Spec.Transform
   , module Formless.Class.Initial
+  , send'
   )
   where
 
@@ -39,7 +40,7 @@ import Data.Traversable (traverse, traverse_)
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
 import Formless.Spec (ErrorType, FormSpec(..), InputField(..), InputFieldRow, InputType, OutputField(..), OutputType, _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched)
-import Formless.Spec.Transform (class MakeFormSpecFromRow, mkFormSpec, mkFormSpecFromRow, mkFormSpecFromRowBuilder, unwrapOutput)
+import Formless.Spec.Transform (class MakeFormSpecFromRow, mkFormSpec, mkFormSpecFromRow, mkFormSpecFromRowBuilder, modifyInput, resetField, setInput, touchField, unwrapOutput)
 import Halogen as H
 import Halogen.Component.ChildPath (ChildPath, injQuery, injSlot)
 import Halogen.HTML as HH
@@ -221,7 +222,6 @@ component =
   eval = case _ of
     Modify fs a -> do
       new <- modifyState \st -> st { form = fs st.form }
-      H.raise $ Changed $ getPublicState new
       pure a
 
     ModifyValidate fs a -> do

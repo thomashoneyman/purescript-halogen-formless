@@ -3,6 +3,7 @@ module Example.RealWorld.Render.Field where
 import Prelude
 
 import Data.Either (Either)
+import Data.Lens as Lens
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Newtype (class Newtype)
 import Data.String (toLower) as String
@@ -12,9 +13,9 @@ import Example.RealWorld.Data.Group (Admin(..))
 import Example.RealWorld.Types (Query)
 import Example.Utils (showError)
 import Formless as F
-import Formless.Events as FE
 import Halogen as H
 import Halogen.HTML as HH
+import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Ocelot.Block.FormField as FormField
 import Ocelot.Block.Input as Input
@@ -62,8 +63,8 @@ input config ft state =
     props field =
       [ HP.placeholder $ fromMaybe "" config.placeholder
       , HP.value field.input
-      , FE.onBlurWith config.field
-      , FE.onValueInputWith config.field
+      , HE.onBlur $ HE.input_ F.Validate
+      , HE.onValueInput $ HE.input $ F.Modify <<< F.setInput config.field
       ]
 
 
@@ -95,7 +96,7 @@ formField state config html =
         [ html field ]
     ]
   where
-    field = F.getField config.field state.form
+    field = Lens.view (F._Field config.field) state.form
 
 
 -----

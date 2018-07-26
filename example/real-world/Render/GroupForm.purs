@@ -2,6 +2,7 @@ module Example.RealWorld.Render.GroupForm where
 
 import Prelude
 
+import Data.Lens as Lens
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (class Newtype)
 import Data.Symbol (class IsSymbol)
@@ -12,7 +13,6 @@ import Example.RealWorld.Render.Field (FieldConfig, adminToString, renderDropdow
 import Example.RealWorld.Render.Field as Field
 import Example.RealWorld.Types (GroupCQ, GroupCS, GroupTASlot(..), Query(..))
 import Formless as F
-import Formless.Events as FE
 import Halogen as H
 import Halogen.Component.ChildPath as CP
 import Halogen.HTML as HH
@@ -199,8 +199,8 @@ renderMinMaxBudget state =
             [ css "py-3" ]
             [ HH.text "Min Budget (Optional)" ]
         , Input.percentage_
-            [ FE.onValueChangeWith _minBudget
-            , FE.onBlurWith _minBudget
+            [ HE.onValueChange $ HE.input $ F.Modify <<< F.setInput _minBudget
+            , HE.onBlur $ HE.input_ $ F.Validate
             , HP.value minBudget.input
             ]
         ]
@@ -208,8 +208,8 @@ renderMinMaxBudget state =
         [ css "px-4 flex-4 self-end my-5"
         , HP.min 0.0
         , HP.max 100.0
-        , FE.onValueChangeWith _minBudget
-        , FE.onBlurWith _minBudget
+        , HE.onValueChange $ HE.input $ F.Modify <<< F.setInput _minBudget
+        , HE.onBlur $ HE.input_ F.Validate
         , HP.value minBudget.input
         ]
     , HH.label
@@ -218,16 +218,16 @@ renderMinMaxBudget state =
             [ css "py-3" ]
             [ HH.text "Max Budget (Optional)"
             , Input.percentage_
-                [ FE.onValueInputWith _maxBudget
-                , FE.onBlurWith _maxBudget
+                [ HE.onValueInput $ HE.input $ F.Modify <<< F.setInput _maxBudget
+                , HE.onBlur $ HE.input_ F.Validate
                 , HP.value maxBudget.input
                 ]
             ]
         ]
     ]
   where
-    minBudget = F.getField _minBudget state.form
-    maxBudget = F.getField _maxBudget state.form
+    minBudget = Lens.view (F._Field _minBudget) state.form
+    maxBudget = Lens.view (F._Field _maxBudget) state.form
 
 
 -----

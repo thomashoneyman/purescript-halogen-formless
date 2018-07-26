@@ -2,13 +2,13 @@ module Example.ExternalComponents.RenderForm where
 
 import Prelude
 
+import Data.Lens as Lens
 import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
 import Example.ExternalComponents.Spec (Form, User, _email, _language, _name, _whiskey)
 import Example.ExternalComponents.Types (FCQ, FCS, Query(..), Slot(..))
 import Example.Utils (showError)
 import Formless as F
-import Formless.Events as FE
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -72,13 +72,13 @@ renderName state =
         [ Input.input
           [ HP.placeholder "Dale"
           , HP.value field.input
-          , FE.onBlurWith _name
-          , FE.onValueInputWith _name
+          , HE.onBlur $ HE.input_ F.Validate
+          , HE.onValueInput $ HE.input $ F.Modify <<< F.setInput _name
           ]
         ]
     ]
   where
-    field = F.getField _name state.form
+    field = Lens.view (F._Field _name) state.form
 
 renderEmail
   :: F.State Form User Aff
@@ -88,7 +88,7 @@ renderEmail state =
     [ FormField.field_
         { label: "Email"
         , helpText: Just "Select an email address"
-        , error: showError $ F.getField _email state.form
+        , error: showError $ Lens.view (F._Field _email) state.form
         , inputId: "email"
         }
         [ HH.slot
@@ -119,7 +119,7 @@ renderWhiskey state =
     [ FormField.field_
         { label: "Whiskey"
         , helpText: Just "Select a favorite whiskey"
-        , error: showError $ F.getField _whiskey state.form
+        , error: showError $ Lens.view (F._Field _whiskey) state.form
         , inputId: "whiskey"
         }
         [ HH.slot
@@ -151,7 +151,7 @@ renderLanguage state =
     [ FormField.field_
         { label: "Language"
         , helpText: Just "Select a favorite language"
-        , error: showError $ F.getField _language state.form
+        , error: showError $ Lens.view (F._Field _language) state.form
         , inputId: "language"
         }
         [ HH.slot
