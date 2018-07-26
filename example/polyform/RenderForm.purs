@@ -7,8 +7,8 @@ import Effect.Aff (Aff)
 import Example.Polyform.Spec (Form, User, _city, _email, _name, _state)
 import Example.Polyform.Types (FCQ, FCS, Query)
 import Example.Utils (showError)
-import Formless as Formless
-import Formless.Spec (getField)
+import Formless as F
+import Formless.Events as FE
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
@@ -21,8 +21,8 @@ import Ocelot.HTML.Properties (css)
 -- | Our render function has access to anything in Formless' State type, plus
 -- | anything additional in your own state type, if you'd like.
 formless
-  :: Formless.State Form User Aff
-  -> Formless.HTML Query FCQ FCS Form User Aff
+  :: F.State Form User Aff
+  -> F.HTML Query FCQ FCS Form User Aff
 formless state =
   HH.div_
     [ renderName state
@@ -37,16 +37,16 @@ formless state =
           <> "state."
       ]
     , Button.buttonPrimary
-      [ if state.submitting || state.validity /= Formless.Valid
+      [ if state.submitting || state.validity /= F.Valid
           then HP.disabled true
-          else HE.onClick $ HE.input_ Formless.Submit
+          else HE.onClick $ HE.input_ F.Submit
       , css "mr-3"
       ]
       [ HH.text "Submit" ]
     , Button.button
       [ if not state.dirty
           then HP.disabled true
-          else HE.onClick $ HE.input_ Formless.Reset
+          else HE.onClick $ HE.input_ F.Reset
       ]
       [ HH.text "Reset" ]
     ]
@@ -56,8 +56,8 @@ formless state =
 
 -- | A helper function to render a form text input
 renderName
-  :: Formless.State Form User Aff
-  -> Formless.HTML Query FCQ FCS Form User Aff
+  :: F.State Form User Aff
+  -> F.HTML Query FCQ FCS Form User Aff
 renderName state =
   HH.div_
     [ FormField.field_
@@ -69,20 +69,20 @@ renderName state =
         [ Input.input
           [ HP.placeholder "Dale"
           , HP.value field.input
-          , HE.onDoubleClick $ HE.input_ $ Formless.AndThen
-              (Formless.handleBlur _name)
-              (Formless.modify _name (\i -> i <> i))
-          , Formless.onBlurWith _name
-          , Formless.onValueInputWith _name
+          , HE.onDoubleClick $ HE.input_ $ F.AndThen
+              (FE.handleBlur _name)
+              (FE.modify _name (\i -> i <> i))
+          , FE.onBlurWith _name
+          , FE.onValueInputWith _name
           ]
         ]
     ]
   where
-    field = getField _name state.form
+    field = F.getField _name state.form
 
 renderEmail
-  :: Formless.State Form User Aff
-  -> Formless.HTML Query FCQ FCS Form User Aff
+  :: F.State Form User Aff
+  -> F.HTML Query FCQ FCS Form User Aff
 renderEmail state =
   HH.div_
     [ FormField.field_
@@ -94,17 +94,17 @@ renderEmail state =
         [ Input.input
           [ HP.placeholder "hello@me.com"
           , HP.value field.input
-          , Formless.onBlurWith _email
-          , Formless.onValueInputWith _email
+          , FE.onBlurWith _email
+          , FE.onValueInputWith _email
           ]
         ]
     ]
   where
-    field = getField _email state.form
+    field = F.getField _email state.form
 
 renderCity
-  :: Formless.State Form User Aff
-  -> Formless.HTML Query FCQ FCS Form User Aff
+  :: F.State Form User Aff
+  -> F.HTML Query FCQ FCS Form User Aff
 renderCity state =
   HH.div_
     [ FormField.field_
@@ -116,17 +116,17 @@ renderCity state =
         [ Input.input
           [ HP.placeholder "Los Angeles"
           , HP.value field.input
-          , Formless.onBlurWith _city
-          , Formless.onValueInputWith _city
+          , FE.onBlurWith _city
+          , FE.onValueInputWith _city
           ]
         ]
     ]
   where
-    field = getField _city state.form
+    field = F.getField _city state.form
 
 renderState
-  :: Formless.State Form User Aff
-  -> Formless.HTML Query FCQ FCS Form User Aff
+  :: F.State Form User Aff
+  -> F.HTML Query FCQ FCS Form User Aff
 renderState state =
   HH.div_
     [ FormField.field_
@@ -137,10 +137,10 @@ renderState state =
         }
         [ Input.input
           [ HP.value field.input
-          , Formless.onBlurWith _state
-          , Formless.onValueInputWith _state
+          , FE.onBlurWith _state
+          , FE.onValueInputWith _state
           ]
         ]
     ]
   where
-    field = getField _state state.form
+    field = F.getField _state state.form

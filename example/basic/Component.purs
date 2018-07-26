@@ -9,9 +9,8 @@ import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Example.Utils (FieldError, validateNonEmpty, showError)
-import Formless as Formless
-import Formless.Spec (FormSpec, InputField, OutputField, getField)
-import Formless.Spec.Transform (mkFormSpec, unwrapOutput)
+import Formless as F
+import Formless.Events as FE
 import Formless.Validation.Semigroup (onInputField)
 import Halogen as H
 import Halogen.HTML as HH
@@ -49,8 +48,8 @@ _text = SProxy :: SProxy "text"
 -- | The initial values for the form, which you must provide. If
 -- | this seems tedious, it is! For a much less boilerplate-heavy
 -- | version, see the external-components or real-world examples.
-formSpec :: Form FormSpec
-formSpec = mkFormSpec
+formSpec :: Form F.FormSpec
+formSpec = F.mkFormSpec
   { name: ""
   , text: ""
   }
@@ -58,7 +57,7 @@ formSpec = mkFormSpec
 -- | Your form validation that you'd like run on any touched
 -- | fields in the form. It can be monadic, so you can do things like
 -- | server validation.
-validator :: ∀ m. Monad m => Form InputField -> m (Form InputField)
+validator :: ∀ m. Monad m => Form F.InputField -> m (Form F.InputField)
 validator (Form form) = pure $ Form
   { name: validateNonEmpty `onInputField` form.name
   , text: pure `onInputField` form.text
@@ -68,9 +67,8 @@ validator (Form form) = pure $ Form
 -- | only the output fields. Since our Contact type is the same
 -- | shape as the Form type, we can just unwrap the newtypes. This can
 -- | be monadic, like hitting a server for extra information.
-submitter :: ∀ m. Monad m => Form OutputField -> m Contact
-submitter = pure <<< unwrapOutput
-
+submitter :: ∀ m. Monad m => Form F.OutputField -> m Contact
+submitter = pure <<< F.unwrapOutput
 
 -----
 -- Component types
@@ -78,7 +76,7 @@ submitter = pure <<< unwrapOutput
 data Query a
   = DoNothing a
 
-type ChildQuery = Formless.Query Query (Const Void) Unit Form Contact Aff
+type ChildQuery = F.Query Query (Const Void) Unit Form Contact Aff
 type ChildSlot = Unit
 
 -----
@@ -99,12 +97,12 @@ component = H.parentComponent
     HH.div
     [ css "flex-1 container p-12" ]
     [ Format.heading_
-      [ HH.text "Formless" ]
+      [ HH.text "F" ]
     , Format.subHeading_
       [ HH.text "A basic contact form." ]
     , HH.slot
         unit
-        Formless.component
+        F.component
         { formSpec
         , validator
         , submitter
@@ -118,11 +116,11 @@ component = H.parentComponent
 
 
 -----
--- Formless
+-- F
 
 formless
-  :: Formless.State Form Contact Aff
-  -> Formless.HTML Query (Const Void) Unit Form Contact Aff
+  :: F.State Form Contact Aff
+  -> F.HTML Query (Const Void) Unit Form Contact Aff
 formless state =
  HH.div_
    [ FormField.field_
@@ -133,8 +131,8 @@ formless state =
      }
      [ Input.input
        [ HP.value name.input
-       , Formless.onBlurWith _name
-       , Formless.onValueInputWith _name
+       , FE.onBlurWith _name
+       , FE.onValueInputWith _name
        ]
      ]
    , FormField.field_
@@ -145,14 +143,14 @@ formless state =
      }
      [ Input.textarea
        [ HP.value text.input
-       , Formless.onBlurWith _text
-       , Formless.onValueInputWith _text
+       , FE.onBlurWith _text
+       , FE.onValueInputWith _text
        ]
      ]
    , Button.buttonPrimary
-     [ HE.onClick $ HE.input_ Formless.Submit ]
+     [ HE.onClick $ HE.input_ F.Submit ]
      [ HH.text "Submit" ]
    ]
   where
-    name = getField _name state.form
-    text = getField _text state.form
+    name = F.getField _name state.form
+    text = F.getField _text state.form

@@ -7,8 +7,8 @@ import Effect.Aff (Aff)
 import Example.ExternalComponents.Spec (Form, User, _email, _language, _name, _whiskey)
 import Example.ExternalComponents.Types (FCQ, FCS, Query(..), Slot(..))
 import Example.Utils (showError)
-import Formless as Formless
-import Formless.Spec (getField)
+import Formless as F
+import Formless.Events as FE
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -21,11 +21,11 @@ import Ocelot.Components.Typeahead as TA
 import Ocelot.Components.Typeahead.Input as TA.Input
 import Ocelot.HTML.Properties (css)
 
--- | Our render function has access to anything in Formless' State type, plus
+-- | Our render function has access to anything in F' State type, plus
 -- | anything additional in your own state type.
 formless
-  :: Formless.State Form User Aff
-  -> Formless.HTML Query FCQ FCS Form User Aff
+  :: F.State Form User Aff
+  -> F.HTML Query FCQ FCS Form User Aff
 formless state =
   HH.div_
     [ renderName state
@@ -40,16 +40,16 @@ formless state =
           <> "state."
       ]
     , Button.buttonPrimary
-      [ if state.submitting || state.validity /= Formless.Valid
+      [ if state.submitting || state.validity /= F.Valid
           then HP.disabled true
-          else HE.onClick $ HE.input_ Formless.Submit
+          else HE.onClick $ HE.input_ F.Submit
       , css "mr-3"
       ]
       [ HH.text "Submit" ]
     , Button.button
       [ if not state.dirty
           then HP.disabled true
-          else HE.onClick $ HE.input_ $ Formless.Raise (Reset unit)
+          else HE.onClick $ HE.input_ $ F.Raise (Reset unit)
       ]
       [ HH.text "Reset" ]
     ]
@@ -59,8 +59,8 @@ formless state =
 
 -- | A helper function to render a form text input
 renderName
-  :: Formless.State Form User Aff
-  -> Formless.HTML Query FCQ FCS Form User Aff
+  :: F.State Form User Aff
+  -> F.HTML Query FCQ FCS Form User Aff
 renderName state =
   HH.div_
     [ FormField.field_
@@ -72,23 +72,23 @@ renderName state =
         [ Input.input
           [ HP.placeholder "Dale"
           , HP.value field.input
-          , Formless.onBlurWith _name
-          , Formless.onValueInputWith _name
+          , FE.onBlurWith _name
+          , FE.onValueInputWith _name
           ]
         ]
     ]
   where
-    field = getField _name state.form
+    field = F.getField _name state.form
 
 renderEmail
-  :: Formless.State Form User Aff
-  -> Formless.HTML Query FCQ FCS Form User Aff
+  :: F.State Form User Aff
+  -> F.HTML Query FCQ FCS Form User Aff
 renderEmail state =
   HH.div_
     [ FormField.field_
         { label: "Email"
         , helpText: Just "Select an email address"
-        , error: showError $ getField _email state.form
+        , error: showError $ F.getField _email state.form
         , inputId: "email"
         }
         [ HH.slot
@@ -105,7 +105,7 @@ renderEmail state =
               TA.Input.renderItemString
             )
             ( HE.input
-              ( Formless.Raise
+              ( F.Raise
                 <<< H.action
                 <<< HandleTypeahead EmailTypeahead
               )
@@ -113,13 +113,13 @@ renderEmail state =
         ]
     ]
 
-renderWhiskey :: Formless.State Form User Aff -> Formless.HTML Query FCQ FCS Form User Aff
+renderWhiskey :: F.State Form User Aff -> F.HTML Query FCQ FCS Form User Aff
 renderWhiskey state =
   HH.div_
     [ FormField.field_
         { label: "Whiskey"
         , helpText: Just "Select a favorite whiskey"
-        , error: showError $ getField _whiskey state.form
+        , error: showError $ F.getField _whiskey state.form
         , inputId: "whiskey"
         }
         [ HH.slot
@@ -135,7 +135,7 @@ renderWhiskey state =
               TA.Input.renderItemString
             )
             ( HE.input
-              ( Formless.Raise
+              ( F.Raise
                 <<< H.action
                 <<< HandleTypeahead WhiskeyTypeahead
               )
@@ -144,14 +144,14 @@ renderWhiskey state =
     ]
 
 renderLanguage
-  :: Formless.State Form User Aff
-  -> Formless.HTML Query FCQ FCS Form User Aff
+  :: F.State Form User Aff
+  -> F.HTML Query FCQ FCS Form User Aff
 renderLanguage state =
   HH.div_
     [ FormField.field_
         { label: "Language"
         , helpText: Just "Select a favorite language"
-        , error: showError $ getField _language state.form
+        , error: showError $ F.getField _language state.form
         , inputId: "language"
         }
         [ HH.slot
@@ -175,7 +175,7 @@ renderLanguage state =
               TA.Input.renderItemString
             )
             ( HE.input
-              ( Formless.Raise
+              ( F.Raise
                 <<< H.action
                 <<< HandleTypeahead LanguageTypeahead
               )

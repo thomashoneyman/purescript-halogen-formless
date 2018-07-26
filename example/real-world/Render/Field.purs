@@ -11,8 +11,8 @@ import Effect.Aff (Aff)
 import Example.RealWorld.Data.Group (Admin(..))
 import Example.RealWorld.Types (Query)
 import Example.Utils (showError)
-import Formless as Formless
-import Formless.Spec (InputField, getField)
+import Formless as F
+import Formless.Events as FE
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
@@ -44,12 +44,12 @@ input
   :: ∀ form sym e o t0 fields m pq cq cs out
    . IsSymbol sym
   => Show e
-  => Newtype (form InputField) (Record fields)
-  => Cons sym (InputField e String o) t0 fields
+  => Newtype (form F.InputField) (Record fields)
+  => Cons sym (F.InputField e String o) t0 fields
   => FieldConfig sym
   -> FieldType
-  -> Formless.State form out m
-  -> Formless.HTML pq cq cs form out m
+  -> F.State form out m
+  -> F.HTML pq cq cs form out m
 input config ft state =
   HH.div_
     [ formField state config $ \field ->
@@ -62,8 +62,8 @@ input config ft state =
     props field =
       [ HP.placeholder $ fromMaybe "" config.placeholder
       , HP.value field.input
-      , Formless.onBlurWith config.field
-      , Formless.onValueInputWith config.field
+      , FE.onBlurWith config.field
+      , FE.onValueInputWith config.field
       ]
 
 
@@ -73,17 +73,17 @@ formField
   :: ∀ form sym i e o t0 fields m pq cq cs out
    . IsSymbol sym
   => Show e
-  => Newtype (form InputField) (Record fields)
-  => Cons sym (InputField e i o) t0 fields
-  => Formless.State form out m
+  => Newtype (form F.InputField) (Record fields)
+  => Cons sym (F.InputField e i o) t0 fields
+  => F.State form out m
   -> FieldConfig sym
   -> ( { result :: Maybe (Either e o)
        , touched :: Boolean
        , input :: i
        }
-       -> Formless.HTML pq cq cs form out m
+       -> F.HTML pq cq cs form out m
      )
-  -> Formless.HTML pq cq cs form out m
+  -> F.HTML pq cq cs form out m
 formField state config html =
   HH.div_
     [ FormField.field_
@@ -95,7 +95,7 @@ formField state config html =
         [ html field ]
     ]
   where
-    field = getField config.field state.form
+    field = F.getField config.field state.form
 
 
 -----

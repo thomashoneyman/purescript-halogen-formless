@@ -9,7 +9,7 @@ import Effect.Console as Console
 import Example.Polyform.RenderForm (formless)
 import Example.Polyform.Spec (User, formSpec, submitter, validator)
 import Example.Polyform.Types (ChildQuery, ChildSlot, Query(..), State)
-import Formless as Formless
+import Formless as F
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -55,7 +55,7 @@ component =
       ]
     , HH.slot
         unit
-        Formless.component
+        F.component
         { formSpec
         , validator
         , submitter
@@ -67,10 +67,10 @@ component =
   eval :: Query ~> H.ParentDSL State Query ChildQuery ChildSlot Void Aff
   eval = case _ of
     HandleFormless m a -> case m of
-      Formless.Emit q -> eval q *> pure a
-      Formless.Submitted user -> do
+      F.Emit q -> eval q *> pure a
+      F.Submitted user -> do
         H.liftEffect $ Console.log $ show (user :: User)
         pure a
-      Formless.Changed fstate -> do
+      F.Changed fstate -> do
         H.liftEffect $ Console.log $ show $ delete (SProxy :: SProxy "form") fstate
         pure a
