@@ -4,7 +4,6 @@ import Prelude
 
 import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
-import Debug.Trace (spy)
 import Effect.Aff (Aff)
 import Effect.Console as Console
 import Example.Polyform.RenderForm (formless)
@@ -73,6 +72,5 @@ component =
         H.liftEffect $ Console.log $ show (user :: User)
         pure a
       F.Changed fstate -> do
-        _ <- pure $ spy "state of form" fstate
-        --  H.liftEffect $ Console.log $ show $ delete (SProxy :: SProxy "form") fstate
+        H.liftEffect $ Console.log $ show $ delete (SProxy :: SProxy "form") fstate
         pure a
