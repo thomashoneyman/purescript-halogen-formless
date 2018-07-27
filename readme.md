@@ -5,15 +5,21 @@
 
 Formless is a [renderless component](https://github.com/thomashoneyman/purescript-halogen-renderless) which helps you build forms in Halogen. Provide Formless with a form data type, validation function, submit function, and render function, and the component will handle the tedious parts of managing form state, errors, and submission.
 
-- [Example / Documentation Site](https://thomashoneyman.github.io/purescript-halogen-formless/)
+- [Live examples / docs site](https://thomashoneyman.github.io/purescript-halogen-formless/)
+- [Source code for examples](https://github.com/thomashoneyman/purescript-halogen-formless/tree/master/example)
 
-## Installation
+### Installation
 
 Install with Bower:
 
 ```sh
 bower i --save purescript-halogen-formless
 ```
+
+### Status
+
+Formless is already used in production at [@citizennet](https://github.com/citizennet) and is going through final updates for a v1 release. Do you have any comments about the library or any ideas to improve it for your use case? Please file an issue, send me an email, or reach out on the [PureScript user group](https://purescript-users.ml).
+
 
 # Overview
 
@@ -239,3 +245,61 @@ renderFormless fstate =
   _password1 = SProxy :: SProxy "password1"
   _password2 = SProxy :: SProxy "password2"
 ```
+
+## Mounting The Component
+
+Whew! With those four functions, the `Form` type, and the `User` type, we've now got everything necessary to run Formless. Let's bring it all together by mounting the component and handling its `Submitted` output message:
+
+```purescript
+import Formless as F
+
+data Query a
+  = Formless (F.Message' Form User) a
+
+type ChildQuery = F.Query' Form User Aff
+type ChildSlot = Unit
+
+component :: H.Component HH.HTML Query Unit Void Aff
+component = H.parentComponent
+  { initialState: const unit
+  , render
+  , eval
+  , receiver: const Nothing
+  }
+
+  where
+
+  render :: Unit -> H.ParentHTML Query ChildQuery ChildSlot Aff
+  render st =
+    HH.div_
+    [ HH.h1 "My Form"
+    , HH.slot
+        unit
+        F.component
+        { formSpec, validator, submitter, render: renderFormless }
+        ( HE.input Formless )
+    ]
+
+  eval :: Query ~> H.ParentDSL Unit Query ChildQuery ChildSlot Void Aff
+  eval (Formless m a) = case m of
+    F.Submitted user -> do
+      Console.log $ "Got a user! " <> show (user :: User)
+    _ -> pure a
+```
+
+# Next Steps
+
+Formless is already used in production at [@citizennet](https://github.com/citizennet) and is going through final updates for a v1 release. Do you have any comments about the library or any ideas to improve it for your use case? Please file an issue or reach out on the [PureScript user group](https://purescript-users.ml).
+
+Ready to move past this simple example? Check out the examples, which vary in their complexity:
+
+- [Live examples / docs site](https://thomashoneyman.github.io/purescript-halogen-formless/)
+- [Source code for examples](https://github.com/thomashoneyman/purescript-halogen-formless/tree/master/example)
+
+If you're curious to learn more about how to use renderless components effectively, or build your own:
+
+- [purescript-halogen-renderless](https://github.com/thomashoneyman/purescript-halogen-renderless)
+
+There are other renderless components that work well with Formless:
+
+- [purescript-halogen-select: typeaheads, dropdowns, and more](https://github.com/citizennet/purescript-halogen-select)
