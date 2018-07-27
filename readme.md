@@ -150,7 +150,7 @@ validateEncrypt = hoistFnV \str ->
 
 We can provide a field validation function like this to every field that will be in our form, and then use the `applyOnInputFields` helper function from Formless to convert these functions to run on the `input` field and store their result in the `result` field:
 
-```
+```purescript
 import Formless.Validation.Polyform (applyOnInputFields)
 
 -- Each validator in the record should have the type `Validation m error input output`
