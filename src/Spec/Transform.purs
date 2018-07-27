@@ -191,20 +191,25 @@ instance mkFormSpecFromRowCons
 mkLensesFromFormSpec
   :: ∀ form row xs row'
    . RL.RowToList row xs
-  => MakeLenses xs row row'
+  => MakeLenses form xs row'
   => Newtype (form FormSpec) (Record row)
   => form FormSpec
   -> Record row'
-mkLensesFromFormSpec _ = mkLensesFromRow (RProxy :: RProxy row)
+mkLensesFromFormSpec _ = mkLensesFromRow
+  (Internal.FormProxy :: Internal.FormProxy form)
+  (RProxy :: RProxy row)
 
 mkLensesFromRow
-  :: ∀ row xs row'
+  :: ∀ form row xs row'
    . RL.RowToList row xs
-  => MakeLenses xs row row'
-  => RProxy row
+  => MakeLenses form xs row'
+  => Internal.FormProxy form
+  -> RProxy row
   -> Record row'
-mkLensesFromRow r = Internal.fromScratch builder
-  where builder = mkLensesFromRowBuilder (RLProxy :: RLProxy xs) r
+mkLensesFromRow _ _ = Internal.fromScratch builder where
+  builder = mkLensesFromRowBuilder
+    (Internal.FormProxy :: Internal.FormProxy form)
+    (RLProxy :: RLProxy xs)
 
 type FormLens form e i o =
   { field :: ALens' (form InputField) (Record (InputFieldRow e i o))
@@ -215,28 +220,26 @@ type FormLens form e i o =
   --  , output :: APrism' (form InputField) o
   }
 
-class MakeLenses (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
-  mkLensesFromRowBuilder :: RLProxy xs -> RProxy row -> Internal.FromScratch to
+class MakeLenses form (xs :: RL.RowList) (to :: # Type) | xs -> to where
+  mkLensesFromRowBuilder :: Internal.FormProxy form -> RLProxy xs -> Internal.FromScratch to
 
-instance makeLensesNil :: MakeLenses RL.Nil row () where
+instance makeLensesNil :: MakeLenses form RL.Nil () where
   mkLensesFromRowBuilder _ _ = identity
 
 instance makeLensesCons
   :: ( IsSymbol name
-     , Newtype (form FormSpec) (Record row)
-     , Row.Cons name (FormSpec e i o) trash row
      , Newtype (form InputField) (Record row')
      , Row.Cons name (InputField e i o) trash row'
      , Internal.Row1Cons name (FormLens form e i o) from to
-     , MakeLenses tail row from
+     , MakeLenses form tail from
      )
-  => MakeLenses (RL.Cons name (FormSpec e i o) tail) row to where
-  mkLensesFromRowBuilder _ r =
+  => MakeLenses form (RL.Cons name (FormSpec e i o) tail) to where
+  mkLensesFromRowBuilder form _ =
     first <<< rest
     where
       _name = SProxy :: SProxy name
       first = Builder.insert _name val
-      rest = mkLensesFromRowBuilder (RLProxy :: RLProxy tail) r
+      rest = mkLensesFromRowBuilder form (RLProxy :: RLProxy tail)
 
       val :: FormLens form e i o
       val =

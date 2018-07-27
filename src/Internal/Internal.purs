@@ -15,6 +15,8 @@ import Record.Builder (Builder)
 import Record.Builder as Builder
 import Type.Data.RowList (RLProxy(..))
 
+data FormProxy (form :: (Type -> Type -> Type -> Type) -> Type) = FormProxy
+
 -----
 -- Types
 

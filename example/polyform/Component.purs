@@ -11,7 +11,7 @@ import Effect.Class (class MonadEffect)
 import Effect.Console as Console
 import Example.Utils as V
 import Formless as F
-import Formless.Spec.Transform (class MakeLenses, FormLens, mkLensesFromFormSpec)
+import Formless.Spec.Transform (class MakeLenses, mkLensesFromFormSpec)
 import Formless.Validation.Polyform (applyOnInputFields)
 import Halogen as H
 import Halogen.HTML as HH
@@ -125,7 +125,7 @@ formSpec = F.mkFormSpecFromRow $ RProxy :: RProxy (FormRow F.InputType)
 lenses
   :: ∀ row xs row'
    . RL.RowToList row xs
-  => MakeLenses xs row row'
+  => MakeLenses Form xs row'
   => Newtype (Form F.FormSpec) (Record row)
   => Record row'
 lenses = mkLensesFromFormSpec formSpec
