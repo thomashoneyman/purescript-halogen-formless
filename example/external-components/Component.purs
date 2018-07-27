@@ -63,41 +63,22 @@ component =
 
   eval :: Query ~> H.ParentDSL State Query ChildQuery ChildSlot Void Aff
   eval = case _ of
-    -- Always have to handle the `Emit` case
-    HandleFormless m a -> case m of
-      -- This is a renderless component, so we must handle the `Emit` case by recursively
-      -- calling `eval`
-      F.Emit q -> eval q *> pure a
-
-      -- Formless will provide your result type on successful submission.
+    HandleFormless m a -> a <$ case m of
+      F.Emit q -> eval q
       F.Submitted user -> do
         H.liftEffect $ Console.log $ show (user :: User)
-        pure a
-
-      -- Formless will alert you with the new summary state if it is changed.
       F.Changed fstate -> do
         H.liftEffect $ Console.log $ show $ delete (SProxy :: SProxy "form") fstate
-        pure a
 
-    -- While Formless is perfectly capable of resetting all fields to their initial
-    -- values, it isn't aware of your external components, so you'll need to reset
-    -- those yourself.
     Reset a -> do
-      _ <- H.query unit $ H.action $ F.Send EmailTypeahead $ H.action $ TA.ReplaceSelections (TA.One Nothing)
-      _ <- H.query unit $ H.action $ F.Send WhiskeyTypeahead $ H.action $ TA.ReplaceSelections (TA.One Nothing)
-      _ <- H.query unit $ H.action $ F.Send LanguageTypeahead $ H.action $ TA.ReplaceSelections (TA.One Nothing)
+      _ <- H.query unit $ H.action $ F.Send EmailTypeahead $ H.action TA.Reset
+      _ <- H.query unit $ H.action $ F.Send WhiskeyTypeahead $ H.action TA.Reset
+      _ <- H.query unit $ H.action $ F.Send LanguageTypeahead $ H.action TA.Reset
       _ <- H.query unit $ H.action F.ResetAll
       pure a
 
     HandleTypeahead slot m a -> case m of
-      -- This is a renderless component, so we must handle the `Emit` case by recursively
-      -- calling `eval`
-      TA.Emit q -> eval q *> pure a
-
-      -- We'll use the component output to handle validation and change events. This
-      -- is also a nice way to demonstrate how to support custom behavior: you can
-      -- send queries through the Formless component to a child, and have the results
-      -- raised back up to you.
+      TA.Emit q -> eval q $> a
       TA.SelectionsChanged s _ -> case s of
         TA.ItemSelected x -> do
           case slot of
@@ -105,16 +86,13 @@ component =
               _ <- H.query unit $ H.action $ F.ModifyValidate (F.setInput _email (Just x))
               pure a
             WhiskeyTypeahead -> do
-              -- We can use handleBlurAndChange to manage our component updates
               _ <- H.query unit $ H.action $ F.ModifyValidate (F.setInput _whiskey (Just x))
-              -- This is how you can clear a typeahead via Formless using your queries
-              _ <- H.query unit $ H.action $ F.Send EmailTypeahead $ H.action $ TA.ReplaceSelections (TA.One Nothing)
-              -- To reset a field, including 'touched' state, errors, and inputs, use handleReset
+              _ <- H.query unit $ H.action $ F.Send EmailTypeahead $ H.action TA.Reset
               _ <- H.query unit $ H.action $ F.Reset (F.resetField _email)
               pure a
             LanguageTypeahead -> do
               _ <- H.query unit $ H.action $ F.ModifyValidate (F.setInput _language (Just x))
-              _ <- H.query unit $ H.action $ F.Send EmailTypeahead $ H.action $ TA.ReplaceSelections (TA.One Nothing)
+              _ <- H.query unit $ H.action $ F.Send EmailTypeahead $ H.action TA.Reset
               _ <- H.query unit $ H.action $ F.Reset (F.resetField _email)
               pure a
         _ -> do
@@ -128,12 +106,6 @@ component =
             LanguageTypeahead -> do
               _ <- H.query unit $ H.action $ F.ModifyValidate (F.setInput _language Nothing)
               pure a
-
-      -- Unfortunately, single-select typeaheads send blur events before
-      -- they send the selected value, which causes validation to run
-      -- before the new value is ready to be validated. Item selection
-      -- therefore serves as the blur event, too.
       TA.VisibilityChanged _ -> pure a
-
-      -- We care about selections, not searches, so we'll ignore this message.
       TA.Searched _ -> pure a
+

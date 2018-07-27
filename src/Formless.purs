@@ -4,15 +4,19 @@
 
 module Formless
   ( Query(..)
+  , Query'(..)
   , StateStore(..)
   , Component(..)
   , HTML(..)
+  , HTML'(..)
   , DSL(..)
   , State(..)
-  , State'(..)
+  , PublicState(..)
   , SpecRow(..)
   , Input(..)
+  , Input'(..)
   , Message(..)
+  , Message'(..)
   , StateRow(..)
   , InternalState(..)
   , InternalStateRow(..)
@@ -29,6 +33,7 @@ import Prelude
 
 import Control.Comonad (extract)
 import Control.Comonad.Store (Store, store)
+import Data.Const (Const)
 import Data.Eq (class EqRecord)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
@@ -40,7 +45,7 @@ import Data.Traversable (traverse, traverse_)
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
 import Formless.Spec (ErrorType, FormSpec(..), InputField(..), InputFieldRow, InputType, OutputField(..), OutputType, _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched)
-import Formless.Spec.Transform (class MakeFormSpecFromRow, mkFormSpec, mkFormSpecFromRow, mkFormSpecFromRowBuilder, modifyInput, resetField, setInput, touchField, unwrapOutput)
+import Formless.Spec.Transform (class MakeFormSpecFromRow, getInput, getResult, mkFormSpec, mkFormSpecFromRow, mkFormSpecFromRowBuilder, modifyInput, resetField, setInput, touchField, unwrapOutput)
 import Halogen as H
 import Halogen.Component.ChildPath (ChildPath, injQuery, injSlot)
 import Halogen.HTML as HH
@@ -55,7 +60,7 @@ data Query pq cq cs form out m a
   | ModifyValidate (form InputField -> form InputField) a
   | Reset (form InputField -> form InputField) a
   | ResetAll a
-  | Reply (State' form -> a)
+  | Reply (PublicState form -> a)
   | Validate a
   | Submit a
   | SubmitReply (Maybe out -> a)
@@ -97,7 +102,7 @@ type DSL pq cq cs form out m
 type State form out m = Record (StateRow form (internal :: InternalState form out m))
 
 -- | The component's public state
-type State' form = Record (StateRow form ())
+type PublicState form = Record (StateRow form ())
 
 -- | The component's public state
 type StateRow form r =
@@ -153,7 +158,7 @@ type Input pq cq cs form out m = Record
 -- | a result out the other end.
 data Message pq form out
   = Submitted out
-  | Changed (State' form)
+  | Changed (PublicState form)
   | Emit (pq Unit)
 
 -- | When you are using several different types of child components in Formless
@@ -166,6 +171,21 @@ send' :: ∀ pq cq' cs' cs cq form out m a
  -> a
  -> Query pq cq' cs' form out m a
 send' path p q = Send (injSlot path p) (injQuery path q)
+
+-- | Simple types
+
+-- | A simple query type when you have no child slots in use
+type Query' form out m = Query (Const Void) (Const Void) Void form out m
+
+-- | A simple HTML type when the component does not need embedding
+type HTML' form out m = H.ParentHTML (Query' form out m) (Const Void) Void m
+
+-- | A simple Message type when the component does not need embedding
+type Message' form out = Message (Const Void) form out
+
+-- | A simple input type for when you aren't embedding anything
+type Input' form out m = Input (Const Void) (Const Void) Void form out m
+
 
 -- | The component itself
 component
@@ -341,7 +361,7 @@ component =
       pure a
 
   -- Remove internal fields and return the public state
-  getPublicState :: State form out m -> State' form
+  getPublicState :: State form out m -> PublicState form
   getPublicState = Record.delete (SProxy :: SProxy "internal")
 
   -- Run submission without raising messages or replies

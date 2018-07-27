@@ -2,16 +2,13 @@ module Example.Basic.Component where
 
 import Prelude
 
-import Data.Const (Const)
-import Data.Lens (view) as Lens
-import Data.List.NonEmpty (NonEmptyList)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
-import Example.Utils (FieldError, validateNonEmpty, showError)
+import Example.Utils (Errs, minLength, notRequired, showError)
 import Formless as F
-import Formless.Validation.Semigroup (onInputField)
+import Formless.Validation.Polyform (applyOnInputFields)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -22,64 +19,10 @@ import Ocelot.Block.Format as Format
 import Ocelot.Block.Input as Input
 import Ocelot.HTML.Properties (css)
 
------
--- Form spec
+data Query a = DoNothing a
 
--- | The type that you care about receiving from the form
-type Contact =
-  { name :: String
-  , text :: String
-  }
-
--- | The same type represented as a form: the possible input,
--- | error, and output types for each field.
-newtype Form f = Form
-  { name :: f (NonEmptyList FieldError) String String
-  , text :: f Void String String
-  }
-derive instance newtypeForm :: Newtype (Form f) _
-
--- | You'll generally want to make symbol proxies for convenience
--- | for each field.
-_name = SProxy :: SProxy "name"
-_text = SProxy :: SProxy "text"
-
--- | The initial values for the form, which you must provide. If
--- | this seems tedious, it is! For a much less boilerplate-heavy
--- | version, see the external-components or real-world examples.
-formSpec :: Form F.FormSpec
-formSpec = F.mkFormSpec
-  { name: ""
-  , text: ""
-  }
-
--- | Your form validation that you'd like run on any touched
--- | fields in the form. It can be monadic, so you can do things like
--- | server validation.
-validator :: ∀ m. Monad m => Form F.InputField -> m (Form F.InputField)
-validator (Form form) = pure $ Form
-  { name: validateNonEmpty `onInputField` form.name
-  , text: pure `onInputField` form.text
-  }
-
--- | When the form is run, it will produce your Form type, with
--- | only the output fields. Since our Contact type is the same
--- | shape as the Form type, we can just unwrap the newtypes. This can
--- | be monadic, like hitting a server for extra information.
-submitter :: ∀ m. Monad m => Form F.OutputField -> m Contact
-submitter = pure <<< F.unwrapOutput
-
------
--- Component types
-
-data Query a
-  = DoNothing a
-
-type ChildQuery = F.Query Query (Const Void) Unit Form Contact Aff
+type ChildQuery = F.Query' Form Contact Aff
 type ChildSlot = Unit
-
------
--- Minimal component
 
 component :: H.Component HH.HTML Query Unit Void Aff
 component = H.parentComponent
@@ -88,7 +31,6 @@ component = H.parentComponent
   , eval
   , receiver: const Nothing
   }
-
   where
 
   render :: Unit -> H.ParentHTML Query ChildQuery ChildSlot Aff
@@ -96,16 +38,16 @@ component = H.parentComponent
     HH.div
     [ css "flex-1 container p-12" ]
     [ Format.heading_
-      [ HH.text "F" ]
+      [ HH.text "Formless" ]
     , Format.subHeading_
       [ HH.text "A basic contact form." ]
     , HH.slot
         unit
         F.component
-        { formSpec
+        { formSpec: F.mkFormSpec { name: "", text: "" }
         , validator
-        , submitter
-        , render: formless
+        , submitter: pure <<< F.unwrapOutput
+        , render: renderFormless
         }
         (const Nothing)
     ]
@@ -115,21 +57,36 @@ component = H.parentComponent
 
 
 -----
--- F
+-- Formless
 
-formless
-  :: F.State Form Contact Aff
-  -> F.HTML Query (Const Void) Unit Form Contact Aff
-formless state =
+type Contact =
+  { name :: String
+  , text :: String
+  }
+
+newtype Form f = Form
+  { name :: f Errs String String
+  , text :: f Unit String String
+  }
+derive instance newtypeForm :: Newtype (Form f) _
+
+validator :: ∀ m. Monad m => Form F.InputField -> m (Form F.InputField)
+validator = applyOnInputFields $ identity
+  { name: minLength 5
+  , text: notRequired
+  }
+
+renderFormless :: F.State Form Contact Aff -> F.HTML' Form Contact Aff
+renderFormless state =
  HH.div_
    [ FormField.field_
      { label: "Name"
      , helpText: Just "Write your name."
-     , error: showError name
+     , error: showError (F.getResult _name state.form)
      , inputId: "name"
      }
      [ Input.input
-       [ HP.value name.input
+       [ HP.value (F.getInput _name state.form)
        , HE.onBlur $ HE.input_ F.Validate
        , HE.onValueInput $ HE.input $ F.Modify <<< F.setInput _name
        ]
@@ -137,11 +94,11 @@ formless state =
    , FormField.field_
      { label: "Message"
      , helpText: Just "Write us a message!"
-     , error: Nothing -- Errors are impossible.
+     , error: Nothing
      , inputId: "message"
      }
      [ Input.textarea
-       [ HP.value text.input
+       [ HP.value (F.getInput _text state.form)
        , HE.onBlur $ HE.input_ F.Validate
        , HE.onValueInput $ HE.input $ F.Modify <<< F.setInput _text
        ]
@@ -151,5 +108,5 @@ formless state =
      [ HH.text "Submit" ]
    ]
   where
-    name = Lens.view (F._Field _name) state.form
-    text = Lens.view (F._Field _text) state.form
+    _name = SProxy :: SProxy "name"
+    _text = SProxy :: SProxy "text"

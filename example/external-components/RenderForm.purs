@@ -21,11 +21,7 @@ import Ocelot.Components.Typeahead as TA
 import Ocelot.Components.Typeahead.Input as TA.Input
 import Ocelot.HTML.Properties (css)
 
--- | Our render function has access to anything in F' State type, plus
--- | anything additional in your own state type.
-formless
-  :: F.State Form User Aff
-  -> F.HTML Query FCQ FCS Form User Aff
+formless :: F.State Form User Aff -> F.HTML Query FCQ FCS Form User Aff
 formless state =
   HH.div_
     [ renderName state
@@ -49,7 +45,7 @@ formless state =
     , Button.button
       [ if not state.dirty
           then HP.disabled true
-          else HE.onClick $ HE.input_ $ F.Raise (Reset unit)
+          else HE.onClick $ HE.input_ $ F.Raise $ H.action Reset
       ]
       [ HH.text "Reset" ]
     ]
@@ -58,27 +54,23 @@ formless state =
 -- Helpers
 
 -- | A helper function to render a form text input
-renderName
-  :: F.State Form User Aff
-  -> F.HTML Query FCQ FCS Form User Aff
+renderName :: F.State Form User Aff -> F.HTML Query FCQ FCS Form User Aff
 renderName state =
   HH.div_
     [ FormField.field_
         { label: "Name"
         , helpText: Just "Write your name."
-        , error: showError field
+        , error: showError (F.getResult _name state.form)
         , inputId: "name"
         }
         [ Input.input
           [ HP.placeholder "Dale"
-          , HP.value field.input
+          , HP.value (F.getInput _name state.form)
           , HE.onBlur $ HE.input_ F.Validate
           , HE.onValueInput $ HE.input $ F.Modify <<< F.setInput _name
           ]
         ]
     ]
-  where
-    field = Lens.view (F._Field _name) state.form
 
 renderEmail
   :: F.State Form User Aff
@@ -88,7 +80,7 @@ renderEmail state =
     [ FormField.field_
         { label: "Email"
         , helpText: Just "Select an email address"
-        , error: showError $ Lens.view (F._Field _email) state.form
+        , error: showError (F.getResult _email state.form)
         , inputId: "email"
         }
         [ HH.slot
@@ -104,12 +96,7 @@ renderEmail state =
               ]
               TA.Input.renderItemString
             )
-            ( HE.input
-              ( F.Raise
-                <<< H.action
-                <<< HandleTypeahead EmailTypeahead
-              )
-            )
+            ( HE.input $ F.Raise <<< H.action <<< HandleTypeahead EmailTypeahead )
         ]
     ]
 
@@ -119,7 +106,7 @@ renderWhiskey state =
     [ FormField.field_
         { label: "Whiskey"
         , helpText: Just "Select a favorite whiskey"
-        , error: showError $ Lens.view (F._Field _whiskey) state.form
+        , error: showError (F.getResult _whiskey state.form)
         , inputId: "whiskey"
         }
         [ HH.slot
@@ -134,24 +121,17 @@ renderWhiskey state =
               ]
               TA.Input.renderItemString
             )
-            ( HE.input
-              ( F.Raise
-                <<< H.action
-                <<< HandleTypeahead WhiskeyTypeahead
-              )
-            )
+            ( HE.input $ F.Raise <<< H.action <<< HandleTypeahead WhiskeyTypeahead )
         ]
     ]
 
-renderLanguage
-  :: F.State Form User Aff
-  -> F.HTML Query FCQ FCS Form User Aff
+renderLanguage :: F.State Form User Aff -> F.HTML Query FCQ FCS Form User Aff
 renderLanguage state =
   HH.div_
     [ FormField.field_
         { label: "Language"
         , helpText: Just "Select a favorite language"
-        , error: showError $ Lens.view (F._Field _language) state.form
+        , error: showError (F.getResult _language state.form)
         , inputId: "language"
         }
         [ HH.slot
@@ -174,11 +154,6 @@ renderLanguage state =
               ]
               TA.Input.renderItemString
             )
-            ( HE.input
-              ( F.Raise
-                <<< H.action
-                <<< HandleTypeahead LanguageTypeahead
-              )
-            )
+            ( HE.input $ F.Raise <<< H.action <<< HandleTypeahead LanguageTypeahead )
         ]
     ]
