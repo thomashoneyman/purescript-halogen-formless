@@ -2,7 +2,6 @@ module Example.ExternalComponents.RenderForm where
 
 import Prelude
 
-import Data.Lens as Lens
 import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
 import Example.ExternalComponents.Spec (Form, User, _email, _language, _name, _whiskey)
