@@ -127,7 +127,6 @@ lenses
    . RL.RowToList row xs
   => MakeLenses xs row row'
   => Newtype (Form F.FormSpec) (Record row)
-  => Newtype (Form (FormLens Form)) (Record row)
   => Record row'
 lenses = mkLensesFromFormSpec formSpec
 
