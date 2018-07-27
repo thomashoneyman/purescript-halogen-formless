@@ -2,7 +2,8 @@ module Formless.Spec.Transform where
 
 import Prelude
 
-import Data.Lens (set)
+import Data.Either (Either)
+import Data.Lens (set, view)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
@@ -17,6 +18,26 @@ import Type.Row (RLProxy(..), RProxy)
 ---------------
 -- | Functions
 ---------------
+
+getInput
+  :: ∀ sym form t0 fields e i o
+   . IsSymbol sym
+  => Newtype (form InputField) (Record fields)
+  => Row.Cons sym (InputField e i o) t0 fields
+  => SProxy sym
+  -> form InputField
+  -> i
+getInput sym = view (_Input sym)
+
+getResult
+  :: ∀ sym form t0 fields e i o
+   . IsSymbol sym
+  => Newtype (form InputField) (Record fields)
+  => Row.Cons sym (InputField e i o) t0 fields
+  => SProxy sym
+  -> form InputField
+  -> Maybe (Either e o)
+getResult sym = view (_Result sym)
 
 setInput
   :: ∀ sym form t0 fields e i o
@@ -63,6 +84,7 @@ resetField sym =
   set (_Result sym) Nothing
   <<< set (_Touched sym) false
   <<< set (_Input sym) initial
+
 
 ----------
 -- Class
