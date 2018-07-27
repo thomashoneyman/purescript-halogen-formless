@@ -2,6 +2,7 @@ module Example.Polyform.Component where
 
 import Prelude
 
+import Data.Lens as Lens
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
@@ -10,6 +11,7 @@ import Effect.Class (class MonadEffect)
 import Effect.Console as Console
 import Example.Utils as V
 import Formless as F
+import Formless.Spec.Transform (class MakeLenses, FormLens, mkLensesFromFormSpec)
 import Formless.Validation.Polyform (applyOnInputFields)
 import Halogen as H
 import Halogen.HTML as HH
@@ -21,6 +23,7 @@ import Ocelot.Block.Format as Format
 import Ocelot.Block.Input as Input
 import Ocelot.HTML.Properties (css)
 import Polyform.Validation as Validation
+import Prim.RowList as RL
 import Record (delete)
 import Type.Row (RProxy(..))
 
@@ -116,6 +119,17 @@ validator = applyOnInputFields
   , state: Validation.hoistFnV pure
   }
 
+formSpec :: Form F.FormSpec
+formSpec = F.mkFormSpecFromRow $ RProxy :: RProxy (FormRow F.InputType)
+
+lenses
+  :: ∀ row xs row'
+   . RL.RowToList row xs
+  => MakeLenses xs row row'
+  => Newtype (Form F.FormSpec) (Record row)
+  => Newtype (Form (FormLens Form)) (Record row)
+  => Record row'
+lenses = mkLensesFromFormSpec formSpec
 
 ----------
 -- Render
@@ -163,7 +177,7 @@ renderFormless state =
             }
             [ Input.input
               [ HP.placeholder "Dale"
-              , HP.value (F.getInput _name state.form)
+              , HP.value $ _.input $ (Lens.view (Lens.cloneLens lenses.name.field) state.form)
               , HE.onBlur $ HE.input_ F.Validate
               , HE.onValueInput $ HE.input $ F.Modify <<< F.setInput _name
               ]

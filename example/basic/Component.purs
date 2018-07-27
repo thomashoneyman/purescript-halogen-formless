@@ -8,7 +8,6 @@ import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Example.Utils (Errs, minLength, notRequired, showError)
 import Formless as F
-import Formless.Spec.Transform (class MakeLenses, FormLens, mkLensesFromFormSpec)
 import Formless.Validation.Polyform (applyOnInputFields)
 import Halogen as H
 import Halogen.HTML as HH
@@ -19,7 +18,6 @@ import Ocelot.Block.FormField as FormField
 import Ocelot.Block.Format as Format
 import Ocelot.Block.Input as Input
 import Ocelot.HTML.Properties (css)
-import Prim.RowList (class RowToList)
 
 data Query a = DoNothing a
 
@@ -60,17 +58,6 @@ component = H.parentComponent
 
 -----
 -- Formless
-
-formSpec :: Form F.FormSpec
-formSpec = F.mkFormSpec { name: "", text: "" }
-
-lenses
-  :: ∀ form row xs row'
-   . RowToList row xs
-  => MakeLenses xs row row'
-  => Newtype (form F.FormSpec) { | row }
-  => { | row' }
-lenses = mkLensesFromFormSpec formSpec
 
 type Contact =
   { name :: String
