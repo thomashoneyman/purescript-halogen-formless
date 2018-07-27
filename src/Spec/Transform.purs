@@ -15,10 +15,6 @@ import Prim.RowList as RL
 import Record.Builder as Builder
 import Type.Row (RLProxy(..), RProxy)
 
----------------
--- | Functions
----------------
-
 getInput
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
