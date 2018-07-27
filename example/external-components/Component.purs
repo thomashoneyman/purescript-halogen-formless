@@ -71,9 +71,9 @@ component =
         H.liftEffect $ Console.log $ show $ delete (SProxy :: SProxy "form") fstate
 
     Reset a -> do
-      _ <- H.query unit $ H.action $ F.Send EmailTypeahead $ H.action TA.Reset
-      _ <- H.query unit $ H.action $ F.Send WhiskeyTypeahead $ H.action TA.Reset
-      _ <- H.query unit $ H.action $ F.Send LanguageTypeahead $ H.action TA.Reset
+      _ <- H.query unit $ H.action $ F.Send EmailTypeahead clear
+      _ <- H.query unit $ H.action $ F.Send WhiskeyTypeahead clear
+      _ <- H.query unit $ H.action $ F.Send LanguageTypeahead clear
       _ <- H.query unit $ H.action F.ResetAll
       pure a
 
@@ -87,12 +87,12 @@ component =
               pure a
             WhiskeyTypeahead -> do
               _ <- H.query unit $ H.action $ F.ModifyValidate (F.setInput _whiskey (Just x))
-              _ <- H.query unit $ H.action $ F.Send EmailTypeahead $ H.action TA.Reset
+              _ <- H.query unit $ H.action $ F.Send EmailTypeahead clear
               _ <- H.query unit $ H.action $ F.Reset (F.resetField _email)
               pure a
             LanguageTypeahead -> do
               _ <- H.query unit $ H.action $ F.ModifyValidate (F.setInput _language (Just x))
-              _ <- H.query unit $ H.action $ F.Send EmailTypeahead $ H.action TA.Reset
+              _ <- H.query unit $ H.action $ F.Send EmailTypeahead clear
               _ <- H.query unit $ H.action $ F.Reset (F.resetField _email)
               pure a
         _ -> do
@@ -109,3 +109,4 @@ component =
       TA.VisibilityChanged _ -> pure a
       TA.Searched _ -> pure a
 
+  clear = H.action $ TA.ReplaceSelections (TA.One Nothing)

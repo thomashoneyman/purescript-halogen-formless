@@ -52,9 +52,9 @@ render state =
     , Card.card_
       [ Format.subHeading_
         [ HH.text "Applications & Pixels" ]
-      --  , renderApplications state
-      --  , renderPixels state
-      --  , renderWhiskey state
+      , renderApplications state
+      , renderPixels state
+      , renderWhiskey state
       ]
     , Card.card_
       [ Format.subHeading_

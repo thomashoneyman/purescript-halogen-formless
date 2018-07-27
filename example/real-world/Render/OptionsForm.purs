@@ -58,7 +58,7 @@ renderMetrics state =
     [ Format.subHeading_
       [ HH.text "Metrics" ]
     , renderMetric state
-    , renderMetricField $ Lens.view (F._Input _metric) state.form
+    , renderMetricField (F.getInput _metric state.form)
     ]
   where
     renderMetricField = case _ of
@@ -86,7 +86,7 @@ renderEnabled state =
   FormField.field_
     { label: "Enable"
     , helpText: Just "Do you want to enable this set of options?"
-    , error: showError enable
+    , error: showError enable.result
     , inputId: "enable"
     }
     [ Toggle.toggle
@@ -174,7 +174,7 @@ renderSpeed state =
   { label: "Speed"
   , inputId: "speedy-mcgee"
   , helpText: Just "How fast do you want to go?"
-  , error: showError speed
+  , error: showError speed.result
   }
   [ HH.div_
     [ Radio.radio_

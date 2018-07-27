@@ -90,14 +90,13 @@ formField state config html =
     [ FormField.field_
         { label: config.label
         , helpText: Just config.helpText
-        , error: showError field
+        , error: showError field.result
         , inputId: String.toLower config.label
         }
         [ html field ]
     ]
   where
     field = Lens.view (F._Field config.field) state.form
-
 
 -----
 -- Dropdowns
