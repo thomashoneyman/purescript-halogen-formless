@@ -13,8 +13,7 @@ import Data.Newtype (class Newtype)
 import Data.String.Read (class Read)
 import Data.Symbol (SProxy(..))
 import Example.Utils (Errs)
-import Formless.Class.Initial (class Initial)
-import Formless.Spec as FSpec
+import Formless as F
 
 -----
 -- Some custom data
@@ -48,7 +47,7 @@ instance readMetric :: Read Metric where
 
 -- | This data type will be used in radio buttons, and so if we
 -- | want to generate an initial form from our row, we'll need an
--- | instance of the Initial type class
+-- | instance of the F.Initial type class
 data Speed
   = Low
   | Medium
@@ -60,7 +59,7 @@ derive instance ordSpeed :: Ord Speed
 instance showSpeed :: Show Speed where
   show = genericShow
 
-instance initialSpeed :: Initial Speed where
+instance initialSpeed :: F.Initial Speed where
   initial = Low
 
 -----
@@ -92,7 +91,7 @@ _speed = SProxy :: SProxy "speed"
 
 -- | This is the data type used throughout the application. In this case, it's the same
 -- | as the form and the underlying row.
-newtype Options = Options (Record (OptionsRow FSpec.Output))
+newtype Options = Options (Record (OptionsRow F.OutputType))
 derive instance newtypeOptions :: Newtype Options _
 derive newtype instance eqOptions :: Eq Options
 derive newtype instance showOptions :: Show Options

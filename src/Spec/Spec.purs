@@ -2,12 +2,17 @@ module Formless.Spec where
 
 import Prelude
 
-import Data.Either (Either(..), hush)
-import Data.Maybe (Maybe(..))
-import Data.Newtype (class Newtype, unwrap)
+import Data.Either (Either)
+import Data.Lens (Lens')
+import Data.Lens.Iso.Newtype (_Newtype)
+import Data.Lens.Prism.Either (_Left, _Right)
+import Data.Lens.Prism.Maybe (_Just)
+import Data.Lens.Record (prop)
+import Data.Lens.Traversal (Traversal')
+import Data.Maybe (Maybe)
+import Data.Newtype (class Newtype)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Prim.Row (class Cons)
-import Record as Record
 
 -- | The type that will be applied to the user's input row to
 -- | create the spec form that we'll compare against to measure
@@ -24,103 +29,100 @@ derive instance newtypeOutputField :: Newtype (OutputField e i o) _
 -- | The type that we need to record state across the form, but
 -- | we don't need this from the user -- we can fill in 'touched'
 -- | and 'result' on their behalf.
-newtype InputField error input output = InputField
-  { input :: input
-  , touched :: Boolean -- Whether the field has been changed by the user
-  , result :: Maybe (Either error output)
-  }
+newtype InputField e i o = InputField (Record (InputFieldRow e i o))
 derive instance newtypeInputField :: Newtype (InputField e i o) _
+
+-- | The row used for the InputField newtype and in lens type signatures
+type InputFieldRow error input output =
+  ( input :: input
+  , touched :: Boolean
+  , result :: Maybe (Either error output)
+  )
 
 -- | Proxies for each of the fields in InputField and FormSpec for easy access
 _input = SProxy :: SProxy "input"
 _touched = SProxy :: SProxy "touched"
 _result = SProxy :: SProxy "result"
 
+----------
+-- Lenses
+
 -- | Easy access to any given field from the form, unwrapped
-getField
-  :: ∀ sym form t0 field fields e i o
+_Field
+  :: ∀ sym form t0 fields e i o
    . IsSymbol sym
   => Newtype (form InputField) (Record fields)
   => Cons sym (InputField e i o) t0 fields
-  => Newtype (InputField e i o) field
   => SProxy sym
-  -> form InputField
-  -> field
-getField sym form =
-  unwrap $ Record.get sym $ unwrap form
+  -> Lens' (form InputField) (Record (InputFieldRow e i o))
+_Field sym = _Newtype <<< prop sym <<< _Newtype
 
 -- | Easy access to any given field's input value from the form
-getInput
+_Input
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
   => Newtype (form InputField) (Record fields)
   => Cons sym (InputField e i o) t0 fields
   => SProxy sym
-  -> form InputField
-  -> i
-getInput sym = _.input <<< getField sym
+  -> Lens' (form InputField) i
+_Input sym = _Field sym <<< prop _input
 
 -- | Easy access to any given field's touched value from the form
-getTouched
+_Touched
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
   => Newtype (form InputField) (Record fields)
   => Cons sym (InputField e i o) t0 fields
   => SProxy sym
-  -> form InputField
-  -> Boolean
-getTouched sym = _.touched <<< getField sym
+  -> Lens' (form InputField) Boolean
+_Touched sym = _Field sym <<< prop _touched
 
 -- | Easy access to any given field's result value from the form, if the
 -- | result exists.
-getResult
+_Result
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
   => Newtype (form InputField) (Record fields)
   => Cons sym (InputField e i o) t0 fields
   => SProxy sym
-  -> form InputField
-  -> Maybe (Either e o)
-getResult sym = _.result <<< getField sym
+  -> Lens' (form InputField) (Maybe (Either e o))
+_Result sym = _Field sym <<< prop _result
 
 -- | Easy access to any given field's error from its result field in the form,
 -- | if the error exists.
-getError
+_Error
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
   => Newtype (form InputField) (Record fields)
   => Cons sym (InputField e i o) t0 fields
   => SProxy sym
-  -> form InputField
-  -> Maybe e
-getError sym form = case getResult sym form of
-  Just (Left e) -> Just e
-  _ -> Nothing
+  -> Traversal' (form InputField) e
+_Error sym = _Result sym <<< _Just <<< _Left
 
 -- | Easy access to any given field's output from its result field in the form,
 -- | if the output exists.
-getOutput
+_Output
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
   => Newtype (form InputField) (Record fields)
   => Cons sym (InputField e i o) t0 fields
   => SProxy sym
-  -> form InputField
-  -> Maybe o
-getOutput sym = join <<< map hush <<< getResult sym
+  -> Traversal' (form InputField) o
+_Output sym = _Result sym <<< _Just <<< _Right
 
 
 ----------
 -- Helper types
 
--- | A type synonym that lets you pick out just the input type from
--- | your form row.
-type Input error input output = input
-
 -- | A type synonym that lets you pick out just the error type from
 -- | your form row.
-type Error error input output = error
+type ErrorType error input output = error
+
+-- | A type synonym that lets you pick out just the input type from
+-- | your form row.
+type InputType error input output = input
 
 -- | A type synonym that lets you pick out just the output type from
 -- | your form row.
-type Output error input output = output
+type OutputType error input output = output
+

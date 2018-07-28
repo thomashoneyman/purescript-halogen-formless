@@ -2,6 +2,7 @@ module Example.RealWorld.Render.GroupForm where
 
 import Prelude
 
+import Data.Lens as Lens
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (class Newtype)
 import Data.Symbol (class IsSymbol)
@@ -11,8 +12,7 @@ import Example.RealWorld.Data.Group as G
 import Example.RealWorld.Render.Field (FieldConfig, adminToString, renderDropdown)
 import Example.RealWorld.Render.Field as Field
 import Example.RealWorld.Types (GroupCQ, GroupCS, GroupTASlot(..), Query(..))
-import Formless as Formless
-import Formless.Spec (InputField, getField)
+import Formless as F
 import Halogen as H
 import Halogen.Component.ChildPath as CP
 import Halogen.HTML as HH
@@ -31,11 +31,11 @@ import Prim.Row (class Cons)
 
 -- | A convenience synonym for the group Formless state
 type FormlessState
-  = Formless.State G.GroupForm G.Group Aff
+  = F.State G.GroupForm G.Group Aff
 
 -- | A convenience synonym for the group Formless HTML type
 type FormlessHTML
-  = Formless.HTML Query GroupCQ GroupCS G.GroupForm G.Group Aff
+  = F.HTML Query GroupCQ GroupCS G.GroupForm G.Group Aff
 
 -- | The form, grouped by sections.
 render :: FormlessState -> FormlessHTML
@@ -52,9 +52,9 @@ render state =
     , Card.card_
       [ Format.subHeading_
         [ HH.text "Applications & Pixels" ]
-      --  , renderApplications state
-      --  , renderPixels state
-      --  , renderWhiskey state
+      , renderApplications state
+      , renderPixels state
+      , renderWhiskey state
       ]
     , Card.card_
       [ Format.subHeading_
@@ -112,7 +112,7 @@ renderAdmin state =
           , render: renderDropdown Button.button adminToString "Choose an admin"
           }
           ( HE.input
-            ( Formless.Raise
+            ( F.Raise
               <<< H.action
               <<< HandleAdminDropdown
             )
@@ -154,7 +154,7 @@ renderWhiskey state =
             TA.Input.renderItemString
           )
           ( HE.input
-            ( Formless.Raise
+            ( F.Raise
              <<< H.action
              <<< HandleGroupTypeahead WhiskeyTypeahead
             )
@@ -199,8 +199,8 @@ renderMinMaxBudget state =
             [ css "py-3" ]
             [ HH.text "Min Budget (Optional)" ]
         , Input.percentage_
-            [ Formless.onValueChangeWith _minBudget
-            , Formless.onBlurWith _minBudget
+            [ HE.onValueChange $ HE.input $ F.Modify <<< F.setInput _minBudget
+            , HE.onBlur $ HE.input_ $ F.Validate
             , HP.value minBudget.input
             ]
         ]
@@ -208,8 +208,8 @@ renderMinMaxBudget state =
         [ css "px-4 flex-4 self-end my-5"
         , HP.min 0.0
         , HP.max 100.0
-        , Formless.onValueChangeWith _minBudget
-        , Formless.onBlurWith _minBudget
+        , HE.onValueChange $ HE.input $ F.Modify <<< F.setInput _minBudget
+        , HE.onBlur $ HE.input_ F.Validate
         , HP.value minBudget.input
         ]
     , HH.label
@@ -218,16 +218,16 @@ renderMinMaxBudget state =
             [ css "py-3" ]
             [ HH.text "Max Budget (Optional)"
             , Input.percentage_
-                [ Formless.onValueInputWith _maxBudget
-                , Formless.onBlurWith _maxBudget
+                [ HE.onValueInput $ HE.input $ F.Modify <<< F.setInput _maxBudget
+                , HE.onBlur $ HE.input_ F.Validate
                 , HP.value maxBudget.input
                 ]
             ]
         ]
     ]
   where
-    minBudget = getField _minBudget state.form
-    maxBudget = getField _maxBudget state.form
+    minBudget = Lens.view (F._Field _minBudget) state.form
+    maxBudget = Lens.view (F._Field _maxBudget) state.form
 
 
 -----
@@ -237,8 +237,8 @@ multiTypeahead
   :: ∀ sym e o t0 fields
    . IsSymbol sym
   => Show e
-  => Newtype (G.GroupForm InputField) (Record fields)
-  => Cons sym (InputField e (Array String) o) t0 fields
+  => Newtype (G.GroupForm F.InputField) (Record fields)
+  => Cons sym (F.InputField e (Array String) o) t0 fields
   => GroupTASlot
   -> (GroupTASlot -> TA.Message Query String -> Unit -> Query Unit)
   -> FieldConfig sym
@@ -257,6 +257,6 @@ multiTypeahead slot query config items state =
             items
             TA.Input.renderItemString
           )
-          ( HE.input (Formless.Raise <<< H.action <<< query slot) )
+          ( HE.input (F.Raise <<< H.action <<< query slot) )
     ]
 

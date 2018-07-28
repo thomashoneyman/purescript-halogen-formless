@@ -2,6 +2,7 @@ module Example.RealWorld.Render.OptionsForm where
 
 import Prelude
 
+import Data.Lens as Lens
 import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
 import Example.RealWorld.Data.Options (Metric(..), Speed(..), _enable, _metric, _speed)
@@ -10,8 +11,7 @@ import Example.RealWorld.Render.Field (renderDropdown)
 import Example.RealWorld.Render.Field as Field
 import Example.RealWorld.Types (OptionsCQ, OptionsCS, Query(..))
 import Example.Utils (showError)
-import Formless as Formless
-import Formless.Spec (getField, getInput)
+import Formless as F
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -27,11 +27,11 @@ import Ocelot.HTML.Properties (css)
 
 -- | A convenience synonym for the group Formless state
 type FormlessState
-  = Formless.State OP.OptionsForm OP.Options Aff
+  = F.State OP.OptionsForm OP.Options Aff
 
 -- | A convenience synonym for the group Formless HTML type
 type FormlessHTML
-  = Formless.HTML Query OptionsCQ OptionsCS OP.OptionsForm OP.Options Aff
+  = F.HTML Query OptionsCQ OptionsCS OP.OptionsForm OP.Options Aff
 
 -- | The form, grouped by sections.
 render :: FormlessState -> FormlessHTML
@@ -43,7 +43,7 @@ render state =
         , renderEnabled state
         ]
     , HH.div
-        [ if (getInput _enable state.form) then css "" else css "hidden" ]
+        [ if (Lens.view (F._Input _enable) state.form) then css "" else css "hidden" ]
         [ renderMetrics state
         , renderOthers state
         ]
@@ -58,7 +58,7 @@ renderMetrics state =
     [ Format.subHeading_
       [ HH.text "Metrics" ]
     , renderMetric state
-    , renderMetricField $ getInput _metric state.form
+    , renderMetricField (F.getInput _metric state.form)
     ]
   where
     renderMetricField = case _ of
@@ -86,17 +86,17 @@ renderEnabled state =
   FormField.field_
     { label: "Enable"
     , helpText: Just "Do you want to enable this set of options?"
-    , error: showError enable
+    , error: showError enable.result
     , inputId: "enable"
     }
     [ Toggle.toggle
       [ HP.checked enable.input
-      , Formless.onChangeWith _enable (not enable.input)
-      , Formless.onBlurWith _enable
+      , HE.onChange $ HE.input_ $ F.Modify (F.modifyInput _enable not)
+      , HE.onBlur $ HE.input_ F.Validate
       ]
     ]
   where
-    enable = getField _enable state.form
+    enable = Lens.view (F._Field _enable) state.form
 
 renderMetric :: FormlessState -> FormlessHTML
 renderMetric state =
@@ -116,7 +116,7 @@ renderMetric state =
           , render: renderDropdown Button.button show "Choose a metric"
           }
           ( HE.input
-            ( Formless.Raise
+            ( F.Raise
               <<< H.action
               <<< HandleMetricDropdown
             )
@@ -174,28 +174,28 @@ renderSpeed state =
   { label: "Speed"
   , inputId: "speedy-mcgee"
   , helpText: Just "How fast do you want to go?"
-  , error: showError speed
+  , error: showError speed.result
   }
   [ HH.div_
     [ Radio.radio_
       [ HP.name "speed"
       , HP.checked $ speed.input == Low
-      , Formless.onClickWith _speed Low
+      , HE.onClick $ HE.input_ $ F.ModifyValidate $ F.setInput _speed Low
       ]
       [ HH.text $ show Low ]
     , Radio.radio_
       [ HP.name "speed"
       , HP.checked $ speed.input == Medium
-      , Formless.onClickWith _speed Medium
+      , HE.onClick $ HE.input_ $ F.ModifyValidate $ F.setInput _speed Medium
       ]
       [ HH.text $ show Medium ]
     , Radio.radio_
       [ HP.name "speed"
       , HP.checked $ speed.input == Fast
-      , Formless.onClickWith _speed Fast
+      , HE.onClick $ HE.input_ $ F.ModifyValidate $ F.setInput _speed Fast
       ]
       [ HH.text $ show Fast ]
     ]
   ]
   where
-    speed = getField _speed state.form
+    speed = Lens.view (F._Field _speed) state.form

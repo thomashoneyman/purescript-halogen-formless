@@ -3,6 +3,7 @@ module Example.RealWorld.Render.Field where
 import Prelude
 
 import Data.Either (Either)
+import Data.Lens as Lens
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Newtype (class Newtype)
 import Data.String (toLower) as String
@@ -11,10 +12,10 @@ import Effect.Aff (Aff)
 import Example.RealWorld.Data.Group (Admin(..))
 import Example.RealWorld.Types (Query)
 import Example.Utils (showError)
-import Formless as Formless
-import Formless.Spec (InputField, getField)
+import Formless as F
 import Halogen as H
 import Halogen.HTML as HH
+import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Ocelot.Block.FormField as FormField
 import Ocelot.Block.Input as Input
@@ -44,12 +45,12 @@ input
   :: ∀ form sym e o t0 fields m pq cq cs out
    . IsSymbol sym
   => Show e
-  => Newtype (form InputField) (Record fields)
-  => Cons sym (InputField e String o) t0 fields
+  => Newtype (form F.InputField) (Record fields)
+  => Cons sym (F.InputField e String o) t0 fields
   => FieldConfig sym
   -> FieldType
-  -> Formless.State form out m
-  -> Formless.HTML pq cq cs form out m
+  -> F.State form out m
+  -> F.HTML pq cq cs form out m
 input config ft state =
   HH.div_
     [ formField state config $ \field ->
@@ -62,8 +63,8 @@ input config ft state =
     props field =
       [ HP.placeholder $ fromMaybe "" config.placeholder
       , HP.value field.input
-      , Formless.onBlurWith config.field
-      , Formless.onValueInputWith config.field
+      , HE.onBlur $ HE.input_ F.Validate
+      , HE.onValueInput $ HE.input $ F.Modify <<< F.setInput config.field
       ]
 
 
@@ -73,30 +74,29 @@ formField
   :: ∀ form sym i e o t0 fields m pq cq cs out
    . IsSymbol sym
   => Show e
-  => Newtype (form InputField) (Record fields)
-  => Cons sym (InputField e i o) t0 fields
-  => Formless.State form out m
+  => Newtype (form F.InputField) (Record fields)
+  => Cons sym (F.InputField e i o) t0 fields
+  => F.State form out m
   -> FieldConfig sym
   -> ( { result :: Maybe (Either e o)
        , touched :: Boolean
        , input :: i
        }
-       -> Formless.HTML pq cq cs form out m
+       -> F.HTML pq cq cs form out m
      )
-  -> Formless.HTML pq cq cs form out m
+  -> F.HTML pq cq cs form out m
 formField state config html =
   HH.div_
     [ FormField.field_
         { label: config.label
         , helpText: Just config.helpText
-        , error: showError field
+        , error: showError field.result
         , inputId: String.toLower config.label
         }
         [ html field ]
     ]
   where
-    field = getField config.field state.form
-
+    field = Lens.view (F._Field config.field) state.form
 
 -----
 -- Dropdowns

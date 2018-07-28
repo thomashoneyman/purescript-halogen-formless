@@ -11,7 +11,7 @@ import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
 import Example.RealWorld.Data.Options (Options)
 import Example.Utils (Errs)
-import Formless.Spec as FSpec
+import Formless as F
 
 -----
 -- A custom ID type
@@ -81,7 +81,7 @@ _whiskey = SProxy :: SProxy "whiskey"
 -- | Formless.
 newtype Group = Group
   ( Record
-    ( GroupRow FSpec.Output
+    ( GroupRow F.OutputType
       ( id :: GroupId
       , secretKey :: String
       , options :: Maybe Options
