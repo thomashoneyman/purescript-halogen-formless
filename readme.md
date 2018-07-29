@@ -282,7 +282,7 @@ component = H.parentComponent
 
   eval :: Query ~> H.ParentDSL Unit Query ChildQuery ChildSlot Void Aff
   eval (Formless m a) = case m of
-    F.Submitted user -> do
+    F.Submitted user -> a <$ do
       Console.log $ "Got a user! " <> show (user :: User)
     _ -> pure a
 ```
