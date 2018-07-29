@@ -15292,6 +15292,7 @@ var PS = {};
   var Data_Either = PS["Data.Either"];
   var Data_Eq = PS["Data.Eq"];
   var Data_Function = PS["Data.Function"];
+  var Data_Functor = PS["Data.Functor"];
   var Data_Maybe = PS["Data.Maybe"];
   var Data_Monoid = PS["Data.Monoid"];
   var Data_Monoid_Additive = PS["Data.Monoid.Additive"];
@@ -15299,9 +15300,12 @@ var PS = {};
   var Data_Ord = PS["Data.Ord"];
   var Data_Semigroup = PS["Data.Semigroup"];
   var Data_Semiring = PS["Data.Semiring"];
+  var Data_Show = PS["Data.Show"];
   var Data_Symbol = PS["Data.Symbol"];
   var Data_Unit = PS["Data.Unit"];
   var Effect_Aff = PS["Effect.Aff"];
+  var Effect_Class = PS["Effect.Class"];
+  var Effect_Console = PS["Effect.Console"];
   var Example_App_UI_Element = PS["Example.App.UI.Element"];
   var Example_App_Validation = PS["Example.App.Validation"];
   var Formless = PS["Formless"];
@@ -15317,10 +15321,10 @@ var PS = {};
   var Halogen_HTML_Events = PS["Halogen.HTML.Events"];
   var Halogen_HTML_Properties = PS["Halogen.HTML.Properties"];
   var Halogen_Query_HalogenM = PS["Halogen.Query.HalogenM"];
-  var Prelude = PS["Prelude"];
+  var Prelude = PS["Prelude"];                 
   var Form = function (x) {
       return x;
-  };
+  };   
   var newtypeForm = new Data_Newtype.Newtype(function (n) {
       return n;
   }, Form);
@@ -15333,20 +15337,20 @@ var PS = {};
           placeholder: "Dale"
       })([ Halogen_HTML_Properties.value(Formless_Spec_Transform.getInput(new Data_Symbol.IsSymbol(function () {
           return "name";
-      }))(newtypeForm)()(Data_Symbol.SProxy.value)(state.form)), Halogen_HTML_Events.onValueInput(Halogen_HTML_Events.input(function ($7) {
+      }))(newtypeForm)()(Data_Symbol.SProxy.value)(state.form)), Halogen_HTML_Events.onValueInput(Halogen_HTML_Events.input(function ($11) {
           return Formless.ModifyValidate.create(Formless_Spec_Transform.setInput(new Data_Symbol.IsSymbol(function () {
               return "name";
-          }))(newtypeForm)()(Data_Symbol.SProxy.value)($7));
+          }))(newtypeForm)()(Data_Symbol.SProxy.value)($11));
       })) ]), Example_App_UI_Element.textarea({
           label: "Message",
           help: new Data_Either.Right("Write us a message"),
           placeholder: "We prefer nice messages, but have at it."
       })([ Halogen_HTML_Properties.value(Formless_Spec_Transform.getInput(new Data_Symbol.IsSymbol(function () {
           return "text";
-      }))(newtypeForm)()(Data_Symbol.SProxy.value)(state.form)), Halogen_HTML_Events.onValueInput(Halogen_HTML_Events.input(function ($8) {
+      }))(newtypeForm)()(Data_Symbol.SProxy.value)(state.form)), Halogen_HTML_Events.onValueInput(Halogen_HTML_Events.input(function ($12) {
           return Formless.Modify.create(Formless_Spec_Transform.setInput(new Data_Symbol.IsSymbol(function () {
               return "text";
-          }))(newtypeForm)()(Data_Symbol.SProxy.value)($8));
+          }))(newtypeForm)()(Data_Symbol.SProxy.value)($12));
       })) ]), Example_App_UI_Element.buttonPrimary([ Halogen_HTML_Events.onClick(Halogen_HTML_Events.input_(Formless.Submit.create)) ])([ Halogen_HTML_Core.text("Submit") ]) ]);
   };
   var validator = function (dictMonad) {
@@ -15411,18 +15415,25 @@ var PS = {};
                   text: ""
               }),
               validator: validator(Effect_Aff.monadAff),
-              submitter: function ($9) {
+              submitter: function ($13) {
                   return Control_Applicative.pure(Effect_Aff.applicativeAff)(Formless_Spec_Transform.unwrapOutput()(Formless_Internal.unwrapRecordCons(new Data_Symbol.IsSymbol(function () {
                       return "name";
                   }))()(Formless_Spec.newtypeOutputField)(Formless_Internal.unwrapRecordCons(new Data_Symbol.IsSymbol(function () {
                       return "text";
-                  }))()(Formless_Spec.newtypeOutputField)(Formless_Internal.unwrapRecordNil)(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(newtypeForm)($9));
+                  }))()(Formless_Spec.newtypeOutputField)(Formless_Internal.unwrapRecordNil)(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(newtypeForm)($13));
               },
               render: renderFormless
           })(Data_Function["const"](Data_Maybe.Nothing.value)) ]);
       };
       var $$eval = function (v) {
-          return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(v.value0);
+          if (v.value0 instanceof Formless.Submitted) {
+              return Data_Functor.voidRight(Halogen_Query_HalogenM.functorHalogenM)(v.value1)(Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(Effect_Aff.monadEffectAff))(Effect_Console.log(Data_Show.show(Data_Show.showRecord()(Data_Show.showRecordFieldsCons(new Data_Symbol.IsSymbol(function () {
+                  return "name";
+              }))(Data_Show.showRecordFieldsCons(new Data_Symbol.IsSymbol(function () {
+                  return "text";
+              }))(Data_Show.showRecordFieldsNil)(Data_Show.showString))(Data_Show.showString)))(v.value0.value0))));
+          };
+          return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(v.value1);
       };
       return Halogen_Component.parentComponent(Data_Ord.ordUnit)({
           initialState: Data_Function["const"](Data_Unit.unit),
