@@ -242,6 +242,7 @@ component =
   eval = case _ of
     Modify fs a -> do
       new <- modifyState \st -> st { form = fs st.form }
+      H.raise $ Changed $ getPublicState new
       pure a
 
     ModifyValidate fs a -> do

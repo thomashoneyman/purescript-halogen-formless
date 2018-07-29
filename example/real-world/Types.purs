@@ -2,15 +2,15 @@ module Example.RealWorld.Types where
 
 import Prelude
 
-import Data.Either.Nested (Either2)
-import Data.Functor.Coproduct.Nested (Coproduct2)
+import Data.Either.Nested (Either2, Either3)
+import Data.Functor.Coproduct.Nested (Coproduct2, Coproduct3)
 import Data.Maybe (Maybe)
 import Effect.Aff (Aff)
+import Example.App.UI.Dropdown as Dropdown
+import Example.App.UI.Typeahead as TA
 import Example.RealWorld.Data.Group (Admin, Group, GroupForm)
 import Example.RealWorld.Data.Options (Metric, Options, OptionsForm)
 import Formless as Formless
-import Ocelot.Components.Dropdown as Dropdown
-import Ocelot.Components.Typeahead as TA
 
 ----------
 -- Component
@@ -18,11 +18,12 @@ import Ocelot.Components.Typeahead as TA
 -- | This component will only handle output from Formless to keep
 -- | things simple.
 data Query a
-  = HandleGroupForm (Formless.Message Query GroupForm Group) a
-  | HandleOptionsForm (Formless.Message Query OptionsForm Options) a
-  | HandleGroupTypeahead GroupTASlot (TA.Message Query String) a
-  | HandleAdminDropdown (Dropdown.Message Query Admin) a
-  | HandleMetricDropdown (Dropdown.Message Query Metric) a
+  = GroupForm (Formless.Message Query GroupForm Group) a
+  | OptionsForm (Formless.Message Query OptionsForm Options) a
+  | TASingle (TA.Message Maybe String) a
+  | TAMulti GroupTASlot (TA.Message Array String) a
+  | AdminDropdown (Dropdown.Message Admin) a
+  | MetricDropdown (Dropdown.Message Metric) a
   | Select Tab a
   | Reset a
   | Submit a
@@ -36,6 +37,7 @@ type State =
   , groupFormDirty :: Boolean    -- Is the group form in a dirty state?
   , optionsFormErrors :: Int     -- Count of the options form errors
   , optionsFormDirty :: Boolean  -- Is the options form in a dirty state?
+  , optionsEnabled :: Boolean    -- Is the options form enabled?
   , group :: Maybe Group         -- Our ideal result type from form submission
   }
 
@@ -52,25 +54,26 @@ type ChildSlot = Either2
 -- Formless
 
 -- | Types for the group form
-type GroupCQ = Coproduct2
-  (TA.Query Query String String Aff)
-  (Dropdown.Query Query Admin Aff)
+type GroupCQ = Coproduct3
+  (TA.Query String)
+  (TA.Query String)
+  (Dropdown.Query Admin)
 
-type GroupCS = Either2
+type GroupCS = Either3
   GroupTASlot
+  Unit
   Unit
 
 -- | Types for the options form
-type OptionsCQ = Dropdown.Query Query Metric Aff
+type OptionsCQ = Dropdown.Query Metric
 type OptionsCS = Unit
 
 ----------
 -- Slots
 
 data GroupTASlot
-  = ApplicationsTypeahead
-  | PixelsTypeahead
-  | WhiskeyTypeahead
+  = Applications
+  | Pixels
 derive instance eqGroupTASlot :: Eq GroupTASlot
 derive instance ordGroupTASlot :: Ord GroupTASlot
 
@@ -78,7 +81,7 @@ derive instance ordGroupTASlot :: Ord GroupTASlot
 -- Navigation
 
 data Tab
-  = GroupFormTab
-  | OptionsFormTab
+  = GroupTab
+  | OptionsTab
 derive instance eqTab :: Eq Tab
 derive instance ordTab :: Ord Tab

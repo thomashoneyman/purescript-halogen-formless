@@ -12,7 +12,7 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Data.String.Read (class Read)
 import Data.Symbol (SProxy(..))
-import Example.Utils (Errs)
+import Example.App.Validation (class ToText, Errs)
 import Formless as F
 
 -----
@@ -39,10 +39,15 @@ derive instance ordMetric :: Ord Metric
 instance showMetric :: Show Metric where
   show = genericShow
 
+instance toTextMetric :: ToText Metric where
+  toText ViewCost = "View Cost"
+  toText ClickCost = "Click Cost"
+  toText InstallCost = "Install Cost"
+
 instance readMetric :: Read Metric where
-  read "ViewCost" = Just ViewCost
-  read "ClickCost" = Just ClickCost
-  read "InstallCost" = Just InstallCost
+  read "View Cost" = Just ViewCost
+  read "Click Cost" = Just ClickCost
+  read "Install Cost" = Just InstallCost
   read _ = Nothing
 
 -- | This data type will be used in radio buttons, and so if we

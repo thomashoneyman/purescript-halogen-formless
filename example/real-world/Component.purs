@@ -3,26 +3,27 @@ module Example.RealWorld.Component where
 import Prelude
 
 import Data.Maybe (Maybe(..))
-import Data.Newtype (over)
+import Data.Newtype (over, unwrap)
 import Effect.Aff (Aff)
 import Effect.Console as Console
+import Example.App.UI.Dropdown as DD
+import Example.App.UI.Element (css)
+import Example.App.UI.Element as UI
+import Example.App.UI.Typeahead as TA
 import Example.RealWorld.Data.Group (Group(..), _admin, _applications, _pixels, _secretKey1, _secretKey2, _whiskey)
-import Example.RealWorld.Data.Options (Options(..), _metric)
+import Example.RealWorld.Data.Options (Options(..), _enable, _metric)
+import Example.RealWorld.Data.Options as O
 import Example.RealWorld.Render.GroupForm as GroupForm
-import Example.RealWorld.Render.Nav as Nav
 import Example.RealWorld.Render.OptionsForm as OptionsForm
 import Example.RealWorld.Spec.GroupForm (groupFormSpec, groupFormSubmit, groupFormValidate)
-import Example.RealWorld.Spec.OptionsForm (optionsFormSpec, optionsFormValidate)
+import Example.RealWorld.Spec.OptionsForm (defaultOptionsSpec, optionsFormSpec, optionsFormValidate)
 import Example.RealWorld.Types (ChildQuery, ChildSlot, GroupTASlot(..), Query(..), State, Tab(..))
 import Formless as F
 import Halogen as H
 import Halogen.Component.ChildPath as CP
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
-import Ocelot.Block.Format as Format
-import Ocelot.Components.Dropdown as Dropdown
-import Ocelot.Components.Typeahead as TA
-import Ocelot.HTML.Properties (css)
+import Halogen.HTML.Properties as HP
 
 component :: H.Component HH.HTML Query Unit Void Aff
 component =
@@ -36,39 +37,59 @@ component =
 
   initialState :: State
   initialState =
-    { focus: GroupFormTab
+    { focus: GroupTab
     , groupFormErrors: 0
     , groupFormDirty: false
     , optionsFormErrors: 0
     , optionsFormDirty: false
+    , optionsEnabled: false
     , group: Nothing
     }
 
   render :: State -> H.ParentHTML Query ChildQuery ChildSlot Aff
   render st =
-    HH.div
-    [ css "p-12 w-full container" ]
-    [ Format.heading_
-      [ HH.text "Formless" ]
-    , Format.subHeading_
-      [ HH.text "A complex form inspired by real-world use cases." ]
-    , Format.p_
-      [ HH.text $
+    UI.section_
+    [ UI.h1_ [ HH.text "Formless" ]
+    , UI.h2_ [ HH.text "A complex form inspired by real-world use cases." ]
+    , UI.p_ $
         "This component demonstrates building a large form with complex rendering and validation "
         <> "requirements. Notice how both tabs end up unifying to a single output type after the "
         <> "two forms are combined, how various dropdowns determine the contents (and visibility) "
         <> "of other form elements, the assorted external components, and how validation for many "
         <> "fields depends on the values of other fields in the form."
-      ]
-    , Format.p_
-      [ HH.text $
+    , HH.br_
+    , UI.p_ $
         "Next, review the source code. You'll notice that all of the complex types and state necessary "
         <> "to run this form can be generated from a pair of row types. All that's left for you to handle "
         <> "is to write the validation (with helper functions) and the render function."
+    , HH.br_
+    , UI.grouped_
+      [ UI.button
+        [ HE.onClick $ HE.input_ $ Select GroupTab ]
+        [ UI.p_ $ "Group Form" <>
+            if st.groupFormErrors > 0
+              then " (" <> show st.groupFormErrors  <> ")"
+              else ""
+        ]
+      , UI.button
+        [ HE.onClick $ HE.input_ $ Select OptionsTab ]
+        [ UI.p_ $ "Options Form" <>
+            if st.optionsFormErrors > 0
+              then " (" <> show st.optionsFormErrors  <> ")"
+              else ""
+        ]
+      , UI.buttonPrimary
+        [ HE.onClick $ HE.input_ Submit ]
+        [ HH.text "Submit Form" ]
+      , UI.button
+        [ if st.groupFormDirty || st.optionsFormDirty
+            then HE.onClick $ HE.input_ Reset
+            else HP.disabled true
+        ]
+        [ HH.text "Reset All" ]
       ]
-    , Nav.tabs st
     , HH.div
-      [ if st.focus == GroupFormTab then css "" else css "hidden" ]
+      [ if st.focus == GroupTab then css "" else css "is-hidden" ]
       [ HH.slot'
           CP.cp1
           unit
@@ -78,63 +99,37 @@ component =
           , submitter: groupFormSubmit
           , render: GroupForm.render
           }
-          (HE.input HandleGroupForm)
+          (HE.input GroupForm)
       ]
     , HH.div
-      [ if st.focus == OptionsFormTab then css "" else css "hidden" ]
+      [ if st.focus == OptionsTab then css "" else css "is-hidden" ]
       [ HH.slot'
           CP.cp2
           unit
           F.component
-          { formSpec: optionsFormSpec
+          { formSpec: defaultOptionsSpec
           , validator: pure <$> optionsFormValidate
           , submitter: pure <<< Options <<< F.unwrapOutput
           , render: OptionsForm.render
           }
-          (HE.input HandleOptionsForm)
+          (HE.input OptionsForm)
       ]
     ]
 
   eval :: Query ~> H.ParentDSL State Query ChildQuery ChildSlot Void Aff
   eval = case _ of
-
-    -----
-    -- Parent
-
     Select tab a -> do
       H.modify_ _ { focus = tab }
       pure a
 
-    -- We can reset both forms to their starting values by leveraging
-    -- the `Reset` query from Formless. We also need to reset our various
-    -- external components, as Formless doesn't know about them.
     Reset a -> do
-      -- To send a query through to a child component when Formless has multiple
-      -- child component types, use send'
-      _ <- H.query' CP.cp1 unit
-        $ H.action
-        $ F.send' CP.cp1 WhiskeyTypeahead
-        $ TA.ReplaceSelections (TA.One Nothing) unit
-      _ <- H.query' CP.cp1 unit
-        $ H.action
-        $ F.send' CP.cp1 ApplicationsTypeahead
-        $ TA.ReplaceSelections (TA.Many []) unit
-      _ <- H.query' CP.cp1 unit
-        $ H.action
-        $ F.send' CP.cp1 PixelsTypeahead
-        $ TA.ReplaceSelections (TA.Many []) unit
-      _ <- H.query' CP.cp1 unit
-        $ H.action
-        $ F.send' CP.cp2 unit
-        $ Dropdown.SetSelection Nothing unit
-
-      -- On the Options form, there is no child path to worry about, so we can stick
-      -- with the usual data constructor.
-      _ <- H.query' CP.cp2 unit
-        $ H.action
-        $ F.Send unit (Dropdown.SetSelection Nothing unit)
-
-      -- Finally, we can trigger a simple Formless reset on each form.
+      -- To send a query through to a child component when Formless has multiple, use send'
+      _ <- H.query' CP.cp1 unit $ H.action $ F.send' CP.cp1 Applications (H.action TA.Clear)
+      _ <- H.query' CP.cp1 unit $ H.action $ F.send' CP.cp1 Pixels (H.action TA.Clear)
+      _ <- H.query' CP.cp1 unit $ H.action $ F.send' CP.cp2 unit (H.action TA.Clear)
+      _ <- H.query' CP.cp1 unit $ H.action $ F.send' CP.cp3 unit (H.action DD.Clear)
+      -- If there is only one child type, use Send
+      _ <- H.query' CP.cp2 unit $ H.action $ F.Send unit (H.action DD.Clear)
       _ <- H.query' CP.cp1 unit $ H.action F.ResetAll
       _ <- H.query' CP.cp2 unit $ H.action F.ResetAll
       pure a
@@ -145,13 +140,11 @@ component =
     Submit a -> do
       mbGroupForm <- H.query' CP.cp1 unit $ H.request F.SubmitReply
       mbOptionsForm <- H.query' CP.cp2 unit $ H.request F.SubmitReply
-
       -- Here, we'll construct our new group from the two form outputs.
       case mbGroupForm, mbOptionsForm of
          Just g, Just v -> do
            H.modify_ _ { group = map (over Group (_ { options = v })) g }
          _, _ -> H.liftEffect (Console.error "Forms did not validate.")
-
       st <- H.get
       H.liftEffect $ Console.log $ show st.group
       pure a
@@ -159,11 +152,9 @@ component =
     -----
     -- Group Form
 
-    HandleGroupForm m a -> case m of
-      -- We are manually querying Formless to get form submissions
-      -- so we can safely ignore this.
+    GroupForm m a -> case m of
+      F.Emit q -> eval q $> a
       F.Submitted _ -> pure a
-      F.Emit q -> eval q *> pure a
       F.Changed fstate -> do
         H.modify_ \st -> st
           { groupFormErrors = fstate.errors
@@ -171,53 +162,56 @@ component =
           }
         pure a
 
-    HandleGroupTypeahead slot m a -> case m of
-      TA.Emit q -> eval q *> pure a
-      TA.SelectionsChanged s v -> do
-        let v' = TA.unpackSelections v
-        case slot of
-          ApplicationsTypeahead -> do
-            _ <- H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput _applications v')
-            pure a
-          PixelsTypeahead -> do
-            _ <- H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput _pixels v')
-            pure a
-          WhiskeyTypeahead -> case s of
-            TA.ItemSelected x -> do
-              _ <- H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput _whiskey (Just x))
-              pure a
-            _ -> do
-              _ <- H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput _whiskey Nothing)
-              pure a
-      TA.VisibilityChanged _ -> pure a
-      TA.Searched _ -> pure a
+    TASingle (TA.SelectionsChanged new) a -> a <$ do
+      H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput _whiskey new)
 
-    HandleAdminDropdown m a -> case m of
-      Dropdown.Emit q -> eval q *> pure a
-      Dropdown.Selected x -> do
-        _ <- H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput _admin (Just x))
-        -- Changing this field should also clear the secret keys. Ensure you use `reset`
-        -- instead of `change` as you want to clear errors, too.
-        _ <- H.query' CP.cp1 unit $ H.action $ F.Reset (F.resetField _secretKey1)
-        _ <- H.query' CP.cp1 unit $ H.action $ F.Reset (F.resetField _secretKey2)
-        pure a
+    TAMulti slot (TA.SelectionsChanged new) a -> a <$ case slot of
+      Applications ->
+        H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput _applications new)
+      Pixels ->
+        H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput _pixels new)
 
+    AdminDropdown m a -> a <$ do
+      _ <- H.query' CP.cp1 unit $ H.action $ F.Reset (F.resetField _secretKey1)
+      _ <- H.query' CP.cp1 unit $ H.action $ F.Reset (F.resetField _secretKey2)
+      case m of
+        DD.Selected x -> do
+          H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput _admin (Just x))
+        DD.Cleared -> do
+          H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput _admin Nothing)
 
     -----
     -- Options Form
 
-    HandleOptionsForm m a -> case m of
-      F.Emit q -> eval q *> pure a
+    OptionsForm m a -> case m of
+      F.Emit q -> eval q $> a
       F.Submitted _ -> pure a
       F.Changed fstate -> do
-        H.modify_ \st -> st
+        st <- H.get
+        st' <- H.modify _
           { optionsFormErrors = fstate.errors
           , optionsFormDirty = fstate.dirty
+          , optionsEnabled = F.getInput _enable fstate.form
           }
+
+        let submitter = pure <<< Options <<< F.unwrapOutput
+            validator = pure <$> optionsFormValidate
+
+        -- The generated spec will set enabled to false, but we'll want it to be true before
+        -- sending a new spec in to the component.
+        when (st.optionsEnabled /= st'.optionsEnabled) do
+          case st'.optionsEnabled of
+            true -> do
+              let spec' = O.OptionsForm $ _ { enable = F.FormSpec true } $ unwrap optionsFormSpec
+              _ <- H.query' CP.cp2 unit $ H.action $ F.Replace { formSpec: spec', submitter, validator }
+              pure unit
+            _ -> do
+              _ <- H.query' CP.cp2 unit $ H.action $ F.Replace { formSpec: defaultOptionsSpec, submitter, validator }
+              pure unit
         pure a
 
-    HandleMetricDropdown m a -> case m of
-      Dropdown.Emit q -> eval q *> pure a
-      Dropdown.Selected x -> do
-        _ <- H.query' CP.cp2 unit $ H.action $ F.ModifyValidate (F.setInput _metric (Just x))
-        pure a
+    MetricDropdown m a -> a <$ case m of
+      DD.Selected x -> do
+        H.query' CP.cp2 unit $ H.action $ F.ModifyValidate (F.setInput _metric (Just x))
+      DD.Cleared -> do
+        H.query' CP.cp2 unit $ H.action $ F.ModifyValidate (F.setInput _metric Nothing)

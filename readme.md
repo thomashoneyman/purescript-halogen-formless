@@ -6,6 +6,8 @@
 
 Formless is a [renderless component](https://github.com/thomashoneyman/purescript-halogen-renderless) which helps you build forms in Halogen. Provide Formless with a form data type, validation function, submit function, and render function, and the component will handle the tedious parts of managing form state, errors, and submission.
 
+You can write a complete Halogen form component with multiple fields, validation, parsing, and errors in less than 100 lines of code (only ~20 lines of which are from Formless).
+
 - [Live examples / docs site](https://thomashoneyman.github.io/purescript-halogen-formless/)
 - [Source code for examples](https://github.com/thomashoneyman/purescript-halogen-formless/tree/master/example)
 
@@ -218,20 +220,17 @@ renderFormless fstate =
   HH.div_
   [ HH.input
     [ HP.value $ F.getInput _name fstate.form
-    , HE.onBlur $ HE.input_ F.Validate
-    , HE.onValueInput $ HE.input $ F.Modify <<< F.setInput _name
+    , HE.onValueInput $ HE.input $ F.ModifyValidate <<< F.setInput _name
     ]
   , HH.text $ showError $ Lens.preview (F._Error _name) fstate.form
   , HH.input
     [ HP.value $ F.getInput _password1 fstate.form
-    , HE.onBlur $ HE.input_ F.Validate
-    , HE.onValueInput $ HE.input $ F.Modify <<< F.setInput _password1
+    , HE.onValueInput $ HE.input $ F.ModifyValidate <<< F.setInput _password1
     ]
   , HH.text $ showError $ Lens.preview (F._Error _name) fstate.form
   , HH.input
     [ HP.value $ F.getInput _password1 fstate.form
-    , HE.onBlur $ HE.input_ F.Validate
-    , HE.onValueInput $ HE.input $ F.Modify <<< F.setInput _password2
+    , HE.onValueInput $ HE.input $ F.ModifyValidate <<< F.setInput _password2
     ]
   , HH.text $ showError $ Lens.preview (F._Error _name) fstate.form
   ]
@@ -240,7 +239,7 @@ renderFormless fstate =
 
   showError :: Maybe Errors -> String
   showError Nothing = ""
-  showError (Just arr) = fromMaybe "" $ show $ head arr
+  showError (Just arr) = fromMaybe "" $ show <$> head arr
 
   _name = SProxy :: SProxy "name"
   _password1 = SProxy :: SProxy "password1"

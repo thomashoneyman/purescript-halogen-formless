@@ -9,7 +9,7 @@ import Effect.Aff (Aff)
 import Example.Basic.Component as Basic
 import Example.Polyform.Component as Polyform
 import Example.ExternalComponents.Component as ExternalComponents
-import Example.Home as Home
+import Example.App.Home as Home
 import Example.RealWorld.Component as RealWorld
 import Foreign.Object as Object
 import Halogen.Aff as HA

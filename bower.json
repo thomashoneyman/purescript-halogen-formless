@@ -21,10 +21,10 @@
     "purescript-validation": "^4.0.0"
   },
   "devDependencies": {
-    "purescript-ocelot": "git@github.com:citizennet/purescript-ocelot.git#v0.5.0",
     "purescript-halogen-storybook": "^0.4.0",
     "purescript-debug": "^4.0.0",
     "purescript-test-unit": "^14.0.0",
-    "purescript-read": "^1.0.1"
+    "purescript-read": "^1.0.1",
+    "purescript-halogen-select": "^2.0.0"
   }
 }

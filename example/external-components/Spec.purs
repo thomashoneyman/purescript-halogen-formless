@@ -5,7 +5,7 @@ import Prelude
 import Data.Maybe (Maybe, fromMaybe)
 import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
-import Example.Utils as V
+import Example.App.Validation as V
 import Formless.Spec (FormSpec, InputType, InputField, OutputType, OutputField)
 import Formless.Spec.Transform (mkFormSpecFromRow, unwrapOutput)
 import Formless.Validation.Semigroup (applyOnInputFields)
