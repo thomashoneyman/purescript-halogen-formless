@@ -72,10 +72,10 @@ component =
 
       dropdown childState =
         HH.div
-        [ css "dropdown" ]
-        [ toggle parentState
-        , menu childState
-        ]
+          [ if childState.visibility == Select.On then css "dropdown is-active" else css "dropdown" ]
+          [ toggle parentState
+          , menu childState
+          ]
 
   eval :: Query item ~> H.ParentDSL (State item) (Query item) (ChildQuery item) ChildSlot (Message item) m
   eval = case _ of
@@ -103,18 +103,8 @@ toggle parentState =
   HH.div
   [ css "dropdown-trigger" ]
   [ HH.button
-    ( Setters.setToggleProps
-      [ css "button" ]
-    )
-    [ HH.span_
-      [ HH.text $ fromMaybe parentState.placeholder (toText <$> parentState.selected) ]
-    , HH.span
-      [ css "icon is-small" ]
-      [ HH.i
-        [ css "fas fa-angle-down" ]
-        []
-      ]
-    ]
+    ( Setters.setToggleProps [ css "button" ] )
+    [ HH.text $ fromMaybe parentState.placeholder (toText <$> parentState.selected) ]
   ]
 
 menu
@@ -126,14 +116,15 @@ menu selectState =
   HH.div
   [ css "dropdown-menu" ]
   [ if selectState.visibility == Select.Off then HH.text "" else
-    HH.ul
+    HH.div
     ( Setters.setContainerProps [ css "dropdown-content" ] )
     ( mapWithIndex (\ix item ->
-        HH.li
+        HH.span
           ( Setters.setItemProps ix
             $ case Just ix == selectState.highlightedIndex of
-                true -> [ css "dropdown-item is-active" ]
-                _ -> [ css "dropdown-item" ] )
+                true -> [ css "dropdown-item has-background-link has-text-white-bis" ]
+                _ -> [ css "dropdown-item" ]
+          )
           [ HH.text (toText item) ]
         )
       selectState.items

@@ -32,7 +32,7 @@ render state =
   UI.formContent_
     [ renderEnabled state
     , HH.div
-      [ if F.getInput _enable state.form then css "" else css "is-invisible" ]
+      [ if F.getInput _enable state.form then css "" else css "is-hidden" ]
       ( renderMetrics state
       <> renderOthers state
       )

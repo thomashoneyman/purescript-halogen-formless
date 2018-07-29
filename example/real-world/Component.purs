@@ -66,14 +66,14 @@ component =
         [ HE.onClick $ HE.input_ $ Select GroupTab ]
         [ UI.p_ $ "Group Form" <>
             if st.groupFormErrors > 0
-              then " (" <> show st.groupFormErrors  <> ") errors"
+              then " (" <> show st.groupFormErrors  <> ")"
               else ""
         ]
       , UI.button
         [ HE.onClick $ HE.input_ $ Select OptionsTab ]
         [ UI.p_ $ "Options Form" <>
             if st.optionsFormErrors > 0
-              then " (" <> show st.optionsFormErrors  <> ") errors"
+              then " (" <> show st.optionsFormErrors  <> ")"
               else ""
         ]
       , UI.buttonPrimary
@@ -87,7 +87,7 @@ component =
         [ HH.text "Reset All" ]
       ]
     , HH.div
-      [ if st.focus == GroupTab then css "" else css "is-invisible" ]
+      [ if st.focus == GroupTab then css "" else css "is-hidden" ]
       [ HH.slot'
           CP.cp1
           unit
@@ -100,7 +100,7 @@ component =
           (HE.input GroupForm)
       ]
     , HH.div
-      [ if st.focus == OptionsTab then css "" else css "is-invisible" ]
+      [ if st.focus == OptionsTab then css "" else css "is-hidden" ]
       [ HH.slot'
           CP.cp2
           unit

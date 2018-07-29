@@ -35,6 +35,11 @@ component = H.parentComponent
     UI.section_
     [ UI.h1_ [ HH.text "Formless" ]
     , UI.h2_ [ HH.text "A basic contact form." ]
+    , UI.p_ $
+        "You can create a full Halogen contact form like this in less than 100 lines of code with "
+        <> "Formless, most of which is simply Halogen boilerplate. The actual form spec and wiring "
+        <> "consists of less than 20 lines of code."
+    , HH.br_
     , HH.slot
         unit
         F.component

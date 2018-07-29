@@ -68,15 +68,15 @@ renderSecretKey2 =
   }
 
 renderAdmin :: FormlessState -> FormlessHTML
-renderAdmin _ =
-  HH.slot'
-    CP.cp3
-    unit
-    Dropdown.component
-    { placeholder: "Choose an admin"
-    , items
+renderAdmin state =
+  UI.field
+    { label: "Administrator"
+    , help: UI.resultToHelp "Choose an administrator for the account" (F.getResult G._admin state.form)
     }
-    ( HE.input $ F.Raise <<< H.action <<< AdminDropdown )
+    [ HH.slot' CP.cp3 unit Dropdown.component
+        { items, placeholder: "Choose an admin" }
+        ( HE.input $ F.Raise <<< H.action <<< AdminDropdown )
+    ]
   where
     items =
       [ Admin { id: Nothing }
