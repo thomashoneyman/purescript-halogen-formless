@@ -13909,7 +13909,7 @@ var PS = {};
       };
   };
   var formContent_ = function (content) {
-      return Halogen_HTML_Elements.div([ css("content") ])([ Halogen_HTML_Elements.div([ css("column is-four-fifths-desktop has-background-white-bis") ])(content) ]);
+      return Halogen_HTML_Elements.div([ css("content") ])([ Halogen_HTML_Elements.div([ css("column has-background-white-bis") ])(content) ]);
   };
   var grouped_ = function (array) {
       var wrap = function (x) {
@@ -13928,7 +13928,7 @@ var PS = {};
       };
   };
   var section_ = function (content) {
-      return Halogen_HTML_Elements.section([ css("section") ])([ Halogen_HTML_Elements.div([ css("column is-four-fifths-desktop") ])(content) ]);
+      return Halogen_HTML_Elements.section([ css("section columns") ])([ Halogen_HTML_Elements.div([ css("column is-11-tablet is-three-fifths-desktop") ])(content) ]);
   };
   var textarea = function (config) {
       return function (props) {
