@@ -58,15 +58,15 @@ single = component' (const <<< Just) (const $ const Nothing) filter' render
   render st selectState = case st.selected of
     Just item ->
       HH.div
-      [ css "dropdown" ]
+      [ if selectState.visibility == Select.On then css "dropdown is-active" else css "dropdown" ]
       [ Dropdown.toggle st
       , Dropdown.menu selectState
       ]
     Nothing ->
       HH.div
-      [ css "dropdown" ]
+      [ if selectState.visibility == Select.On then css "dropdown is-active" else css "dropdown" ]
       [ HH.input
-        ( Setters.setInputProps [ HP.placeholder st.placeholder ] )
+        ( Setters.setInputProps [ HP.placeholder st.placeholder, HP.value selectState.search ] )
       , Dropdown.menu selectState
       ]
 
@@ -81,12 +81,12 @@ multi = component' ((:)) (filter <<< (/=)) difference render
   where
   render st selectState =
     HH.div
-    [ css "dropdown" ]
+    [ if selectState.visibility == Select.On then css "dropdown is-active" else css "dropdown" ]
     [ HH.div
       [ css "card" ]
-      []
+      ( map (HH.text <<< toText) st.selected )
     , HH.input
-      ( Setters.setInputProps [ css "input", HP.placeholder st.placeholder ] )
+      ( Setters.setInputProps [ css "input", HP.placeholder st.placeholder, HP.value selectState.search ] )
     , Dropdown.menu selectState
     ]
 
@@ -129,7 +129,7 @@ component' select' remove' filter' render' =
 
     selectInput =
       { inputType: Select.TextInput
-      , items: []
+      , items: st.items
       , initialSearch: Nothing
       , debounceTime: Nothing
       , render: render' st
@@ -153,12 +153,13 @@ component' select' remove' filter' render' =
       Select.Searched string -> do
         st <- H.get
         let items = filter (String.contains (String.Pattern string) <<< toText) st.items
-        _ <- H.query unit $ Select.replaceItems $ filter' st.items st.selected
+        _ <- H.query unit $ Select.replaceItems $ filter' items st.selected
         pure next
 
       Select.Selected item -> do
         st <- H.modify \st -> st { selected = select' item st.selected }
         _ <- H.query unit $ Select.replaceItems $ filter' st.items st.selected
+        _ <- H.query unit $ Select.search ""
         H.raise (SelectionsChanged st.selected)
         pure next
 

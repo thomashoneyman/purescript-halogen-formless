@@ -89,45 +89,51 @@ renderAdmin state =
       ]
 
 renderWhiskey :: FormlessState -> FormlessHTML
-renderWhiskey _ =
-  HH.slot'
-    CP.cp2
-    unit
-    Typeahead.single
-    { placeholder: "Choose a whiskey"
-    , items:
-      [ "Laphroiag 10"
-      , "Lagavulin 12"
-      , "Lagavulin 16"
-      , "Oban 16"
-      , "Kilchoman Blue Label"
-      ]
+renderWhiskey state =
+  UI.field
+    { label: "Whiskey"
+    , help: UI.resultToHelp "Choose a whiskey to be awarded" (F.getResult G._whiskey state.form)
     }
-    ( HE.input $ F.Raise <<< H.action <<< TASingle )
+    [ HH.slot' CP.cp2 unit Typeahead.single
+      { placeholder: "Choose a whiskey"
+      , items:
+        [ "Laphroiag 10"
+        , "Lagavulin 12"
+        , "Lagavulin 16"
+        , "Oban 16"
+        , "Kilchoman Blue Label"
+        ]
+      }
+      ( HE.input $ F.Raise <<< H.action <<< TASingle )
+    ]
 
 renderPixels :: FormlessState -> FormlessHTML
-renderPixels _ =
-  HH.slot'
-    CP.cp1
-    Pixels
-    Typeahead.multi
-    { placeholder: "Search pixels"
-    , items:
-      [ "My favorite pixel"
-      , "Your favorite pixel"
-      , "Application main pixel"
-      , "A pixel for you is a pixel for me"
-      ]
+renderPixels state =
+  UI.field
+    { label: "Tracking Pixels"
+    , help: UI.resultToHelp "Choose a pixel to track" (F.getResult G._pixels state.form)
     }
-    ( HE.input $ F.Raise <<< H.action <<< TAMulti Pixels )
+    [ HH.slot' CP.cp1 Pixels Typeahead.multi
+      { placeholder: "Search pixels"
+      , items:
+        [ "My favorite pixel"
+        , "Your favorite pixel"
+        , "Application main pixel"
+        , "A pixel for you is a pixel for me"
+        ]
+      }
+      ( HE.input $ F.Raise <<< H.action <<< TAMulti Pixels )
+    ]
 
 renderApplications :: FormlessState -> FormlessHTML
-renderApplications _ =
-  HH.slot'
-    CP.cp1
-    Applications
-    Typeahead.multi
-    { placeholder: "Search one or more applications"
-    , items: [ "Facebook", "Google", "Twitter", "Pinterest" ]
+renderApplications state =
+  UI.field
+    { label: "Application Targets"
+    , help: UI.resultToHelp "Applications are available in several sizes" (F.getResult G._applications state.form)
     }
-    ( HE.input $ F.Raise <<< H.action <<< TAMulti Applications )
+    [ HH.slot' CP.cp1 Applications Typeahead.multi
+      { placeholder: "Search one or more applications"
+      , items: [ "Facebook", "Google", "Twitter", "Pinterest" ]
+      }
+      ( HE.input $ F.Raise <<< H.action <<< TAMulti Applications )
+    ]

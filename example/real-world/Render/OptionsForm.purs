@@ -3,13 +3,14 @@ module Example.RealWorld.Render.OptionsForm where
 import Prelude
 
 import DOM.HTML.Indexed.InputType (InputType(..))
-import Data.Lens as Lens
+import Data.Either (Either(..))
+import Data.Lens (view)
 import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
 import Example.App.UI.Dropdown as Dropdown
 import Example.App.UI.Element (css)
 import Example.App.UI.Element as UI
-import Example.RealWorld.Data.Options (Metric(..), _enable, _metric)
+import Example.RealWorld.Data.Options (Metric(..), Speed(..), _enable, _metric)
 import Example.RealWorld.Data.Options as OP
 import Example.RealWorld.Types (OptionsCQ, OptionsCS, Query(..))
 import Formless as F
@@ -60,132 +61,124 @@ renderOthers state =
   , renderSpeed state
   ]
 
-
 -----
 -- Fields
 
 renderEnabled :: FormlessState -> FormlessHTML
 renderEnabled state =
-  --  FormField.field_
-  --    { label: "Enable"
-  --    , helpText: Just "Do you want to enable this set of options?"
-  --    , error: showError enable.result
-  --    , inputId: "enable"
-  --    }
-    HH.input
-      [ HP.type_ InputCheckbox
-      , HP.checked enable.input
-      , HE.onChange $ HE.input_ $ F.Modify (F.modifyInput _enable not)
-      , HE.onBlur $ HE.input_ F.Validate
+  UI.field
+    { label: "Enable"
+    , help: Right "Do you want to enable this set of options?"
+    }
+    [ HH.label
+      [ css "checkbox" ]
+      [ HH.input
+        [ css "checkbox"
+        , HP.type_ InputCheckbox
+        , HP.checked $ F.getInput _enable state.form
+        , HE.onChange $ HE.input_ $ F.Modify (F.modifyInput _enable not)
+        ]
+      , HH.text " Enable extra options"
       ]
-
-  where
-    enable = Lens.view (F._Field _enable) state.form
+    ]
 
 renderMetric :: FormlessState -> FormlessHTML
-renderMetric _ =
-  --  HH.div_
-  --    [ Field.formField state
-  --      { label: "Metric"
-  --      , placeholder: Nothing
-  --      , helpText: "Choose a metric to optimize for."
-  --      , field: OP._metric
-  --      }
-  --      \metric ->
-        HH.slot
-          unit
-          Dropdown.component
-          { placeholder: "Choose a metric"
-          , items: [ ViewCost, ClickCost, InstallCost ]
-          }
-          ( HE.input $ F.Raise <<< H.action <<< MetricDropdown )
-    --  ]
+renderMetric state =
+  UI.field
+    { label: "Metric"
+    , help: UI.resultToHelp "Choose a metric to optimize for." (F.getResult OP._metric state.form)
+    }
+    [ HH.slot unit Dropdown.component
+        { placeholder: "Choose a metric"
+        , items: [ ViewCost, ClickCost, InstallCost ]
+        }
+        ( HE.input $ F.Raise <<< H.action <<< MetricDropdown )
+    ]
 
 renderViewCost :: FormlessState -> FormlessHTML
-renderViewCost _ =
-  HH.input
-    [ HP.placeholder "Not implemented" ]  -- TODO
-  --  Field.input
-  --  { label: "View Cost"
-  --  , placeholder: Just "100"
-  --  , helpText: "Enter a dollar amount for view costs."
-  --  , field: OP._viewCost
-  --  } Field.Currency
+renderViewCost =
+  UI.formlessField UI.input
+    { label: "View Cost"
+    , placeholder: "100"
+    , help: "Enter a dollar amount for view costs."
+    , sym: OP._viewCost
+    }
 
 renderClickCost :: FormlessState -> FormlessHTML
-renderClickCost _ =
-  HH.input
-    [ HP.placeholder "Not implemented" ]  -- TODO
-  --  Field.input
-  --  { label: "Click Cost"
-  --  , placeholder: Just "1"
-  --  , helpText: "Enter a dollar amount for click costs."
-  --  , field: OP._clickCost
-  --  } Field.Currency
+renderClickCost =
+  UI.formlessField UI.input
+    { label: "Click Cost"
+    , placeholder: "1"
+    , help: "Enter a dollar amount you're willing to pay for a click."
+    , sym: OP._clickCost
+    }
 
 renderInstallCost :: FormlessState -> FormlessHTML
-renderInstallCost _ =
-  HH.input
-    [ HP.placeholder "Not implemented" ]  -- TODO
-  --  Field.input
-  --  { label: "App Install Cost"
-  --  , placeholder: Just "10"
-  --  , helpText: "Enter a dollar amount for installation costs."
-  --  , field: OP._installCost
-  --  } Field.Currency
+renderInstallCost =
+  UI.formlessField UI.input
+    { label: "Install Cost"
+    , placeholder: "10"
+    , help: "Enter a dollar amount you're willing to pay for an app instal."
+    , sym: OP._installCost
+    }
 
 renderSize :: FormlessState -> FormlessHTML
-renderSize _ =
-  HH.input
-    [ HP.placeholder "Not implemented" ]  -- TODO
-  --  Field.input
-  --  { label: "Size"
-  --  , placeholder: Just "1.123"
-  --  , helpText: "Enter a size for the campaign."
-  --  , field: OP._size
-  --  } Field.Text
+renderSize =
+  UI.formlessField UI.input
+    { label: "Size"
+    , placeholder: "10.233"
+    , help: "Enter a total campaign size."
+    , sym: OP._size
+    }
 
 renderDimensions :: FormlessState -> FormlessHTML
-renderDimensions _ =
-  HH.input
-    [ HP.placeholder "Not implemented" ]  -- TODO
-  --  Field.input
-  --  { label: "Dimensions"
-  --  , placeholder: Just "5.2"
-  --  , helpText: "Enter a set of dimensions for the campaign."
-  --  , field: OP._dimensions
-  --  } Field.Text
+renderDimensions =
+  UI.formlessField UI.input
+    { label: "Dimensions"
+    , placeholder: "1.027"
+    , help: "Enter a total campaign dimension set ratio buzzword."
+    , sym: OP._dimensions
+    }
 
 renderSpeed :: FormlessState -> FormlessHTML
-renderSpeed _ =
-  HH.input
-    [ HP.placeholder "Not implemented" ]  -- TODO
-  --  FormField.fieldset_
-  --  { label: "Speed"
-  --  , inputId: "speedy-mcgee"
-  --  , helpText: Just "How fast do you want to go?"
-  --  , error: showError speed.result
-  --  }
-  --  [ HH.div_
-  --    [ Radio.radio_
-  --      [ HP.name "speed"
-  --      , HP.checked $ speed.input == Low
-  --      , HE.onClick $ HE.input_ $ F.ModifyValidate $ F.setInput _speed Low
-  --      ]
-  --      [ HH.text $ show Low ]
-  --    , Radio.radio_
-  --      [ HP.name "speed"
-  --      , HP.checked $ speed.input == Medium
-  --      , HE.onClick $ HE.input_ $ F.ModifyValidate $ F.setInput _speed Medium
-  --      ]
-  --      [ HH.text $ show Medium ]
-  --    , Radio.radio_
-  --      [ HP.name "speed"
-  --      , HP.checked $ speed.input == Fast
-  --      , HE.onClick $ HE.input_ $ F.ModifyValidate $ F.setInput _speed Fast
-  --      ]
-  --      [ HH.text $ show Fast ]
-  --    ]
-  --  ]
-  --  where
-  --    speed = Lens.view (F._Field _speed) state.form
+renderSpeed state =
+  UI.field
+    { label: "Speed"
+    , help: Right "How fast do you want to go?"
+    }
+    [ HH.label
+      [ css "radio" ]
+      [ HH.input
+        [ HP.name "speed"
+        , css "radio"
+        , HP.type_ InputRadio
+        , HP.checked $ speed.input == Low
+        , HE.onClick $ HE.input_ $ F.Modify $ F.setInput OP._speed Low
+        ]
+      , HH.text $ " " <> show Low
+      ]
+    , HH.label
+      [ css "radio" ]
+      [ HH.input
+        [ HP.name "speed"
+        , css "radio"
+        , HP.type_ InputRadio
+        , HP.checked $ speed.input == Medium
+        , HE.onClick $ HE.input_ $ F.Modify $ F.setInput OP._speed Medium
+        ]
+      , HH.text $ " " <> show Medium
+      ]
+    , HH.label
+      [ css "radio" ]
+      [ HH.input
+        [ HP.name "speed"
+        , css "radio"
+        , HP.type_ InputRadio
+        , HP.checked $ speed.input == Fast
+        , HE.onClick $ HE.input_ $ F.Modify $ F.setInput OP._speed Fast
+        ]
+      , HH.text $ " " <> show Fast
+      ]
+    ]
+  where
+    speed = view (F._Field OP._speed) state.form
