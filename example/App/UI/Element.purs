@@ -48,9 +48,9 @@ a props = HH.a ([ css "has-text-blue" ] <> props)
 section_ :: ∀ i p. Plain i p
 section_ content =
   HH.section
-  [ css "section" ]
+  [ css "section columns" ]
   [ HH.div
-    [ css "column is-four-fifths-desktop" ]
+    [ css "column is-11-tablet is-three-fifths-desktop" ]
     content
   ]
 
@@ -59,7 +59,7 @@ formContent_ content =
   HH.div
   [ css "content" ]
   [ HH.div
-    [ css "column is-four-fifths-desktop has-background-white-bis" ]
+    [ css "column has-background-white-bis" ]
     content
   ]
 
