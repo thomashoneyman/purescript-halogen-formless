@@ -2,22 +2,19 @@ module Example.Basic.Component where
 
 import Prelude
 
+import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
-import Example.Utils (Errs, minLength, notRequired, showError)
+import Example.App.UI.Element as UI
+import Example.App.Validation as V
 import Formless as F
 import Formless.Validation.Polyform (applyOnInputFields)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Ocelot.Block.Button as Button
-import Ocelot.Block.FormField as FormField
-import Ocelot.Block.Format as Format
-import Ocelot.Block.Input as Input
-import Ocelot.HTML.Properties (css)
 
 data Query a = DoNothing a
 
@@ -35,12 +32,9 @@ component = H.parentComponent
 
   render :: Unit -> H.ParentHTML Query ChildQuery ChildSlot Aff
   render st =
-    HH.div
-    [ css "flex-1 container p-12" ]
-    [ Format.heading_
-      [ HH.text "Formless" ]
-    , Format.subHeading_
-      [ HH.text "A basic contact form." ]
+    UI.section_
+    [ UI.h1_ [ HH.text "Formless" ]
+    , UI.h2_ [ HH.text "A basic contact form." ]
     , HH.slot
         unit
         F.component
@@ -55,7 +49,6 @@ component = H.parentComponent
   eval :: Query ~> H.ParentDSL Unit Query ChildQuery ChildSlot Void Aff
   eval (DoNothing a) = pure a
 
-
 -----
 -- Formless
 
@@ -65,45 +58,38 @@ type Contact =
   }
 
 newtype Form f = Form
-  { name :: f Errs String String
+  { name :: f V.Errs String String
+  -- Use `Unit` to represent no errors in Polyform
   , text :: f Unit String String
   }
 derive instance newtypeForm :: Newtype (Form f) _
 
 validator :: ∀ m. Monad m => Form F.InputField -> m (Form F.InputField)
 validator = applyOnInputFields $ identity
-  { name: minLength 5
-  , text: notRequired
+  { name: V.minLength 5
+  , text: V.notRequired
   }
 
 renderFormless :: F.State Form Contact Aff -> F.HTML' Form Contact Aff
 renderFormless state =
- HH.div_
-   [ FormField.field_
+ UI.formContent_
+ [ UI.input
      { label: "Name"
-     , helpText: Just "Write your name."
-     , error: showError (F.getResult _name state.form)
-     , inputId: "name"
+     , help: UI.resultToHelp "Write your name" $ F.getResult _name state.form
+     , placeholder: "Dale"
      }
-     [ Input.input
-       [ HP.value (F.getInput _name state.form)
-       , HE.onBlur $ HE.input_ F.Validate
-       , HE.onValueInput $ HE.input $ F.Modify <<< F.setInput _name
-       ]
+     [ HP.value $ F.getInput _name state.form
+     , HE.onValueInput $ HE.input $ F.ModifyValidate <<< F.setInput _name
      ]
-   , FormField.field_
+ , UI.textarea
      { label: "Message"
-     , helpText: Just "Write us a message!"
-     , error: Nothing
-     , inputId: "message"
+     , help: Right "Write us a message"
+     , placeholder: "We prefer nice messages, but have at it."
      }
-     [ Input.textarea
-       [ HP.value (F.getInput _text state.form)
-       , HE.onBlur $ HE.input_ F.Validate
-       , HE.onValueInput $ HE.input $ F.Modify <<< F.setInput _text
-       ]
+     [ HP.value $ F.getInput _text state.form
+     , HE.onValueInput $ HE.input $ F.Modify <<< F.setInput _text
      ]
-   , Button.buttonPrimary
+   , UI.buttonPrimary
      [ HE.onClick $ HE.input_ F.Submit ]
      [ HH.text "Submit" ]
    ]

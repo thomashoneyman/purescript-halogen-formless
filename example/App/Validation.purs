@@ -1,15 +1,15 @@
-module Example.Utils where
+module Example.App.Validation where
 
 import Prelude
 
-import Data.Array (singleton)
+import Data.Array (head, singleton)
 import Data.Either (Either, either, fromRight)
 import Data.Foldable (length) as Foldable
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Int (fromString) as Int
 import Data.Maybe (Maybe(..))
-import Data.Newtype (class Newtype, unwrap)
+import Data.Newtype (class Newtype)
 import Data.String (contains, length, null)
 import Data.String.Pattern (Pattern(..))
 import Data.String.Regex (Regex, regex, test)
@@ -21,24 +21,30 @@ import Partial.Unsafe (unsafePartial)
 import Polyform.Validation (Validation(..))
 import Polyform.Validation as Validation
 
---------------------
--- Helper types
---------------------
-
 -- | A type synonym for purescript-validation semigroup errors
 type Errs = Array FieldError
 
 data FieldError
   = EmptyField
-  | InvalidEmail String
-  | TooShort Int Int
-  | TooLong Int Int
+  | InvalidEmail
+  | EmailInUse
+  | TooShort Int
+  | TooLong Int
   | InvalidInt String
   | NotEqual String String
 
 derive instance genericFieldError :: Generic FieldError _
 instance showFieldError :: Show FieldError where
   show = genericShow
+
+instance toTextFieldError :: ToText FieldError where
+  toText EmptyField = "This field is required."
+  toText InvalidEmail = "That email is not valid."
+  toText EmailInUse = "That email is already being used."
+  toText (TooShort n) = "You must enter at least " <> show n <> " characters."
+  toText (TooLong n) = "You must enter less than " <> show n <> " characters."
+  toText (InvalidInt str) = "Could not parse \"" <> str <> "\" to a valid integer."
+  toText (NotEqual str0 str1) = "This field contains \"" <> str1 <> "\" but must be equal to \"" <> str0 <> "\" to validate."
 
 -- | Some useful types we'll parse to
 newtype Name = Name String
@@ -52,10 +58,16 @@ derive newtype instance showEmail :: Show Email
 -- | Unpacks errors to render as a string
 showError
   :: ∀ e o
-   . Show e
-  => Maybe (Either e o)
+   . ToText e
+  => Maybe (Either (Array e) o)
   -> Maybe String
-showError = (=<<) (either (Just <<< show) (const Nothing))
+showError = (=<<) (either (map toText <<< head) (const Nothing))
+
+class ToText item where
+  toText :: item -> String
+
+instance toTextString :: ToText String where
+  toText = identity
 
 --------------------
 -- Polyform Validation
@@ -75,7 +87,7 @@ emailFormat
 emailFormat = Validation.hoistFnV \e ->
   if contains (Pattern "@") e
     then pure (Email e)
-    else Validation.Invalid $ singleton $ InvalidEmail e
+    else Validation.Invalid $ singleton InvalidEmail
 
 emailIsUsed
   :: ∀ m
@@ -84,7 +96,7 @@ emailIsUsed
 emailIsUsed = Validation \e -> do
   v <- liftEffect random
   pure $ if v > 0.5
-    then Validation.Invalid $ singleton $ InvalidEmail (unwrap e)
+    then Validation.Invalid $ singleton EmailInUse
     else pure e
 
 minLength
@@ -95,7 +107,7 @@ minLength
 minLength n = Validation.hoistFnV \p ->
   let p' = length p
   in if p' < n
-       then Validation.Invalid $ singleton $ TooShort p' n
+       then Validation.Invalid $ singleton $ TooShort n
        else pure p
 
 -- | The opposite of minLength.
@@ -107,7 +119,7 @@ maxLength
 maxLength n = Validation.hoistFnV \p ->
   let p' = length p
    in if length p > n
-        then Validation.Invalid $ singleton $ TooLong p' n
+        then Validation.Invalid $ singleton $ TooLong n
         else pure p
 
 --------------------
@@ -146,7 +158,7 @@ validateNonEmpty input
 validateEmailRegex :: String -> V Errs String
 validateEmailRegex input
   | test emailRegex input = pure input
-  | otherwise = invalid (singleton (InvalidEmail input))
+  | otherwise = invalid (singleton InvalidEmail)
 
 -- | Validate that an input string is at least as long as some given `Int`
 validateMinimumLength
@@ -154,7 +166,7 @@ validateMinimumLength
   -> Int
   -> V Errs String
 validateMinimumLength input n
-  | (length input) < n = invalid (singleton (TooShort (length input) n))
+  | (length input) < n = invalid (singleton (TooShort n))
   | otherwise = pure input
 
 -- | Validate that an input string is shorter than given `Int`
@@ -163,7 +175,7 @@ validateMaximumLength
   -> Int
   -> V Errs String
 validateMaximumLength input n
-  | (length input) > n = invalid (singleton (TooLong (length input) n))
+  | (length input) > n = invalid (singleton (TooLong n))
   | otherwise = pure input
 
 unsafeRegexFromString :: String -> Regex

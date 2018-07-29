@@ -6,11 +6,11 @@ module Example.RealWorld.Data.Group where
 
 import Prelude
 
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
+import Example.App.Validation (class ToText, Errs)
 import Example.RealWorld.Data.Options (Options)
-import Example.Utils (Errs)
 import Formless as F
 
 -----
@@ -28,6 +28,11 @@ newtype Admin = Admin { id :: Maybe GroupId }
 derive instance newtypeAdmin :: Newtype Admin _
 derive newtype instance eqAdmin :: Eq Admin
 derive newtype instance showAdmin :: Show Admin
+
+instance toTextAdmin :: ToText Admin where
+  toText (Admin { id }) = case id of
+    Just (GroupId n) -> "Administrator " <> show n
+    Nothing -> "None"
 
 -----
 -- Our primary data type

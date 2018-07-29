@@ -6,8 +6,7 @@ import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
 import Data.Validation.Semigroup (V)
 import Example.RealWorld.Data.Group (Group(..), GroupForm, GroupFormRow, GroupId(..), _secretKey1, _secretKey2)
-import Example.Utils (Errs)
-import Example.Utils as V
+import Example.App.Validation as V
 import Formless as F
 import Formless.Validation.Semigroup (applyOnInputFields)
 import Record as Record
@@ -50,5 +49,5 @@ groupFormValidate form = pure $ applyOnInputFields
 
   where
 
-  validateBudget :: String -> V Errs (Maybe Int)
+  validateBudget :: String -> V V.Errs (Maybe Int)
   validateBudget = const (pure $ Just 100)

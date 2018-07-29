@@ -1,28 +1,24 @@
-module Example.Home where
+module Example.App.Home where
 
 import Prelude
 
 import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
+import Example.App.UI.Element as UI
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
-import Ocelot.Block.Format as Format
-import Ocelot.HTML.Properties (css)
 
 -----
 -- Render
 
 render :: H.ComponentHTML Box
 render =
-  HH.div
-  [ css "flex-1 container p-12" ]
-  [ Format.heading_
-    [ HH.text "Formless" ]
-  , Format.subHeading_
-    [ HH.text "A renderless component for painless forms in Halogen" ]
-  , Format.p_
-    [ HH.text $
+  UI.section_
+  [ UI.h1_ [ HH.text "Formless" ]
+  , UI.h2_ [ HH.text "A renderless component for painless forms in Halogen" ]
+  , UI.content_
+    [ UI.p_ $
       "Formless allows you to write a small, simple spec for your form and receive "
       <> "state updates, validation, dirty states, submission handling, and more for "
       <> "free. You are responsible for providing an initial value and a validation "
@@ -32,12 +28,10 @@ render =
       <> "add new form behaviors on top (like dependent validation or clearing sets of "
       <> "fields), and more."
       <> "\n"
+    , UI.a
+      [ HP.href "https://github.com/thomashoneyman/purescript-halogen-formless" ]
+      [ HH.text "purescript-halogen-formless" ]
     ]
-  , HH.a
-    [ HP.classes Format.linkClasses
-    , HP.href "https://github.com/thomashoneyman/purescript-halogen-formless"
-    ]
-    [ HH.text "purescript-halogen-formless" ]
   ]
 
 -----

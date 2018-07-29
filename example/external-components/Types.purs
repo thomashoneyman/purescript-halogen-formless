@@ -2,32 +2,28 @@ module Example.ExternalComponents.Types where
 
 import Prelude
 
+import Data.Maybe (Maybe)
 import Effect.Aff (Aff)
+import Example.App.UI.Typeahead as TA
 import Example.ExternalComponents.Spec (Form, User)
 import Formless as F
-import Ocelot.Components.Typeahead as TA
 
 ----------
 -- Component
 
 data Query a
-  = HandleFormless (F.Message Query Form User) a
-  | HandleTypeahead Slot (TA.Message Query String) a
+  = Formless (F.Message Query Form User) a
+  | Typeahead Slot (TA.Message Maybe String) a
   | Reset a
 
 type State = Unit
 
-type ChildQuery = F.Query Query FCQ FCS Form User Aff
+type ChildQuery = F.Query Query (TA.Query String) Slot Form User Aff
 type ChildSlot = Unit
 
--- | FCQ: Formless ChildQuery
--- | FCS: Formless ChildSlot
-type FCQ = TA.Query Query String String Aff
-type FCS = Slot
-
 data Slot
-  = EmailTypeahead
-  | WhiskeyTypeahead
-  | LanguageTypeahead
+  = Email
+  | Whiskey
+  | Language
 derive instance eqSlot :: Eq Slot
 derive instance ordSlot :: Ord Slot

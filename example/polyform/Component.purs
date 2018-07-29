@@ -2,24 +2,20 @@ module Example.Polyform.Component where
 
 import Prelude
 
+import Example.App.UI.Element as UI
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Effect.Class (class MonadEffect)
 import Effect.Console as Console
-import Example.Utils as V
+import Example.App.Validation as V
 import Formless as F
 import Formless.Validation.Polyform (applyOnInputFields)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Ocelot.Block.Button as Button
-import Ocelot.Block.FormField as FormField
-import Ocelot.Block.Format as Format
-import Ocelot.Block.Input as Input
-import Ocelot.HTML.Properties (css)
 import Polyform.Validation as Validation
 import Record (delete)
 import Type.Row (RProxy(..))
@@ -52,13 +48,10 @@ component =
 
   render :: State -> H.ParentHTML Query ChildQuery ChildSlot Aff
   render st =
-    HH.div
-    [ css "flex-1 container p-12" ]
-    [ Format.heading_
-      [ HH.text "Formless" ]
-    , Format.subHeading_
-      [ HH.text "A form using the composable validation toolkit Polyform." ]
-    , Format.p_
+    UI.section_
+    [ UI.h1_ [ HH.text "Formless" ]
+    , UI.h2_ [ HH.text "A form using the composable validation toolkit Polyform." ]
+    , HH.p_
       [ HH.text $
           "In Formless, you can use whatever validation library you prefer. The component provides "
           <> "helpers for working with "
@@ -71,11 +64,11 @@ component =
       , HH.code_ [ HH.text "purescript-validation" ]
       , HH.text "."
       ]
-    , Format.p_
-      [ HH.text $
+    , HH.br_
+    , UI.p_ $
         "Try watching the console output as you fill out the form, and notice how you can only reset the "
         <> "form if it is in a dirty state, and can only submit the form if it is valid."
-      ]
+    , HH.br_
     , HH.slot
         unit
         F.component
@@ -89,7 +82,7 @@ component =
 
 
 ----------
--- Spec
+-- Formless
 
 type User = Record (FormRow F.OutputType)
 
@@ -116,106 +109,56 @@ validator = applyOnInputFields
   , state: Validation.hoistFnV pure
   }
 
-
-----------
--- Render
-
--- | Our render function has access to anything in Formless' State type, plus
--- | anything additional in your own state type, if you'd like.
 renderFormless :: F.State Form User Aff -> F.HTML' Form User Aff
 renderFormless state =
-  HH.div_
-    [ renderName
-    , renderEmail
-    , renderCity
-    , renderState
-    , Format.p_
-      [ HH.text $
-          "You can only attempt to submit this form if it is valid "
-          <> "and not already being submitted. You can only attempt "
-          <> "to reset the form if it has been changed from its initial "
-          <> "state."
+  UI.formContent_
+  [ UI.formlessField
+      UI.input
+      { label: "Name"
+      , help: "Write your name"
+      , placeholder: "Dale"
+      , sym: _name
+      } state
+  , UI.formlessField
+      UI.input
+      { label: "Email Address"
+      , help: "Write your email"
+      , placeholder: "me@you.com"
+      , sym: _email
+      } state
+  , UI.formlessField
+      UI.input
+      { label: "City"
+      , help: "Write your favorite city"
+      , placeholder: "Los Angeles"
+      , sym: _city
+      } state
+  , UI.formlessField
+      UI.input
+      { label: "State"
+      , help: "Write your favorite state of mind"
+      , placeholder: ""
+      , sym: _state
+      } state
+    , HH.br_
+    , UI.p_ $
+        "You can only attempt to submit this form if it is valid "
+        <> "and not already being submitted. You can only attempt "
+        <> "to reset the form if it has been changed from its initial "
+        <> "state."
+    , HH.br_
+    , UI.grouped_
+      [ UI.buttonPrimary
+        [ if state.submitting || state.validity /= F.Valid
+            then HP.disabled true
+            else HE.onClick $ HE.input_ F.Submit
+        ]
+        [ HH.text "Submit" ]
+      , UI.button
+        [ if not state.dirty
+            then HP.disabled true
+            else HE.onClick $ HE.input_ F.ResetAll
+        ]
+        [ HH.text "Reset" ]
       ]
-    , Button.buttonPrimary
-      [ if state.submitting || state.validity /= F.Valid
-          then HP.disabled true
-          else HE.onClick $ HE.input_ F.Submit
-      , css "mr-3"
-      ]
-      [ HH.text "Submit" ]
-    , Button.button
-      [ if not state.dirty
-          then HP.disabled true
-          else HE.onClick $ HE.input_ F.ResetAll
-      ]
-      [ HH.text "Reset" ]
     ]
-
-  where
-
-    renderName =
-      HH.div_
-        [ FormField.field_
-            { label: "Name"
-            , helpText: Just "Write your name."
-            , error: V.showError (F.getResult _name state.form)
-            , inputId: "name"
-            }
-            [ Input.input
-              [ HP.placeholder "Dale"
-              , HP.value (F.getInput _name state.form)
-              , HE.onBlur $ HE.input_ F.Validate
-              , HE.onValueInput $ HE.input $ F.Modify <<< F.setInput _name
-              ]
-            ]
-        ]
-
-    renderEmail =
-      HH.div_
-        [ FormField.field_
-            { label: "Email"
-            , helpText: Just "Enter an email address."
-            , error: V.showError (F.getResult _email state.form)
-            , inputId: "email"
-            }
-            [ Input.input
-              [ HP.placeholder "hello@me.com"
-              , HP.value (F.getInput _email state.form)
-              , HE.onBlur $ HE.input_ F.Validate
-              , HE.onValueInput $ HE.input $ F.Modify <<< F.setInput _email
-              ]
-            ]
-        ]
-
-    renderCity =
-      HH.div_
-        [ FormField.field_
-            { label: "City"
-            , helpText: Just "Tell us your favorite city."
-            , error: V.showError (F.getResult _city state.form)
-            , inputId: "city"
-            }
-            [ Input.input
-              [ HP.placeholder "Los Angeles"
-              , HP.value (F.getInput _city state.form)
-              , HE.onBlur $ HE.input_ F.Validate
-              , HE.onValueInput $ HE.input $ F.Modify <<< F.setInput _city
-              ]
-            ]
-        ]
-
-    renderState =
-      HH.div_
-        [ FormField.field_
-            { label: "State"
-            , helpText: Just "Oh, you thought this would be a literal US state? Well, too bad for you, that's right. Tell us one."
-            , error: V.showError (F.getResult _state state.form)
-            , inputId: "state"
-            }
-            [ Input.input
-              [ HP.value (F.getInput _state state.form)
-              , HE.onBlur $ HE.input_ F.Validate
-              , HE.onValueInput $ HE.input $ F.Modify <<< F.setInput _state
-              ]
-            ]
-        ]

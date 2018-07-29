@@ -51,7 +51,6 @@ jobs:
           name: Replace symlinks with actual files
           command: |
             mv ~/formless/bower_components/purescript-halogen-storybook/examples/src/Storybook.css ~/formless/dist/storybook.css
-            mv ~/formless/bower_components/purescript-ocelot/dist/cn-tailwind.min.css ~/formless/dist/cn-tailwind.min.css
 
       - persist_to_workspace:
           root: dist
