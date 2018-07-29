@@ -7,6 +7,7 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
+import Effect.Console (log)
 import Example.App.UI.Element as UI
 import Example.App.Validation as V
 import Formless as F
@@ -16,7 +17,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 
-data Query a = DoNothing a
+data Query a = HandleFormless (F.Message' Form Contact) a
 
 type ChildQuery = F.Query' Form Contact Aff
 type ChildSlot = Unit
@@ -40,9 +41,7 @@ component = H.parentComponent
         <> "Formless, most of which is simply Halogen boilerplate. The actual form spec and wiring "
         <> "consists of less than 20 lines of code."
     , HH.br_
-    , HH.slot
-        unit
-        F.component
+    , HH.slot unit F.component
         { formSpec: F.mkFormSpec { name: "", text: "" }
         , validator
         , submitter: pure <<< F.unwrapOutput
@@ -52,7 +51,9 @@ component = H.parentComponent
     ]
 
   eval :: Query ~> H.ParentDSL Unit Query ChildQuery ChildSlot Void Aff
-  eval (DoNothing a) = pure a
+  eval (HandleFormless (F.Submitted contact) a) = a <$ do
+    H.liftEffect $ log $ show (contact :: Contact)
+  eval (HandleFormless _ a) = pure a
 
 -----
 -- Formless
