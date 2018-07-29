@@ -2,8 +2,7 @@ module Example.App.UI.Typeahead where
 
 import Prelude
 
-import Data.Array (difference, filter, (:))
-import Data.Const (Const)
+import Data.Array (difference, filter, length, (:))
 import Data.Maybe (Maybe(..))
 import Data.String as String
 import Effect.Aff.Class (class MonadAff)
@@ -18,7 +17,7 @@ import Select as Select
 import Select.Utils.Setters as Setters
 
 data Query item a
-  = HandleSelect (Select.Message (Const Void) item) a
+  = HandleSelect (Select.Message (Query item) item) a
   | Remove item a
   | Clear a
 
@@ -37,12 +36,10 @@ data Message f item
   = SelectionsChanged (f item)
 
 type ChildSlot = Unit
-type ChildQuery item = Select.Query (Const Void) item
+type ChildQuery item = Select.Query (Query item) item
 
 ----------
 -- Premade
-
--- TODO: Add removal events. Will require a second render function, probably.
 
 single
   :: ∀ item m
@@ -55,18 +52,24 @@ single = component' (const <<< Just) (const $ const Nothing) filter' render
   where
   filter' items Nothing = items
   filter' items (Just item) = filter (_ == item) items
+
   render st selectState = case st.selected of
     Just item ->
       HH.div
-      [ if selectState.visibility == Select.On then css "dropdown is-active" else css "dropdown" ]
-      [ Dropdown.toggle st
+      [ if selectState.visibility == Select.On then css "dropdown is-active" else css "dropdown is-flex" ]
+      [ Dropdown.toggle [ HE.onClick $ Select.always $ Select.raise $ H.action $ Remove item ] st
       , Dropdown.menu selectState
       ]
     Nothing ->
       HH.div
-      [ if selectState.visibility == Select.On then css "dropdown is-active" else css "dropdown" ]
+      [ if selectState.visibility == Select.On then css "dropdown is-flex is-active" else css "dropdown is-flex" ]
       [ HH.input
-        ( Setters.setInputProps [ HP.placeholder st.placeholder, HP.value selectState.search ] )
+        ( Setters.setInputProps
+          [ HP.placeholder st.placeholder
+          , HP.value selectState.search
+          , css "input"
+          ]
+        )
       , Dropdown.menu selectState
       ]
 
@@ -80,14 +83,23 @@ multi
 multi = component' ((:)) (filter <<< (/=)) difference render
   where
   render st selectState =
-    HH.div
-    [ if selectState.visibility == Select.On then css "dropdown is-active" else css "dropdown" ]
+    HH.div_
     [ HH.div
-      [ css "card" ]
-      ( map (HH.text <<< toText) st.selected )
-    , HH.input
-      ( Setters.setInputProps [ css "input", HP.placeholder st.placeholder, HP.value selectState.search ] )
-    , Dropdown.menu selectState
+      [ if length st.selected > 0 then css "panel is-marginless" else css "panel is-hidden" ]
+      ( (\i ->
+          HH.div
+          [ css "panel-block has-background-white"
+          , HE.onClick $ Select.always $ Select.raise $ H.action $ Remove i
+          ]
+          [ HH.text $ toText i ]
+        ) <$> st.selected
+      )
+    , HH.div
+      [ if selectState.visibility == Select.On then css "dropdown is-flex is-active" else css "dropdown is-flex" ]
+      [ HH.input
+        ( Setters.setInputProps [ css "input", HP.placeholder st.placeholder, HP.value selectState.search ] )
+      , Dropdown.menu selectState
+      ]
     ]
 
 ----------
@@ -103,7 +115,7 @@ component'
   => (item -> f item -> f item)
   -> (item -> f item -> f item)
   -> (Array item -> f item -> Array item)
-  -> (State f item -> Select.State item -> Select.ComponentHTML (Const Void) item)
+  -> (State f item -> Select.State item -> Select.ComponentHTML (Query item) item)
   -> H.Component HH.HTML (Query item) (Input item) (Message f item) m
 component' select' remove' filter' render' =
   H.parentComponent
@@ -150,6 +162,7 @@ component' select' remove' filter' render' =
       pure next
 
     HandleSelect message next -> case message of
+      Select.Emit q -> eval q $> next
       Select.Searched string -> do
         st <- H.get
         let items = filter (String.contains (String.Pattern string) <<< toText) st.items
@@ -158,8 +171,8 @@ component' select' remove' filter' render' =
 
       Select.Selected item -> do
         st <- H.modify \st -> st { selected = select' item st.selected }
+        _ <- H.query unit $ Select.setVisibility Select.Off
         _ <- H.query unit $ Select.replaceItems $ filter' st.items st.selected
-        _ <- H.query unit $ Select.search ""
         H.raise (SelectionsChanged st.selected)
         pure next
 

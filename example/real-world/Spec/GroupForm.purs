@@ -40,8 +40,6 @@ groupFormValidate form = pure $ applyOnInputFields
     , admin: V.validateMaybe
     , applications: V.validateNonEmptyArray
     , pixels: V.validateNonEmptyArray
-    , maxBudget: validateBudget
-    , minBudget: V.validateInt
     , whiskey: V.validateMaybe
     }
   )

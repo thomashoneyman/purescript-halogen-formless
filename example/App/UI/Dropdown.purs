@@ -2,11 +2,12 @@ module Example.App.UI.Dropdown where
 
 import Prelude
 
+import DOM.HTML.Indexed (HTMLbutton)
 import Data.Array (difference, mapWithIndex)
-import Data.Const (Const)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Effect.Aff.Class (class MonadAff)
 import Example.App.UI.Element (css)
+import Example.App.UI.Element as UI
 import Example.App.Validation (class ToText, toText)
 import Halogen as H
 import Halogen.HTML as HH
@@ -15,7 +16,7 @@ import Select as Select
 import Select.Utils.Setters as Setters
 
 data Query item a
-  = HandleSelect (Select.Message (Const Void) item) a
+  = HandleSelect (Select.Message (Query item) item) a
   | Clear a
 
 type State item =
@@ -34,7 +35,7 @@ data Message item
   | Cleared
 
 type ChildSlot = Unit
-type ChildQuery item = Select.Query (Const Void) item
+type ChildQuery item = Select.Query (Query item) item
 
 component
   :: ∀ item m
@@ -73,7 +74,7 @@ component =
       dropdown childState =
         HH.div
           [ if childState.visibility == Select.On then css "dropdown is-active" else css "dropdown" ]
-          [ toggle parentState
+          [ toggle [] parentState
           , menu childState
           ]
 
@@ -95,23 +96,24 @@ component =
       _ -> pure next
 
 toggle
-  :: ∀ item r
+  :: ∀ item q r
    . ToText item
-  => { placeholder :: String, selected :: Maybe item | r }
-  -> Select.ComponentHTML (Const Void) item
-toggle parentState =
+  => Array (HH.IProp HTMLbutton (Select.Query q item Unit))
+  -> { placeholder :: String, selected :: Maybe item | r }
+  -> Select.ComponentHTML q item
+toggle props parentState =
   HH.div
   [ css "dropdown-trigger" ]
-  [ HH.button
-    ( Setters.setToggleProps [ css "button" ] )
+  [ UI.button
+    ( Setters.setToggleProps props )
     [ HH.text $ fromMaybe parentState.placeholder (toText <$> parentState.selected) ]
   ]
 
 menu
-  :: ∀ item
+  :: ∀ item q
    . ToText item
   => Select.State item
-  -> Select.ComponentHTML (Const Void) item
+  -> Select.ComponentHTML q item
 menu selectState =
   HH.div
   [ css "dropdown-menu" ]

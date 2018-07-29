@@ -37,6 +37,7 @@ type State =
   , groupFormDirty :: Boolean    -- Is the group form in a dirty state?
   , optionsFormErrors :: Int     -- Count of the options form errors
   , optionsFormDirty :: Boolean  -- Is the options form in a dirty state?
+  , optionsEnabled :: Boolean    -- Is the options form enabled?
   , group :: Maybe Group         -- Our ideal result type from form submission
   }
 

@@ -3,7 +3,7 @@ module Example.RealWorld.Component where
 import Prelude
 
 import Data.Maybe (Maybe(..))
-import Data.Newtype (over)
+import Data.Newtype (over, unwrap)
 import Effect.Aff (Aff)
 import Effect.Console as Console
 import Example.App.UI.Dropdown as DD
@@ -11,11 +11,12 @@ import Example.App.UI.Element (css)
 import Example.App.UI.Element as UI
 import Example.App.UI.Typeahead as TA
 import Example.RealWorld.Data.Group (Group(..), _admin, _applications, _pixels, _secretKey1, _secretKey2, _whiskey)
-import Example.RealWorld.Data.Options (Options(..), _metric)
+import Example.RealWorld.Data.Options (Options(..), _enable, _metric)
+import Example.RealWorld.Data.Options as O
 import Example.RealWorld.Render.GroupForm as GroupForm
 import Example.RealWorld.Render.OptionsForm as OptionsForm
 import Example.RealWorld.Spec.GroupForm (groupFormSpec, groupFormSubmit, groupFormValidate)
-import Example.RealWorld.Spec.OptionsForm (optionsFormSpec, optionsFormValidate)
+import Example.RealWorld.Spec.OptionsForm (defaultOptionsSpec, optionsFormSpec, optionsFormValidate)
 import Example.RealWorld.Types (ChildQuery, ChildSlot, GroupTASlot(..), Query(..), State, Tab(..))
 import Formless as F
 import Halogen as H
@@ -41,6 +42,7 @@ component =
     , groupFormDirty: false
     , optionsFormErrors: 0
     , optionsFormDirty: false
+    , optionsEnabled: false
     , group: Nothing
     }
 
@@ -105,7 +107,7 @@ component =
           CP.cp2
           unit
           F.component
-          { formSpec: optionsFormSpec
+          { formSpec: defaultOptionsSpec
           , validator: pure <$> optionsFormValidate
           , submitter: pure <<< Options <<< F.unwrapOutput
           , render: OptionsForm.render
@@ -185,10 +187,27 @@ component =
       F.Emit q -> eval q $> a
       F.Submitted _ -> pure a
       F.Changed fstate -> do
-        H.modify_ \st -> st
+        st <- H.get
+        st' <- H.modify _
           { optionsFormErrors = fstate.errors
           , optionsFormDirty = fstate.dirty
+          , optionsEnabled = F.getInput _enable fstate.form
           }
+
+        let submitter = pure <<< Options <<< F.unwrapOutput
+            validator = pure <$> optionsFormValidate
+
+        -- The generated spec will set enabled to false, but we'll want it to be true before
+        -- sending a new spec in to the component.
+        when (st.optionsEnabled /= st'.optionsEnabled) do
+          case st'.optionsEnabled of
+            true -> do
+              let spec' = O.OptionsForm $ _ { enable = F.FormSpec true } $ unwrap optionsFormSpec
+              _ <- H.query' CP.cp2 unit $ H.action $ F.Replace { formSpec: spec', submitter, validator }
+              pure unit
+            _ -> do
+              _ <- H.query' CP.cp2 unit $ H.action $ F.Replace { formSpec: defaultOptionsSpec, submitter, validator }
+              pure unit
         pure a
 
     MetricDropdown m a -> a <$ case m of

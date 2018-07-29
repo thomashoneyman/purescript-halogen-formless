@@ -4,14 +4,28 @@ import Prelude
 
 import Data.Int as Int
 import Data.Maybe (Maybe(..))
-import Example.RealWorld.Data.Options (Dollars(..), Metric(..), OptionsForm(..), OptionsRow, _metric)
 import Example.App.Validation as V
+import Example.RealWorld.Data.Options (Dollars(..), Metric(..), OptionsForm(..), OptionsRow, Speed(..), _metric)
 import Formless as F
 import Formless.Validation.Semigroup (onInputField)
 import Type.Row (RProxy(..))
 
 optionsFormSpec :: OptionsForm F.FormSpec
 optionsFormSpec = F.mkFormSpecFromRow $ RProxy :: RProxy (OptionsRow F.InputType)
+
+-- In the case the user has not toggled the options on, we'll provide them with
+-- valid default values
+defaultOptionsSpec :: OptionsForm F.FormSpec
+defaultOptionsSpec = F.mkFormSpec
+  { enable: false
+  , metric: Just ViewCost
+  , viewCost: "1"
+  , clickCost: ""
+  , installCost: ""
+  , size: "1"
+  , dimensions: "1"
+  , speed: Medium
+  }
 
 optionsFormValidate
   :: OptionsForm F.InputField
