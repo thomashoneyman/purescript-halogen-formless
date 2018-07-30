@@ -14,13 +14,11 @@ import Record as Record
 import Record.Builder (Builder)
 import Record.Builder as Builder
 import Type.Data.RowList (RLProxy(..))
-import Type.Row (RProxy)
 
 -----
 -- Types
 
--- | Never exposed to the user, but used to aid equality instances for
--- | checking dirty states.
+-- | Used to aid equality instances for checking dirty states.
 newtype Input e i o = Input i
 derive instance newtypeInput :: Newtype (Input e i o) _
 derive newtype instance eqInput :: Eq i => Eq (Input e i o)
@@ -35,9 +33,6 @@ fromScratch = Builder.build <@> {}
 -- | A constraint synonym for Row.Cons and Row.Lacks
 class (Row.Cons s t r r', Row.Lacks s r) <= Row1Cons s t r r' | s t r -> r', s r' -> t r
 instance row1Cons :: (Row.Cons s t r r', Row.Lacks s r) => Row1Cons s t r r'
-
--- |
-data FormProxy (form :: (Type -> Type -> Type -> Type) -> Type) = FormProxy
 
 -- | @monoidmusician
 class (Row1Cons s t r r', RL.RowToList r rl, RL.RowToList r' rl')

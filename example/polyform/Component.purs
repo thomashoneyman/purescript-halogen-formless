@@ -11,7 +11,6 @@ import Effect.Console as Console
 import Example.App.UI.Element as UI
 import Example.App.Validation as V
 import Formless as F
-import Formless.Internal (FormProxy(..))
 import Formless.Spec.Transform (mkSProxies)
 import Formless.Validation.Polyform (applyOnInputFields)
 import Halogen as H
@@ -20,7 +19,6 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Polyform.Validation as Validation
 import Record (delete)
-import Type.Row (RProxy(..))
 
 data Query a = HandleFormless (F.Message' Form User) a
 
@@ -74,7 +72,7 @@ component =
     , HH.slot
         unit
         F.component
-        { formSpec: F.mkFormSpecFromRow $ RProxy :: RProxy (FormRow F.InputType)
+        { formSpec: F.mkFormSpecFromProxy _form
         , validator
         , submitter: pure <<< F.unwrapOutput
         , render: renderFormless
@@ -86,10 +84,15 @@ component =
 ----------
 -- Formless
 
+-- We can recover both our user type and our form from the same row.
 type User = Record (FormRow F.OutputType)
 
 newtype Form f = Form (Record (FormRow f))
 derive instance newtypeForm :: Newtype (Form f) _
+
+-- This proxy will let us generate all the SProxies for our form as
+-- well as our entire initial form.
+_form = F.FormProxy :: F.FormProxy Form
 
 type FormRow f =
   ( name  :: f V.Errs String V.Name
@@ -97,8 +100,6 @@ type FormRow f =
   , city  :: f V.Errs String String
   , state :: f V.Errs String String
   )
-
-proxies = mkSProxies (FormProxy :: FormProxy Form)
 
 validator :: ∀ m. MonadEffect m => Form F.InputField -> m (Form F.InputField)
 validator = applyOnInputFields
@@ -161,3 +162,6 @@ renderFormless state =
         [ HH.text "Reset" ]
       ]
     ]
+  where
+    proxies = mkSProxies _form
+

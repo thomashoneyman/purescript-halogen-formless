@@ -5,16 +5,14 @@ import Prelude
 import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
 import Data.Validation.Semigroup (V)
-import Example.RealWorld.Data.Group (Group(..), GroupForm, GroupFormRow, GroupId(..), _secretKey1, _secretKey2)
+import Example.RealWorld.Data.Group (Group(..), GroupForm, GroupId(..), _secretKey1, _secretKey2)
 import Example.App.Validation as V
 import Formless as F
 import Formless.Validation.Semigroup (applyOnInputFields)
 import Record as Record
-import Type.Row (RProxy(..))
 
 groupFormSpec :: GroupForm F.FormSpec
-groupFormSpec =
-  F.mkFormSpecFromRow $ RProxy :: RProxy (GroupFormRow F.InputType)
+groupFormSpec = F.mkFormSpecFromProxy $ F.FormProxy :: F.FormProxy GroupForm
 
 groupFormSubmit :: ∀ m. Monad m => GroupForm F.OutputField -> m Group
 groupFormSubmit form = do

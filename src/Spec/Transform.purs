@@ -9,11 +9,11 @@ import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
-import Formless.Spec (FormSpec(..), InputField, OutputField, _Input, _Result, _Touched)
+import Formless.Spec (FormProxy, FormSpec(..), InputField, OutputField, _Input, _Result, _Touched)
 import Prim.Row as Row
 import Prim.RowList as RL
 import Record.Builder as Builder
-import Type.Row (RLProxy(..), RProxy)
+import Type.Row (RLProxy(..), RProxy(..))
 
 getInput
   :: ∀ sym form t0 fields e i o
@@ -149,19 +149,22 @@ mkFormSpec = wrap <<< Internal.wrapRecord
 -- |   , age :: f String String Int
 -- |   )
 -- |
--- | -- To retrieve input types only, use the Input type synonym
 -- | formSpec :: Form FormSpec
--- | formSpec = mkFormSpecFromRow (RProxy :: RProxy (MyRow Input))
+-- | formSpec = mkFormSpecFromProxy (FormProxy :: FormProxy Form)
 -- | ```
-mkFormSpecFromRow
-  :: ∀ row xs row' form
+mkFormSpecFromProxy
+  :: ∀ row xs row' form' form
    . RL.RowToList row xs
   => MakeFormSpecFromRow xs row row'
-  => Newtype (form FormSpec) (Record row')
-  => RProxy row
-  -> form FormSpec
-mkFormSpecFromRow r = wrap $ Internal.fromScratch builder
-  where builder = mkFormSpecFromRowBuilder (RLProxy :: RLProxy xs) r
+  => Newtype (form Internal.Input) (Record row)
+  => Newtype (form' FormSpec) (Record row')
+  => FormProxy form
+  -> form' FormSpec
+mkFormSpecFromProxy _ = wrap $ Internal.fromScratch builder
+  where
+    builder = mkFormSpecFromRowBuilder
+      (RLProxy :: RLProxy xs)
+      (RProxy :: RProxy row)
 
 -- | The class that provides the Builder implementation to efficiently
 -- | transform a row into a proper FormSpec by wrapping it in newtypes and
@@ -175,11 +178,11 @@ instance mkFormSpecFromRowNil :: MakeFormSpecFromRow RL.Nil row () where
 instance mkFormSpecFromRowCons
   :: ( IsSymbol name
      , Initial i
-     , Row.Cons name i trash row
+     , Row.Cons name (Internal.Input e i o) trash row
      , MakeFormSpecFromRow tail row from
      , Internal.Row1Cons name (FormSpec e i o) from to
      )
-  => MakeFormSpecFromRow (RL.Cons name i tail) row to where
+  => MakeFormSpecFromRow (RL.Cons name (Internal.Input e i o) tail) row to where
   mkFormSpecFromRowBuilder _ r =
     first <<< rest
     where
@@ -197,34 +200,34 @@ instance mkFormSpecFromRowCons
 -- | ```
 
 mkSProxies
-  :: ∀ row xs form row'
+  :: ∀ row xs form t row'
    . RL.RowToList row xs
-  => MakeSProxies form xs row'
-  => Newtype (form FormSpec) (Record row)
-  => Internal.FormProxy form
+  => MakeSProxies xs row row'
+  => Newtype (form t) (Record row)
+  => FormProxy form
   -> Record row'
 mkSProxies _ = Internal.fromScratch builder
   where
     builder = makeSProxiesBuilder
-      (Internal.FormProxy :: Internal.FormProxy form)
       (RLProxy :: RLProxy xs)
+      (RProxy :: RProxy row)
 
 -- | The class to efficiently wrap a record of newtypes
-class MakeSProxies form (xs :: RL.RowList) (to :: # Type) | xs -> to where
-  makeSProxiesBuilder :: Internal.FormProxy form -> RLProxy xs -> Internal.FromScratch to
+class MakeSProxies (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
+  makeSProxiesBuilder :: RLProxy xs -> RProxy row -> Internal.FromScratch to
 
-instance makeSProxiesNil :: MakeSProxies form RL.Nil () where
+instance makeSProxiesNil :: MakeSProxies RL.Nil row () where
   makeSProxiesBuilder _ _ = identity
 
 instance makeSProxiesCons
   :: ( IsSymbol name
      , Row.Cons name x trash row
-     , MakeSProxies form tail row
-     , Internal.Row1Cons name (SProxy name) row to
+     , MakeSProxies tail row from
+     , Internal.Row1Cons name (SProxy name) from to
      )
-  => MakeSProxies form (RL.Cons name x tail) to where
-  makeSProxiesBuilder form _ = first <<< rest
+  => MakeSProxies (RL.Cons name x tail) row to where
+  makeSProxiesBuilder _ _ = first <<< rest
     where
-      rest = makeSProxiesBuilder form (RLProxy :: RLProxy tail)
+      rest = makeSProxiesBuilder (RLProxy :: RLProxy tail) (RProxy :: RProxy row)
       first = Builder.insert (SProxy :: SProxy name) (SProxy :: SProxy name)
 
