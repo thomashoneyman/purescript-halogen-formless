@@ -54,7 +54,6 @@ Formless requires a specific shape from your `Form` data type. You are expected 
 Here's what our form type looks like:
 
 ```purescript
--- We'll assume you've defined `ValidationError` elsewhere
 type Errors = Array ValidationError
 
 newtype Form f = Form
@@ -64,6 +63,23 @@ newtype Form f = Form
   }
 derive instance newtypeForm :: Newtype (Form f) _
 ```
+
+<details>
+  <summary>Expand to see the definition of <code>ValidationError</code> and <code>Encrypted</code> types</summary>
+
+```purescript
+newtype Encrypted = Encrypted String
+
+data ValidationError
+  = Required
+  | TooShort Int
+  | EncryptionFailed
+
+derive instance genericVaidationError ∷ Generic ValidationError _
+instance showValidationError ∷ Show ValidationError where show = genericShow
+```
+
+</details>
 
 ## Component Inputs
 
@@ -128,9 +144,10 @@ newtype InputField error input output = InputField
     input :: input
     -- Whether the user has interacted with the field yet
   , touched :: Boolean
-    -- The result of validation: Nothing if not yet validated,
-    -- Just (Left error) if validation failed, and Just (Right output)
-    -- if validation succeeded.
+    -- The result of validation:
+    -- Nothing if not yet validated,
+    -- Just (Left error) if validation failed, and
+    -- Just (Right output) if validation succeeded.
   , result :: Maybe (Either error output)
   }
 ```
@@ -141,14 +158,13 @@ Let's see an example of a field validation function written with Polyform.
 
 ```purescript
 import Polyform.Validation (Validation(..), hoistFnV)
-import MyModule.Validators as V
 
 -- An example Polyform validator
-validateEncrypt :: ∀ m. Monad m => Validation m V.Errors String Encrypted
+validateEncrypt :: ∀ m. Monad m => Validation m Errors String Encrypted
 validateEncrypt = hoistFnV \str ->
   if null str
-    then Invalid [ V.EncryptionFailed ]
-    else pure (Encrypted str)
+     then Invalid [EncryptionFailed]
+     else pure (Encrypted str)
 ```
 
 We can provide a field validation function like this to every field that will be in our form, and then use the `applyOnInputFields` helper function from Formless to convert these functions to run on the `input` field and store their result in the `result` field:
@@ -158,12 +174,33 @@ import Formless.Validation.Polyform (applyOnInputFields)
 
 -- Each validator in the record should have the type `Validation m error input output`
 validator :: ∀ m. MonadEffect m => Form F.InputField -> m (Form F.InputField)
-validator = applyOnInputFields
-  { name: V.nonEmpty
-  , password1: V.minLength 8 *> validateEncrypt
-  , password2: V.minLength 8 *> validateEncrypt
+validator = applyOnInputFields $ identity
+  { name: validateNonEmpty
+  , password1: validateMinLength 8 *> validateEncrypt
+  , password2: validateMinLength 8 *> validateEncrypt
   }
 ```
+
+<details>
+  <summary>Click to see how <code>validateNonEmpty</code> and <code>validateMinLength</code> are defined</summary>
+
+```purescript
+validateNonEmpty :: ∀ m. Monad m => Validation m Errors String String
+validateNonEmpty = hoistFnV \str ->
+  if null str
+     then Invalid [Required]
+     else pure str
+
+validateMinLength :: ∀ m. Monad m => Int -> Validation m Errors String String
+validateMinLength n = hoistFnV \p ->
+  let p' = String.length p
+  in if p' < n
+     then Invalid [TooShort n]
+     else pure p
+```
+
+</details>
+<br/>
 
 Note: if you get a type error about being unable to match a constrained type, then help the compiler out by applying `identity` to your record of validators before providing it to `applyOnInputFields`:
 
@@ -179,25 +216,26 @@ Formless manages validation and failed submit attempts on your behalf, only noti
 -- A type representing only the successful parsed values in your Form type
 newtype OutputField error input output = OutputField output
 
--- `unwrapOutputs` is a helper function that will unwrap all these newtypes on your
--- behalf. Used on our custom Form type, it'd apply this transformation:
-unwrapOutputs' :: Form F.OutputField -> { name :: String, password1 :: Encrypted, password2 :: Encrypted }
-unwrapOutputs' = F.unwrapOutputs
+-- `unwrapOutput` is a helper function that will unwrap all these newtypes on your behalf.
+-- Used on our custom Form type, it'd apply this transformation:
+unwrapOutput' :: Form F.OutputField -> { name :: String, password1 :: Encrypted, password2 :: Encrypted }
+unwrapOutput' = F.unwrapOutput
 ```
 
 The function allows you to take a fully-valid form and perform some transformations and side effects with it before returning your output type to you in a message. As an example, let's send our signup form to the server and retrieve our new user id:
 
 ```purescript
-submitter :: ∀ m. MonadEffect m => GroupForm F.OutputField -> m User
+submitter :: ∀ m. MonadEffect m => Form F.OutputField -> m User
 submitter form = do
   -- We'll pretend to hit the server
-  userId <- randomInt
+  userId <- liftEffect $ randomInt 0 10
   -- We'll delete our unused fields and insert the new user ID
   let user =
-        Record.delete (SProxy :: SProxy "password1")
-        $ Record.delete (SProxy :: SProxy "password2")
-        $ Record.insert (SProxy :: Sproxy "id") userId
-        $ F.unwrapOutput form
+        form
+        # F.unwrapOutput
+        # Record.delete (SProxy ∷ SProxy "password1")
+        # Record.delete (SProxy ∷ SProxy "password2")
+        # Record.insert (SProxy ∷ SProxy "id") userId
   pure user
 ```
 
@@ -227,12 +265,12 @@ renderFormless fstate =
     [ HP.value $ F.getInput _password1 fstate.form
     , HE.onValueInput $ HE.input $ F.ModifyValidate <<< F.setInput _password1
     ]
-  , HH.text $ showError $ Lens.preview (F._Error _name) fstate.form
+  , HH.text $ showError $ Lens.preview (F._Error _password1) fstate.form
   , HH.input
-    [ HP.value $ F.getInput _password1 fstate.form
+    [ HP.value $ F.getInput _password2 fstate.form
     , HE.onValueInput $ HE.input $ F.ModifyValidate <<< F.setInput _password2
     ]
-  , HH.text $ showError $ Lens.preview (F._Error _name) fstate.form
+  , HH.text $ showError $ Lens.preview (F._Error _password2) fstate.form
   ]
 
   where
@@ -283,7 +321,7 @@ component = H.parentComponent
   eval :: Query ~> H.ParentDSL Unit Query ChildQuery ChildSlot Void Aff
   eval (Formless m a) = case m of
     F.Submitted user -> a <$ do
-      Console.log $ "Got a user! " <> show (user :: User)
+      liftEffect $ Console.log $ "Got a user! " <> show (user :: User)
     _ -> pure a
 ```
 
