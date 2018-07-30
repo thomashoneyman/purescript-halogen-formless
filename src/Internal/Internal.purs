@@ -389,40 +389,6 @@ instance wrapRecordCons
       rest = wrapRecordBuilder (RLProxy :: RLProxy tail) r
       first = Builder.insert _name val
 
-----------
-
-mkSProxies
-  :: ∀ row xs form row'
-   . RL.RowToList row xs
-  => MakeSProxies form xs row'
-  => FormProxy form
-  -> RProxy row
-  -> Record row'
-mkSProxies _ _ = fromScratch builder
-  where
-    builder = makeSProxiesBuilder
-      (FormProxy :: FormProxy form)
-      (RLProxy :: RLProxy xs)
-
--- | The class to efficiently wrap a record of newtypes
-class MakeSProxies form (xs :: RL.RowList) (to :: # Type) | xs -> to where
-  makeSProxiesBuilder :: FormProxy form -> RLProxy xs -> FromScratch to
-
-instance makeSProxiesNil :: MakeSProxies form RL.Nil () where
-  makeSProxiesBuilder _ _ = identity
-
-instance makeSProxiesCons
-  :: ( IsSymbol name
-     , Row.Cons name x trash row
-     , MakeSProxies form tail row
-     , Row1Cons name (SProxy name) row to
-     )
-  => MakeSProxies form (RL.Cons name x tail) to where
-  makeSProxiesBuilder form _ = first <<< rest
-    where
-      rest = makeSProxiesBuilder form (RLProxy :: RLProxy tail)
-      first = Builder.insert (SProxy :: SProxy name) (SProxy :: SProxy name)
-
 -- | The class to efficiently run the sequenceRecord function on a record.
 class Applicative m <= SequenceRecord rl row to m | rl -> row to m where
   sequenceRecordImpl :: RLProxy rl -> Record row -> m (FromScratch to)
