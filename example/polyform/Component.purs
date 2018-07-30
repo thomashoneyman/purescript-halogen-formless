@@ -2,15 +2,17 @@ module Example.Polyform.Component where
 
 import Prelude
 
-import Example.App.UI.Element as UI
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Effect.Class (class MonadEffect)
 import Effect.Console as Console
+import Example.App.UI.Element as UI
 import Example.App.Validation as V
 import Formless as F
+import Formless.Internal (FormProxy(..))
+import Formless.Spec.Transform (mkSProxies)
 import Formless.Validation.Polyform (applyOnInputFields)
 import Halogen as H
 import Halogen.HTML as HH
@@ -96,10 +98,7 @@ type FormRow f =
   , state :: f V.Errs String String
   )
 
-_name = SProxy :: SProxy "name"
-_email = SProxy :: SProxy "email"
-_city = SProxy :: SProxy "city"
-_state = SProxy :: SProxy "state"
+proxies = mkSProxies (FormProxy :: FormProxy Form)
 
 validator :: ∀ m. MonadEffect m => Form F.InputField -> m (Form F.InputField)
 validator = applyOnInputFields
@@ -117,28 +116,28 @@ renderFormless state =
       { label: "Name"
       , help: "Write your name"
       , placeholder: "Dale"
-      , sym: _name
+      , sym: proxies.name
       } state
   , UI.formlessField
       UI.input
       { label: "Email Address"
       , help: "Write your email"
       , placeholder: "me@you.com"
-      , sym: _email
+      , sym: proxies.email
       } state
   , UI.formlessField
       UI.input
       { label: "City"
       , help: "Write your favorite city"
       , placeholder: "Los Angeles"
-      , sym: _city
+      , sym: proxies.city
       } state
   , UI.formlessField
       UI.input
       { label: "State"
       , help: "Write your favorite state of mind"
       , placeholder: ""
-      , sym: _state
+      , sym: proxies.state
       } state
     , HH.br_
     , UI.p_ $

@@ -187,3 +187,44 @@ instance mkFormSpecFromRowCons
       val = FormSpec initial
       rest = mkFormSpecFromRowBuilder (RLProxy :: RLProxy tail) r
       first = Builder.insert _name val
+
+
+-- | A function to generate a record of proxies from a form, so you don't have
+-- | to write out the boilerplate yourself.
+-- |
+-- | ```purescript
+-- | TODO
+-- | ```
+
+mkSProxies
+  :: ∀ row xs form row'
+   . RL.RowToList row xs
+  => MakeSProxies form xs row'
+  => Newtype (form FormSpec) (Record row)
+  => Internal.FormProxy form
+  -> Record row'
+mkSProxies _ = Internal.fromScratch builder
+  where
+    builder = makeSProxiesBuilder
+      (Internal.FormProxy :: Internal.FormProxy form)
+      (RLProxy :: RLProxy xs)
+
+-- | The class to efficiently wrap a record of newtypes
+class MakeSProxies form (xs :: RL.RowList) (to :: # Type) | xs -> to where
+  makeSProxiesBuilder :: Internal.FormProxy form -> RLProxy xs -> Internal.FromScratch to
+
+instance makeSProxiesNil :: MakeSProxies form RL.Nil () where
+  makeSProxiesBuilder _ _ = identity
+
+instance makeSProxiesCons
+  :: ( IsSymbol name
+     , Row.Cons name x trash row
+     , MakeSProxies form tail row
+     , Internal.Row1Cons name (SProxy name) row to
+     )
+  => MakeSProxies form (RL.Cons name x tail) to where
+  makeSProxiesBuilder form _ = first <<< rest
+    where
+      rest = makeSProxiesBuilder form (RLProxy :: RLProxy tail)
+      first = Builder.insert (SProxy :: SProxy name) (SProxy :: SProxy name)
+
