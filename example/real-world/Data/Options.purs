@@ -8,10 +8,8 @@ import Prelude
 
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype)
-import Data.String.Read (class Read)
-import Data.Symbol (SProxy(..))
 import Example.App.Validation (class ToText, Errs)
 import Formless as F
 
@@ -43,12 +41,6 @@ instance toTextMetric :: ToText Metric where
   toText ViewCost = "View Cost"
   toText ClickCost = "Click Cost"
   toText InstallCost = "Install Cost"
-
-instance readMetric :: Read Metric where
-  read "View Cost" = Just ViewCost
-  read "Click Cost" = Just ClickCost
-  read "Install Cost" = Just InstallCost
-  read _ = Nothing
 
 -- | This data type will be used in radio buttons, and so if we
 -- | want to generate an initial form from our row, we'll need an
@@ -85,14 +77,8 @@ type OptionsRow f =
   , speed        :: f Unit Speed          Speed
   )
 
-_enable = SProxy :: SProxy "enable"
-_metric = SProxy :: SProxy "metric"
-_viewCost = SProxy :: SProxy "viewCost"
-_clickCost = SProxy :: SProxy "clickCost"
-_installCost = SProxy :: SProxy "installCost"
-_size = SProxy :: SProxy "size"
-_dimensions = SProxy :: SProxy "dimensions"
-_speed = SProxy :: SProxy "speed"
+proxies :: F.SProxies OptionsForm
+proxies = F.mkSProxies $ F.FormProxy :: F.FormProxy OptionsForm
 
 -- | This is the data type used throughout the application. In this case, it's the same
 -- | as the form and the underlying row.

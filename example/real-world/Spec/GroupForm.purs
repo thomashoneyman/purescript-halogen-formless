@@ -5,7 +5,7 @@ import Prelude
 import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
 import Data.Validation.Semigroup (V)
-import Example.RealWorld.Data.Group (Group(..), GroupForm, GroupId(..), _secretKey1, _secretKey2)
+import Example.RealWorld.Data.Group (Group(..), GroupForm, GroupId(..), proxies)
 import Example.App.Validation as V
 import Formless as F
 import Formless.Validation.Semigroup (applyOnInputFields)
@@ -32,9 +32,9 @@ groupFormValidate form = pure $ applyOnInputFields
   ( identity
     { name: V.validateNonEmpty
     , secretKey1:
-        \i -> V.validateNonEmpty i *> V.validateEqual (F.getInput _secretKey2 form) i
+        \i -> V.validateNonEmpty i *> V.validateEqual (F.getInput proxies.secretKey2 form) i
     , secretKey2:
-        \i -> V.validateNonEmpty i *> V.validateEqual (F.getInput _secretKey1 form) i
+        \i -> V.validateNonEmpty i *> V.validateEqual (F.getInput proxies.secretKey1 form) i
     , admin: V.validateMaybe
     , applications: V.validateNonEmptyArray
     , pixels: V.validateNonEmptyArray

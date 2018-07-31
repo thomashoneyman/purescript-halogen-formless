@@ -11,7 +11,6 @@ import Effect.Console as Console
 import Example.App.UI.Element as UI
 import Example.App.Validation as V
 import Formless as F
-import Formless.Spec.Transform (mkSProxies)
 import Formless.Validation.Polyform (applyOnInputFields)
 import Halogen as H
 import Halogen.HTML as HH
@@ -94,6 +93,12 @@ derive instance newtypeForm :: Newtype (Form f) _
 -- well as our entire initial form.
 _form = F.FormProxy :: F.FormProxy Form
 
+-- This is a record of symbol proxies, which we can now pass to the
+-- various Formless functions that require them. See the render function
+-- below as an example in practice.
+proxies :: F.SProxies Form
+proxies = F.mkSProxies _form
+
 type FormRow f =
   ( name  :: f V.Errs String V.Name
   , email :: f V.Errs String V.Email
@@ -162,6 +167,4 @@ renderFormless state =
         [ HH.text "Reset" ]
       ]
     ]
-  where
-    proxies = mkSProxies _form
 

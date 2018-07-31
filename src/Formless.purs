@@ -45,7 +45,7 @@ import Data.Traversable (traverse, traverse_)
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
 import Formless.Spec (ErrorType, FormProxy(..), FormSpec(..), InputField(..), InputFieldRow, InputType, OutputField(..), OutputType, _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched)
-import Formless.Spec.Transform (class MakeFormSpecFromRow, class MakeSProxies, getInput, getResult, makeSProxiesBuilder, mkFormSpec, mkFormSpecFromProxy, mkFormSpecFromRowBuilder, mkSProxies, modifyInput, resetField, setInput, touchField, unwrapOutput)
+import Formless.Spec.Transform (class MakeFormSpecFromRow, class MakeSProxies, SProxies, getInput, getResult, makeSProxiesBuilder, mkFormSpec, mkFormSpecFromProxy, mkFormSpecFromRowBuilder, mkSProxies, modifyInput, resetField, setInput, touchField, unwrapOutput)
 import Halogen as H
 import Halogen.Component.ChildPath (ChildPath, injQuery, injSlot)
 import Halogen.HTML as HH

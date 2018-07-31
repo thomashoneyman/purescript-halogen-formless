@@ -10,8 +10,7 @@ import Example.App.UI.Dropdown as DD
 import Example.App.UI.Element (css)
 import Example.App.UI.Element as UI
 import Example.App.UI.Typeahead as TA
-import Example.RealWorld.Data.Group (Group(..), _admin, _applications, _pixels, _secretKey1, _secretKey2, _whiskey)
-import Example.RealWorld.Data.Options (Options(..), _enable, _metric)
+import Example.RealWorld.Data.Group as G
 import Example.RealWorld.Data.Options as O
 import Example.RealWorld.Render.GroupForm as GroupForm
 import Example.RealWorld.Render.OptionsForm as OptionsForm
@@ -109,7 +108,7 @@ component =
           F.component
           { formSpec: defaultOptionsSpec
           , validator: pure <$> optionsFormValidate
-          , submitter: pure <<< Options <<< F.unwrapOutput
+          , submitter: pure <<< O.Options <<< F.unwrapOutput
           , render: OptionsForm.render
           }
           (HE.input OptionsForm)
@@ -143,7 +142,7 @@ component =
       -- Here, we'll construct our new group from the two form outputs.
       case mbGroupForm, mbOptionsForm of
          Just g, Just v -> do
-           H.modify_ _ { group = map (over Group (_ { options = v })) g }
+           H.modify_ _ { group = map (over G.Group (_ { options = v })) g }
          _, _ -> H.liftEffect (Console.error "Forms did not validate.")
       st <- H.get
       H.liftEffect $ Console.log $ show st.group
@@ -163,22 +162,22 @@ component =
         pure a
 
     TASingle (TA.SelectionsChanged new) a -> a <$ do
-      H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput _whiskey new)
+      H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput G.proxies.whiskey new)
 
     TAMulti slot (TA.SelectionsChanged new) a -> a <$ case slot of
       Applications ->
-        H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput _applications new)
+        H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput G.proxies.applications new)
       Pixels ->
-        H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput _pixels new)
+        H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput G.proxies.pixels new)
 
     AdminDropdown m a -> a <$ do
-      _ <- H.query' CP.cp1 unit $ H.action $ F.Reset (F.resetField _secretKey1)
-      _ <- H.query' CP.cp1 unit $ H.action $ F.Reset (F.resetField _secretKey2)
+      _ <- H.query' CP.cp1 unit $ H.action $ F.Reset (F.resetField G.proxies.secretKey1)
+      _ <- H.query' CP.cp1 unit $ H.action $ F.Reset (F.resetField G.proxies.secretKey2)
       case m of
         DD.Selected x -> do
-          H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput _admin (Just x))
+          H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput G.proxies.admin (Just x))
         DD.Cleared -> do
-          H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput _admin Nothing)
+          H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput G.proxies.admin Nothing)
 
     -----
     -- Options Form
@@ -191,10 +190,10 @@ component =
         st' <- H.modify _
           { optionsFormErrors = fstate.errors
           , optionsFormDirty = fstate.dirty
-          , optionsEnabled = F.getInput _enable fstate.form
+          , optionsEnabled = F.getInput O.proxies.enable fstate.form
           }
 
-        let submitter = pure <<< Options <<< F.unwrapOutput
+        let submitter = pure <<< O.Options <<< F.unwrapOutput
             validator = pure <$> optionsFormValidate
 
         -- The generated spec will set enabled to false, but we'll want it to be true before
@@ -212,6 +211,6 @@ component =
 
     MetricDropdown m a -> a <$ case m of
       DD.Selected x -> do
-        H.query' CP.cp2 unit $ H.action $ F.ModifyValidate (F.setInput _metric (Just x))
+        H.query' CP.cp2 unit $ H.action $ F.ModifyValidate (F.setInput O.proxies.metric (Just x))
       DD.Cleared -> do
-        H.query' CP.cp2 unit $ H.action $ F.ModifyValidate (F.setInput _metric Nothing)
+        H.query' CP.cp2 unit $ H.action $ F.ModifyValidate (F.setInput O.proxies.metric Nothing)
