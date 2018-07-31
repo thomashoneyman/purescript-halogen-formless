@@ -86,8 +86,8 @@ component =
 -- We can recover both our user type and our form from the same row.
 type User = Record (FormRow F.OutputType)
 
-newtype Form f = Form (Record (FormRow f))
-derive instance newtypeForm :: Newtype (Form f) _
+newtype Form r f = Form (r (FormRow f))
+derive instance newtypeForm :: Newtype (Form r f) _
 
 -- This proxy will let us generate all the SProxies for our form as
 -- well as our entire initial form.
@@ -106,7 +106,7 @@ type FormRow f =
   , state :: f V.Errs String String
   )
 
-validator :: ∀ m. MonadEffect m => Form F.InputField -> m (Form F.InputField)
+validator :: ∀ m. MonadEffect m => Form Record F.InputField -> m (Form Record F.InputField)
 validator = applyOnInputFields
   { name: V.Name <$> (V.minLength 5 *> V.maxLength 10)
   , email: V.emailFormat >>> V.emailIsUsed

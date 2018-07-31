@@ -15,7 +15,7 @@ import Data.Symbol (class IsSymbol, SProxy(..))
 import Prim.Row (class Cons)
 
 -- | @monoidmusician
-data FormProxy (form :: (Type -> Type -> Type -> Type) -> Type) = FormProxy
+data FormProxy (form :: (# Type -> Type) -> (Type -> Type -> Type -> Type) -> Type) = FormProxy
 
 -- | The type that will be applied to the user's input row to
 -- | create the spec form that we'll compare against to measure
@@ -54,30 +54,30 @@ _result = SProxy :: SProxy "result"
 _Field
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
-  => Newtype (form InputField) (Record fields)
+  => Newtype (form Record InputField) (Record fields)
   => Cons sym (InputField e i o) t0 fields
   => SProxy sym
-  -> Lens' (form InputField) (Record (InputFieldRow e i o))
+  -> Lens' (form Record InputField) (Record (InputFieldRow e i o))
 _Field sym = _Newtype <<< prop sym <<< _Newtype
 
 -- | Easy access to any given field's input value from the form
 _Input
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
-  => Newtype (form InputField) (Record fields)
+  => Newtype (form Record InputField) (Record fields)
   => Cons sym (InputField e i o) t0 fields
   => SProxy sym
-  -> Lens' (form InputField) i
+  -> Lens' (form Record InputField) i
 _Input sym = _Field sym <<< prop _input
 
 -- | Easy access to any given field's touched value from the form
 _Touched
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
-  => Newtype (form InputField) (Record fields)
+  => Newtype (form Record InputField) (Record fields)
   => Cons sym (InputField e i o) t0 fields
   => SProxy sym
-  -> Lens' (form InputField) Boolean
+  -> Lens' (form Record InputField) Boolean
 _Touched sym = _Field sym <<< prop _touched
 
 -- | Easy access to any given field's result value from the form, if the
@@ -85,10 +85,10 @@ _Touched sym = _Field sym <<< prop _touched
 _Result
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
-  => Newtype (form InputField) (Record fields)
+  => Newtype (form Record InputField) (Record fields)
   => Cons sym (InputField e i o) t0 fields
   => SProxy sym
-  -> Lens' (form InputField) (Maybe (Either e o))
+  -> Lens' (form Record InputField) (Maybe (Either e o))
 _Result sym = _Field sym <<< prop _result
 
 -- | Easy access to any given field's error from its result field in the form,
@@ -96,10 +96,10 @@ _Result sym = _Field sym <<< prop _result
 _Error
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
-  => Newtype (form InputField) (Record fields)
+  => Newtype (form Record InputField) (Record fields)
   => Cons sym (InputField e i o) t0 fields
   => SProxy sym
-  -> Traversal' (form InputField) e
+  -> Traversal' (form Record InputField) e
 _Error sym = _Result sym <<< _Just <<< _Left
 
 -- | Easy access to any given field's output from its result field in the form,
@@ -107,10 +107,10 @@ _Error sym = _Result sym <<< _Just <<< _Left
 _Output
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
-  => Newtype (form InputField) (Record fields)
+  => Newtype (form Record InputField) (Record fields)
   => Cons sym (InputField e i o) t0 fields
   => SProxy sym
-  -> Traversal' (form InputField) o
+  -> Traversal' (form Record InputField) o
 _Output sym = _Result sym <<< _Just <<< _Right
 
 

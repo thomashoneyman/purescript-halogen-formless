@@ -11,10 +11,10 @@ import Formless as F
 import Formless.Validation.Semigroup (applyOnInputFields)
 import Record as Record
 
-groupFormSpec :: GroupForm F.FormSpec
+groupFormSpec :: GroupForm Record F.FormSpec
 groupFormSpec = F.mkFormSpecFromProxy $ F.FormProxy :: F.FormProxy GroupForm
 
-groupFormSubmit :: ∀ m. Monad m => GroupForm F.OutputField -> m Group
+groupFormSubmit :: ∀ m. Monad m => GroupForm Record F.OutputField -> m Group
 groupFormSubmit form = do
   -- This could be a server call or something else that is necessary
   -- to collect the information to complete your output type.
@@ -27,7 +27,7 @@ groupFormSubmit form = do
     $ F.unwrapOutput form
 
 -- | We'll provide a fairly involved validation function to verify fields are correct
-groupFormValidate :: ∀ m. Monad m => GroupForm F.InputField -> m (GroupForm F.InputField)
+groupFormValidate :: ∀ m. Monad m => GroupForm Record F.InputField -> m (GroupForm Record F.InputField)
 groupFormValidate form = pure $ applyOnInputFields
   ( identity
     { name: V.validateNonEmpty

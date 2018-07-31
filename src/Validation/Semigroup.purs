@@ -61,11 +61,11 @@ applyOnInputFields
    . RL.RowToList fv fvxs
   => OnInputFields fvxs fv io
   => Internal.ApplyRecord io i o
-  => Newtype (form InputField) (Record i)
-  => Newtype (form' InputField) (Record o)
+  => Newtype (form Record InputField) (Record i)
+  => Newtype (form' Record InputField) (Record o)
   => Record fv
-  -> form InputField
-  -> form' InputField
+  -> form Record InputField
+  -> form' Record InputField
 applyOnInputFields r = wrap <<< Internal.applyRecord io <<< unwrap
   where
     io :: Record io

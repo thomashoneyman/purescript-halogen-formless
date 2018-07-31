@@ -61,8 +61,8 @@ _secretKey = SProxy :: SProxy "secretKey"
 _options = SProxy :: SProxy "options"
 
 -- | Here's the Form type we'll use to run with Formless.
-newtype GroupForm f = GroupForm (Record (GroupFormRow f))
-derive instance newtypeGroupForm :: Newtype (GroupForm f) _
+newtype GroupForm r f = GroupForm (r (GroupFormRow f))
+derive instance newtypeGroupForm :: Newtype (GroupForm r f) _
 
 proxies :: F.SProxies GroupForm
 proxies = F.mkSProxies $ F.FormProxy :: F.FormProxy GroupForm

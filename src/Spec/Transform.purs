@@ -18,64 +18,64 @@ import Type.Row (RLProxy(..), RProxy(..))
 getInput
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
-  => Newtype (form InputField) (Record fields)
+  => Newtype (form Record InputField) (Record fields)
   => Row.Cons sym (InputField e i o) t0 fields
   => SProxy sym
-  -> form InputField
+  -> form Record InputField
   -> i
 getInput sym = view (_Input sym)
 
 getResult
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
-  => Newtype (form InputField) (Record fields)
+  => Newtype (form Record InputField) (Record fields)
   => Row.Cons sym (InputField e i o) t0 fields
   => SProxy sym
-  -> form InputField
+  -> form Record InputField
   -> Maybe (Either e o)
 getResult sym = view (_Result sym)
 
 setInput
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
-  => Newtype (form InputField) (Record fields)
+  => Newtype (form Record InputField) (Record fields)
   => Row.Cons sym (InputField e i o) t0 fields
   => SProxy sym
   -> i
-  -> form InputField
-  -> form InputField
+  -> form Record InputField
+  -> form Record InputField
 setInput sym v = set (_Result sym) Nothing <<< set (_Touched sym) true <<< set (_Input sym) v
 
 modifyInput
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
-  => Newtype (form InputField) (Record fields)
+  => Newtype (form Record InputField) (Record fields)
   => Row.Cons sym (InputField e i o) t0 fields
   => SProxy sym
   -> (i -> i)
-  -> form InputField
-  -> form InputField
+  -> form Record InputField
+  -> form Record InputField
 modifyInput sym f = set (_Result sym) Nothing <<< set (_Touched sym) true <<< (_Input sym) f
 
 touchField
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
-  => Newtype (form InputField) (Record fields)
+  => Newtype (form Record InputField) (Record fields)
   => Row.Cons sym (InputField e i o) t0 fields
   => SProxy sym
-  -> form InputField
-  -> form InputField
+  -> form Record InputField
+  -> form Record InputField
 touchField sym = set (_Touched sym) true
 
 resetField
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
   => Initial i
-  => Newtype (form InputField) (Record fields)
+  => Newtype (form Record InputField) (Record fields)
   => Row.Cons sym (InputField e i o) t0 fields
   => SProxy sym
-  -> form InputField
-  -> form InputField
+  -> form Record InputField
+  -> form Record InputField
 resetField sym =
   set (_Result sym) Nothing
   <<< set (_Touched sym) false
@@ -105,8 +105,8 @@ unwrapOutput
   :: ∀ row xs row' form
    . RL.RowToList row xs
   => Internal.UnwrapRecord xs row row'
-  => Newtype (form OutputField) (Record row)
-  => form OutputField
+  => Newtype (form Record OutputField) (Record row)
+  => form Record OutputField
   -> Record row'
 unwrapOutput = Internal.unwrapRecord <<< unwrap
 
@@ -128,9 +128,9 @@ mkFormSpec
   :: ∀ row xs row' form
    . RL.RowToList row xs
   => Internal.WrapRecord xs row row'
-  => Newtype (form FormSpec) (Record row')
+  => Newtype (form Record FormSpec) (Record row')
   => Record row
-  -> form FormSpec
+  -> form Record FormSpec
 mkFormSpec = wrap <<< Internal.wrapRecord
 
 -- | A function to transform a row of labels into a FormSpec. This allows you
@@ -156,10 +156,10 @@ mkFormSpecFromProxy
   :: ∀ row xs row' form' form
    . RL.RowToList row xs
   => MakeFormSpecFromRow xs row row'
-  => Newtype (form Internal.Input) (Record row)
-  => Newtype (form' FormSpec) (Record row')
+  => Newtype (form Record Internal.Input) (Record row)
+  => Newtype (form' Record FormSpec) (Record row')
   => FormProxy form
-  -> form' FormSpec
+  -> form' Record FormSpec
 mkFormSpecFromProxy _ = wrap $ Internal.fromScratch builder
   where
     builder = mkFormSpecFromRowBuilder
@@ -198,7 +198,7 @@ type SProxies form =
    ∀ row xs row'
     . RL.RowToList row xs
    => MakeSProxies xs row'
-   => Newtype (form FormSpec) (Record row)
+   => Newtype (form Record FormSpec) (Record row)
    => Record row'
 
 -- | A helper function to produce a record of SProxies given a form spec, to save
@@ -224,7 +224,7 @@ mkSProxies
   :: ∀ form row xs row'
    . RL.RowToList row xs
   => MakeSProxies xs row'
-  => Newtype (form FormSpec) (Record row)
+  => Newtype (form Record FormSpec) (Record row)
   => FormProxy form
   -> Record row'
 mkSProxies _ = Internal.fromScratch builder

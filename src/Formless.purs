@@ -50,15 +50,15 @@ import Halogen as H
 import Halogen.Component.ChildPath (ChildPath, injQuery, injSlot)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
-import Prim.RowList (class RowToList) as RL
+import Prim.RowList as RL
 import Record as Record
 import Renderless.State (getState, modifyState, modifyState_, modifyStore_, putState)
 import Type.Row (type (+))
 
 data Query pq cq cs form out m a
-  = Modify (form InputField -> form InputField) a
-  | ModifyValidate (form InputField -> form InputField) a
-  | Reset (form InputField -> form InputField) a
+  = Modify (form Record InputField -> form Record InputField) a
+  | ModifyValidate (form Record InputField -> form Record InputField) a
+  | Reset (form Record InputField -> form Record InputField) a
   | ResetAll a
   | Reply (PublicState form -> a)
   | Validate a
@@ -111,21 +111,21 @@ type StateRow form r =
   , submitting :: Boolean
   , errors :: Int
   , submitAttempts :: Int
-  , form :: form InputField
+  , form :: form Record InputField
   | r
   )
 
 -- | Values provided by the user but maintained by the component
 type SpecRow form out m r =
-  ( validator :: form InputField -> m (form InputField)
-  , submitter :: form OutputField -> m out
-  , formSpec :: form FormSpec
+  ( validator :: form Record InputField -> m (form Record InputField)
+  , submitter :: form Record OutputField -> m out
+  , formSpec :: form Record FormSpec
   | r
   )
 
 -- | Values created and maintained by the component
 type InternalStateRow form out =
-  ( initialInputs :: form Internal.Input
+  ( initialInputs :: form Record Internal.Input
   , formResult :: Maybe out
   , allTouched :: Boolean
   )
@@ -204,10 +204,10 @@ component
   => Internal.CountErrors fieldxs field count
   => Internal.AllTouched fieldxs field
   => Internal.SumRecord countxs count (Additive Int)
-  => Newtype (form FormSpec) (Record spec)
-  => Newtype (form InputField) (Record field)
-  => Newtype (form OutputField) (Record output)
-  => Newtype (form Internal.Input) (Record inputs)
+  => Newtype (form Record FormSpec) (Record spec)
+  => Newtype (form Record InputField) (Record field)
+  => Newtype (form Record OutputField) (Record output)
+  => Newtype (form Record Internal.Input) (Record inputs)
   => Component pq cq cs form out m
 component =
   H.parentComponent

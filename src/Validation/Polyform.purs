@@ -64,12 +64,12 @@ applyOnInputFields
   => OnInputFields fvxs fv io
   => Internal.ApplyRecord io i o
   => Internal.SequenceRecord oxs o o' m
-  => Newtype (form (Validation m)) (Record fv)
-  => Newtype (form InputField) (Record i)
-  => Newtype (form' InputField) (Record o')
+  => Newtype (form Record (Validation m)) (Record fv)
+  => Newtype (form Record InputField) (Record i)
+  => Newtype (form' Record InputField) (Record o')
   => Record fv
-  -> form InputField
-  -> m (form' InputField)
+  -> form Record InputField
+  -> m (form' Record InputField)
 applyOnInputFields r = map wrap <<< Internal.sequenceRecord <<< Internal.applyRecord io <<< unwrap
   where
     io :: Record io

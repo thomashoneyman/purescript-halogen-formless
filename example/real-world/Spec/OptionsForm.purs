@@ -9,12 +9,12 @@ import Example.RealWorld.Data.Options (Dollars(..), Metric(..), OptionsForm(..),
 import Formless as F
 import Formless.Validation.Semigroup (onInputField)
 
-optionsFormSpec :: OptionsForm F.FormSpec
+optionsFormSpec :: OptionsForm Record F.FormSpec
 optionsFormSpec = F.mkFormSpecFromProxy $ F.FormProxy :: F.FormProxy OptionsForm
 
 -- In the case the user has not toggled the options on, we'll provide them with
 -- valid default values
-defaultOptionsSpec :: OptionsForm F.FormSpec
+defaultOptionsSpec :: OptionsForm Record F.FormSpec
 defaultOptionsSpec = F.mkFormSpec
   { enable: false
   , metric: Just ViewCost
@@ -27,8 +27,8 @@ defaultOptionsSpec = F.mkFormSpec
   }
 
 optionsFormValidate
-  :: OptionsForm F.InputField
-  -> OptionsForm F.InputField
+  :: OptionsForm Record F.InputField
+  -> OptionsForm Record F.InputField
 optionsFormValidate (OptionsForm form) = OptionsForm
   { enable: pure `onInputField` form.enable
   , metric: V.validateMaybe `onInputField` form.metric

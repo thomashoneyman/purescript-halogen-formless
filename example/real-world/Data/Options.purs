@@ -89,5 +89,5 @@ derive newtype instance showOptions :: Show Options
 
 -- | Here's the Form type we'll use to run with Formless. The fields are the same as the
 -- | underlying row.
-newtype OptionsForm f = OptionsForm (Record (OptionsRow f))
-derive instance newtypeOptionsForm :: Newtype (OptionsForm f) _
+newtype OptionsForm r f = OptionsForm (r (OptionsRow f))
+derive instance newtypeOptionsForm :: Newtype (OptionsForm r f) _

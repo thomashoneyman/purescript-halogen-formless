@@ -83,8 +83,8 @@ checkTouched
   :: ∀ form row xs
    . RL.RowToList row xs
   => AllTouched xs row
-  => Newtype (form InputField) (Record row)
-  => form InputField
+  => Newtype (form Record InputField) (Record row)
+  => form Record InputField
   -> Boolean
 checkTouched = allTouchedImpl (RLProxy :: RLProxy xs) <<< unwrap
 
@@ -95,8 +95,8 @@ countErrors
   => RL.RowToList row' xs'
   => CountErrors xs row row'
   => SumRecord xs' row' (Additive Int)
-  => Newtype (form InputField) (Record row)
-  => form InputField
+  => Newtype (form Record InputField) (Record row)
+  => form Record InputField
   -> Int
 countErrors r = unwrap $ sumRecord $ fromScratch builder
   where builder = countErrorsBuilder (RLProxy :: RLProxy xs) (unwrap r)
@@ -116,9 +116,9 @@ setInputFieldsTouched
   :: ∀ row xs form
    . RL.RowToList row xs
   => SetInputFieldsTouched xs row row
-  => Newtype (form InputField) (Record row)
-  => form InputField
-  -> form InputField
+  => Newtype (form Record InputField) (Record row)
+  => form Record InputField
+  -> form Record InputField
 setInputFieldsTouched r = wrap $ fromScratch builder
   where builder = setInputFieldsTouchedBuilder (RLProxy :: RLProxy xs) (unwrap r)
 
@@ -128,10 +128,10 @@ inputFieldsToInput
   :: ∀ row xs row' form
    . RL.RowToList row xs
   => InputFieldsToInput xs row row'
-  => Newtype (form InputField) (Record row)
-  => Newtype (form Input) (Record row')
-  => form InputField
-  -> form Input
+  => Newtype (form Record InputField) (Record row)
+  => Newtype (form Record Input) (Record row')
+  => form Record InputField
+  -> form Record Input
 inputFieldsToInput r = wrap $ fromScratch builder
   where builder = inputFieldsToInputBuilder (RLProxy :: RLProxy xs) (unwrap r)
 
@@ -141,10 +141,10 @@ formSpecToInputFields
   :: ∀ row xs row' form
    . RL.RowToList row xs
   => FormSpecToInputField xs row row'
-  => Newtype (form FormSpec) (Record row)
-  => Newtype (form InputField) (Record row')
-  => form FormSpec
-  -> form InputField
+  => Newtype (form Record FormSpec) (Record row)
+  => Newtype (form Record InputField) (Record row')
+  => form Record FormSpec
+  -> form Record InputField
 formSpecToInputFields r = wrap $ fromScratch builder
   where builder = formSpecToInputFieldBuilder (RLProxy :: RLProxy xs) (unwrap r)
 
@@ -154,10 +154,10 @@ inputFieldToMaybeOutput
   :: ∀ row xs row' form
    . RL.RowToList row xs
   => InputFieldToMaybeOutput xs row row'
-  => Newtype (form InputField) (Record row)
-  => Newtype (form OutputField) (Record row')
-  => form InputField
-  -> Maybe (form OutputField)
+  => Newtype (form Record InputField) (Record row)
+  => Newtype (form Record OutputField) (Record row')
+  => form Record InputField
+  -> Maybe (form Record OutputField)
 inputFieldToMaybeOutput r = map wrap $ fromScratch <$> builder
   where builder = inputFieldToMaybeOutputBuilder (RLProxy :: RLProxy xs) (unwrap r)
 

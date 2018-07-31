@@ -63,14 +63,15 @@ type Contact =
   , text :: String
   }
 
-newtype Form f = Form
-  { name :: f V.Errs String String
-  -- Use `Unit` to represent no errors in Polyform
-  , text :: f Unit String String
-  }
-derive instance newtypeForm :: Newtype (Form f) _
+newtype Form r f = Form (r (FormRow f))
+derive instance newtypeForm :: Newtype (Form r f) _
 
-validator :: ∀ m. Monad m => Form F.InputField -> m (Form F.InputField)
+type FormRow f =
+  ( name :: f V.Errs String String
+  , text :: f Unit String String
+  )
+
+validator :: ∀ m. Monad m => Form Record F.InputField -> m (Form Record F.InputField)
 validator = applyOnInputFields $ identity
   { name: V.minLength 5
   , text: V.notRequired

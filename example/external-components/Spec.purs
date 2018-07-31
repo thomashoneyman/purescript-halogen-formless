@@ -11,8 +11,8 @@ import Formless.Validation.Semigroup (applyOnInputFields)
 
 type User = Record (FormRow OutputType)
 
-newtype Form f = Form (Record (FormRow f))
-derive instance newtypeForm :: Newtype (Form f) _
+newtype Form r f = Form (r (FormRow f))
+derive instance newtypeForm' :: Newtype (Form r f) _
 
 type FormRow f =
   ( name     :: f V.Errs String         String
@@ -25,10 +25,10 @@ type FormRow f =
 proxies :: SProxies Form
 proxies = mkSProxies $ FormProxy :: FormProxy Form
 
-formSpec :: Form FormSpec
+formSpec :: Form Record FormSpec
 formSpec = mkFormSpecFromProxy $ FormProxy :: FormProxy Form
 
-validator :: Form InputField -> Form InputField
+validator :: Form Record InputField -> Form Record InputField
 validator = applyOnInputFields
     { name: flip V.validateMinimumLength 7
     , email: V.validateEmailRegex <<< fromMaybe ""
@@ -36,5 +36,5 @@ validator = applyOnInputFields
     , language: \(i :: Maybe String) -> V.validateMaybe i
     }
 
-submitter :: ∀ m. Monad m => Form OutputField -> m User
+submitter :: ∀ m. Monad m => Form Record OutputField -> m User
 submitter = pure <<< unwrapOutput
