@@ -93,11 +93,12 @@ emailIsUsed
   :: ∀ m
    . MonadEffect m
   => Validation m Errs Email Email
-emailIsUsed = Validation \e -> do
-  v <- liftEffect random
-  pure $ if v > 0.5
+emailIsUsed = Validation \(Email e) -> do
+  -- Perhaps we hit the server to check if the email is in use
+  _ <- liftEffect random
+  pure $ if contains (Pattern "t") e
     then Validation.Invalid $ singleton EmailInUse
-    else pure e
+    else pure (Email e)
 
 minLength
   :: ∀ m
