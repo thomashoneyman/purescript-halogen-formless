@@ -9529,7 +9529,7 @@ var PS = {};
       if (Data_Boolean.otherwise) {
           return Data_Validation_Semigroup.invalid(Data_Array.singleton(EmptyField.value));
       };
-      throw new Error("Failed pattern match at Example.App.Validation line 143, column 1 - line 145, column 27: " + [ input.constructor.name ]);
+      throw new Error("Failed pattern match at Example.App.Validation line 144, column 1 - line 146, column 27: " + [ input.constructor.name ]);
   };
   var validateNonEmpty = function (input) {
       if (Data_String_Common["null"](input)) {
@@ -9538,7 +9538,7 @@ var PS = {};
       if (Data_Boolean.otherwise) {
           return Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(input);
       };
-      throw new Error("Failed pattern match at Example.App.Validation line 151, column 1 - line 151, column 44: " + [ input.constructor.name ]);
+      throw new Error("Failed pattern match at Example.App.Validation line 152, column 1 - line 152, column 44: " + [ input.constructor.name ]);
   };
   var validateMinimumLength = function (input) {
       return function (n) {
@@ -9548,7 +9548,7 @@ var PS = {};
           if (Data_Boolean.otherwise) {
               return Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(input);
           };
-          throw new Error("Failed pattern match at Example.App.Validation line 164, column 1 - line 167, column 19: " + [ input.constructor.name, n.constructor.name ]);
+          throw new Error("Failed pattern match at Example.App.Validation line 165, column 1 - line 168, column 19: " + [ input.constructor.name, n.constructor.name ]);
       };
   };
   var validateMaybe = function (v) {
@@ -9558,7 +9558,7 @@ var PS = {};
       if (v instanceof Data_Maybe.Just) {
           return Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.value0);
       };
-      throw new Error("Failed pattern match at Example.App.Validation line 129, column 1 - line 129, column 42: " + [ v.constructor.name ]);
+      throw new Error("Failed pattern match at Example.App.Validation line 130, column 1 - line 130, column 42: " + [ v.constructor.name ]);
   };
   var validateInt = function (str) {
       var v = Data_Int.fromString(str);
@@ -9568,7 +9568,7 @@ var PS = {};
       if (v instanceof Data_Maybe.Just) {
           return Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.value0);
       };
-      throw new Error("Failed pattern match at Example.App.Validation line 139, column 19 - line 141, column 19: " + [ v.constructor.name ]);
+      throw new Error("Failed pattern match at Example.App.Validation line 140, column 19 - line 142, column 19: " + [ v.constructor.name ]);
   };
   var validateEqual = function (a) {
       return function (b) {
@@ -9578,7 +9578,7 @@ var PS = {};
           if (Data_Boolean.otherwise) {
               return Data_Validation_Semigroup.invalid(Data_Array.singleton(new NotEqual(a, b)));
           };
-          throw new Error("Failed pattern match at Example.App.Validation line 133, column 1 - line 133, column 51: " + [ a.constructor.name, b.constructor.name ]);
+          throw new Error("Failed pattern match at Example.App.Validation line 134, column 1 - line 134, column 51: " + [ a.constructor.name, b.constructor.name ]);
       };
   };
   var unsafeRegexFromString = function (str) {
@@ -9614,8 +9614,8 @@ var PS = {};
   };
   var showName = Data_Show.showString;
   var showError = function (dictToText) {
-      return Control_Bind.bindFlipped(Data_Maybe.bindMaybe)(Data_Either.either(function ($84) {
-          return Data_Functor.map(Data_Maybe.functorMaybe)(toText(dictToText))(Data_Array.head($84));
+      return Control_Bind.bindFlipped(Data_Maybe.bindMaybe)(Data_Either.either(function ($85) {
+          return Data_Functor.map(Data_Maybe.functorMaybe)(toText(dictToText))(Data_Array.head($85));
       })(Data_Function["const"](Data_Maybe.Nothing.value)));
   };
   var showEmail = Data_Show.showString;
@@ -9628,8 +9628,8 @@ var PS = {};
       return function (n) {
           return Polyform_Validation.hoistFnV(dictMonad)(Data_Monoid.monoidArray)(function (p) {
               var p$prime = Data_String_CodePoints.length(p);
-              var $42 = p$prime < n;
-              if ($42) {
+              var $43 = p$prime < n;
+              if ($43) {
                   return Polyform_Validation.Invalid.create(Data_Array.singleton(new TooShort(n)));
               };
               return Control_Applicative.pure(Polyform_Validation.applicativeV(Data_Monoid.monoidArray))(p);
@@ -9640,8 +9640,8 @@ var PS = {};
       return function (n) {
           return Polyform_Validation.hoistFnV(dictMonad)(Data_Monoid.monoidArray)(function (p) {
               var p$prime = Data_String_CodePoints.length(p);
-              var $43 = Data_String_CodePoints.length(p) > n;
-              if ($43) {
+              var $44 = Data_String_CodePoints.length(p) > n;
+              if ($44) {
                   return Polyform_Validation.Invalid.create(Data_Array.singleton(new TooLong(n)));
               };
               return Control_Applicative.pure(Polyform_Validation.applicativeV(Data_Monoid.monoidArray))(p);
@@ -9656,25 +9656,25 @@ var PS = {};
       if (Data_Boolean.otherwise) {
           return Data_Validation_Semigroup.invalid(Data_Array.singleton(InvalidEmail.value));
       };
-      throw new Error("Failed pattern match at Example.App.Validation line 158, column 1 - line 158, column 46: " + [ input.constructor.name ]);
+      throw new Error("Failed pattern match at Example.App.Validation line 159, column 1 - line 159, column 46: " + [ input.constructor.name ]);
   };
   var emailIsUsed = function (dictMonadEffect) {
-      return function (e) {
-          return Control_Bind.bind((dictMonadEffect.Monad0()).Bind1())(Effect_Class.liftEffect(dictMonadEffect)(Effect_Random.random))(function (v) {
+      return function (v) {
+          return Control_Bind.bind((dictMonadEffect.Monad0()).Bind1())(Effect_Class.liftEffect(dictMonadEffect)(Effect_Random.random))(function (v1) {
               return Control_Applicative.pure((dictMonadEffect.Monad0()).Applicative0())((function () {
-                  var $82 = v > 0.5;
-                  if ($82) {
+                  var $83 = Data_String_CodeUnits.contains("t")(v);
+                  if ($83) {
                       return Polyform_Validation.Invalid.create(Data_Array.singleton(EmailInUse.value));
                   };
-                  return Control_Applicative.pure(Polyform_Validation.applicativeV(Data_Monoid.monoidArray))(e);
+                  return Control_Applicative.pure(Polyform_Validation.applicativeV(Data_Monoid.monoidArray))(v);
               })());
           });
       };
   };
   var emailFormat = function (dictMonad) {
       return Polyform_Validation.hoistFnV(dictMonad)(Data_Monoid.monoidArray)(function (e) {
-          var $83 = Data_String_CodeUnits.contains("@")(e);
-          if ($83) {
+          var $84 = Data_String_CodeUnits.contains("@")(e);
+          if ($84) {
               return Control_Applicative.pure(Polyform_Validation.applicativeV(Data_Monoid.monoidArray))(e);
           };
           return Polyform_Validation.Invalid.create(Data_Array.singleton(InvalidEmail.value));
