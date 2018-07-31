@@ -9,7 +9,7 @@ import Effect.Console as Console
 import Example.App.UI.Element as UI
 import Example.App.UI.Typeahead as TA
 import Example.ExternalComponents.RenderForm (formless)
-import Example.ExternalComponents.Spec (User, _email, _language, _whiskey, formSpec, submitter, validator)
+import Example.ExternalComponents.Spec (User, proxies, formSpec, submitter, validator)
 import Example.ExternalComponents.Types (ChildQuery, ChildSlot, Query(..), Slot(..), State)
 import Formless as F
 import Halogen as H
@@ -72,13 +72,13 @@ component =
 
     Typeahead slot (TA.SelectionsChanged new) a -> case slot of
       Email -> a <$ do
-        H.query unit $ H.action $ F.ModifyValidate (F.setInput _email new)
+        H.query unit $ H.action $ F.ModifyValidate (F.setInput proxies.email new)
 
       Whiskey -> a <$ do
-        _ <- H.query unit $ H.action $ F.ModifyValidate (F.setInput _whiskey new)
+        _ <- H.query unit $ H.action $ F.ModifyValidate (F.setInput proxies.whiskey new)
         -- We'll clear the email field when a new whiskey is selected
-        _ <- H.query unit $ H.action $ F.Reset (F.resetField _email)
+        _ <- H.query unit $ H.action $ F.Reset (F.resetField proxies.email)
         H.query unit $ H.action $ F.Send Email (H.action TA.Clear)
 
       Language -> a <$ do
-        H.query unit $ H.action $ F.ModifyValidate (F.setInput _language new)
+        H.query unit $ H.action $ F.ModifyValidate (F.setInput proxies.language new)

@@ -5,13 +5,12 @@ import Prelude
 import Data.Int as Int
 import Data.Maybe (Maybe(..))
 import Example.App.Validation as V
-import Example.RealWorld.Data.Options (Dollars(..), Metric(..), OptionsForm(..), OptionsRow, Speed(..), _metric)
+import Example.RealWorld.Data.Options (Dollars(..), Metric(..), OptionsForm(..), Speed(..), proxies)
 import Formless as F
 import Formless.Validation.Semigroup (onInputField)
-import Type.Row (RProxy(..))
 
 optionsFormSpec :: OptionsForm F.FormSpec
-optionsFormSpec = F.mkFormSpecFromRow $ RProxy :: RProxy (OptionsRow F.InputType)
+optionsFormSpec = F.mkFormSpecFromProxy $ F.FormProxy :: F.FormProxy OptionsForm
 
 -- In the case the user has not toggled the options on, we'll provide them with
 -- valid default values
@@ -41,7 +40,7 @@ optionsFormValidate (OptionsForm form) = OptionsForm
   , speed: pure `onInputField` form.speed
   }
   where
-    metric = F.getInput _metric (OptionsForm form)
+    metric = F.getInput proxies.metric (OptionsForm form)
 
     validateMetric m str
       | metric == Just m = pure <<< Dollars <$> V.validateInt str

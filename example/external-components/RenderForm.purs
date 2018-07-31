@@ -5,7 +5,7 @@ import Prelude
 import Effect.Aff (Aff)
 import Example.App.UI.Element as UI
 import Example.App.UI.Typeahead as TA
-import Example.ExternalComponents.Spec (Form, User, _email, _language, _name, _whiskey)
+import Example.ExternalComponents.Spec (Form, User, proxies)
 import Example.ExternalComponents.Types (Query(..), Slot(..))
 import Formless as F
 import Halogen as H
@@ -21,7 +21,7 @@ formless state =
         { label: "Name"
         , help: "Write your name"
         , placeholder: "Dale"
-        , sym: _name
+        , sym: proxies.name
         } state
     , email state
     , whiskey state
@@ -55,7 +55,7 @@ email :: F.State Form User Aff -> F.HTML Query (TA.Query String) Slot Form User 
 email state =
   UI.field
   { label: "Email"
-  , help: UI.resultToHelp "Choose an email address -- carefully." (F.getResult _email state.form)
+  , help: UI.resultToHelp "Choose an email address -- carefully." (F.getResult proxies.email state.form)
   }
   [ HH.slot Email TA.single
     { placeholder: "me@you.com"
@@ -74,7 +74,7 @@ whiskey :: F.State Form User Aff -> F.HTML Query (TA.Query String) Slot Form Use
 whiskey state =
   UI.field
   { label: "Whiskey"
-  , help: UI.resultToHelp "Select a favorite whiskey" (F.getResult _whiskey state.form)
+  , help: UI.resultToHelp "Select a favorite whiskey" (F.getResult proxies.whiskey state.form)
   }
   [ HH.slot Whiskey TA.single
       { placeholder: "Lagavulin 12"
@@ -92,7 +92,7 @@ language :: F.State Form User Aff -> F.HTML Query (TA.Query String) Slot Form Us
 language state =
   UI.field
   { label: "Language"
-  , help: UI.resultToHelp "Choose your favorite programming language." (F.getResult _language state.form)
+  , help: UI.resultToHelp "Choose your favorite programming language." (F.getResult proxies.language state.form)
   }
   [ HH.slot Language TA.single
       { placeholder: "Haskell"

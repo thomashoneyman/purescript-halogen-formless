@@ -2,13 +2,13 @@ module Example.Polyform.Component where
 
 import Prelude
 
-import Example.App.UI.Element as UI
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Effect.Class (class MonadEffect)
 import Effect.Console as Console
+import Example.App.UI.Element as UI
 import Example.App.Validation as V
 import Formless as F
 import Formless.Validation.Polyform (applyOnInputFields)
@@ -18,7 +18,6 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Polyform.Validation as Validation
 import Record (delete)
-import Type.Row (RProxy(..))
 
 data Query a = HandleFormless (F.Message' Form User) a
 
@@ -72,7 +71,7 @@ component =
     , HH.slot
         unit
         F.component
-        { formSpec: F.mkFormSpecFromRow $ RProxy :: RProxy (FormRow F.InputType)
+        { formSpec: F.mkFormSpecFromProxy _form
         , validator
         , submitter: pure <<< F.unwrapOutput
         , render: renderFormless
@@ -84,10 +83,21 @@ component =
 ----------
 -- Formless
 
+-- We can recover both our user type and our form from the same row.
 type User = Record (FormRow F.OutputType)
 
 newtype Form f = Form (Record (FormRow f))
 derive instance newtypeForm :: Newtype (Form f) _
+
+-- This proxy will let us generate all the SProxies for our form as
+-- well as our entire initial form.
+_form = F.FormProxy :: F.FormProxy Form
+
+-- This is a record of symbol proxies, which we can now pass to the
+-- various Formless functions that require them. See the render function
+-- below as an example in practice.
+proxies :: F.SProxies Form
+proxies = F.mkSProxies _form
 
 type FormRow f =
   ( name  :: f V.Errs String V.Name
@@ -95,11 +105,6 @@ type FormRow f =
   , city  :: f V.Errs String String
   , state :: f V.Errs String String
   )
-
-_name = SProxy :: SProxy "name"
-_email = SProxy :: SProxy "email"
-_city = SProxy :: SProxy "city"
-_state = SProxy :: SProxy "state"
 
 validator :: ∀ m. MonadEffect m => Form F.InputField -> m (Form F.InputField)
 validator = applyOnInputFields
@@ -117,28 +122,28 @@ renderFormless state =
       { label: "Name"
       , help: "Write your name"
       , placeholder: "Dale"
-      , sym: _name
+      , sym: proxies.name
       } state
   , UI.formlessField
       UI.input
       { label: "Email Address"
       , help: "Write your email"
       , placeholder: "me@you.com"
-      , sym: _email
+      , sym: proxies.email
       } state
   , UI.formlessField
       UI.input
       { label: "City"
       , help: "Write your favorite city"
       , placeholder: "Los Angeles"
-      , sym: _city
+      , sym: proxies.city
       } state
   , UI.formlessField
       UI.input
       { label: "State"
       , help: "Write your favorite state of mind"
       , placeholder: ""
-      , sym: _state
+      , sym: proxies.state
       } state
     , HH.br_
     , UI.p_ $
@@ -162,3 +167,4 @@ renderFormless state =
         [ HH.text "Reset" ]
       ]
     ]
+

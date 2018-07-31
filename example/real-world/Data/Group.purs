@@ -41,12 +41,6 @@ type GroupRow f r =
   | r
   )
 
-_name = SProxy :: SProxy "name"
-_admin = SProxy :: SProxy "admin"
-_applications = SProxy :: SProxy "applications"
-_pixels = SProxy :: SProxy "pixels"
-_whiskey = SProxy :: SProxy "whiskey"
-
 -- | Here's the Group data type we'll use throughout our application. After we send
 -- | a form result off to the server, this is what we'll get in return.
 newtype Group = Group
@@ -70,12 +64,12 @@ _options = SProxy :: SProxy "options"
 newtype GroupForm f = GroupForm (Record (GroupFormRow f))
 derive instance newtypeGroupForm :: Newtype (GroupForm f) _
 
+proxies :: F.SProxies GroupForm
+proxies = F.mkSProxies $ F.FormProxy :: F.FormProxy GroupForm
+
 -- | In order to generate our fields automatically using mkFormSpecFromRow, we'll make
 -- | sure to have the new row as a new type.
 type GroupFormRow f = GroupRow f
   ( secretKey1 :: f Errs String String
   , secretKey2 :: f Errs String String
   )
-
-_secretKey1 = SProxy :: SProxy "secretKey1"
-_secretKey2 = SProxy :: SProxy "secretKey2"

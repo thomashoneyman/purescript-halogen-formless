@@ -4,12 +4,10 @@ import Prelude
 
 import Data.Maybe (Maybe, fromMaybe)
 import Data.Newtype (class Newtype)
-import Data.Symbol (SProxy(..))
 import Example.App.Validation as V
-import Formless.Spec (FormSpec, InputType, InputField, OutputType, OutputField)
-import Formless.Spec.Transform (mkFormSpecFromRow, unwrapOutput)
+import Formless.Spec (FormProxy(..), FormSpec, InputField, OutputField, OutputType)
+import Formless.Spec.Transform (SProxies, mkFormSpecFromProxy, mkSProxies, unwrapOutput)
 import Formless.Validation.Semigroup (applyOnInputFields)
-import Type.Row (RProxy(..))
 
 type User = Record (FormRow OutputType)
 
@@ -24,13 +22,11 @@ type FormRow f =
   )
 
 -- | You'll usually want symbol proxies for convenience
-_name = SProxy :: SProxy "name"
-_email = SProxy :: SProxy "email"
-_whiskey = SProxy :: SProxy "whiskey"
-_language = SProxy :: SProxy "language"
+proxies :: SProxies Form
+proxies = mkSProxies $ FormProxy :: FormProxy Form
 
 formSpec :: Form FormSpec
-formSpec = mkFormSpecFromRow $ RProxy :: RProxy (FormRow InputType)
+formSpec = mkFormSpecFromProxy $ FormProxy :: FormProxy Form
 
 validator :: Form InputField -> Form InputField
 validator = applyOnInputFields

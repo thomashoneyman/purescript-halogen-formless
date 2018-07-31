@@ -18,8 +18,7 @@ import Type.Data.RowList (RLProxy(..))
 -----
 -- Types
 
--- | Never exposed to the user, but used to aid equality instances for
--- | checking dirty states.
+-- | Used to aid equality instances for checking dirty states.
 newtype Input e i o = Input i
 derive instance newtypeInput :: Newtype (Input e i o) _
 derive newtype instance eqInput :: Eq i => Eq (Input e i o)
