@@ -42,6 +42,7 @@ import Data.Monoid.Additive (Additive)
 import Data.Newtype (class Newtype, over, unwrap)
 import Data.Symbol (SProxy(..))
 import Data.Traversable (traverse, traverse_)
+import Data.Variant (Variant)
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
 import Formless.Spec (ErrorType, FormProxy(..), FormSpec(..), InputField(..), InputFieldRow, InputType, OutputField(..), OutputType, _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched)
@@ -56,7 +57,8 @@ import Renderless.State (getState, modifyState, modifyState_, modifyStore_, putS
 import Type.Row (type (+))
 
 data Query pq cq cs form out m a
-  = Modify (form Record InputField -> form Record InputField) a
+  = TestModify (form Variant Internal.Input) a
+  | Modify (form Record InputField -> form Record InputField) a
   | ModifyValidate (form Record InputField -> form Record InputField) a
   | Reset (form Record InputField -> form Record InputField) a
   | ResetAll a
@@ -240,6 +242,9 @@ component =
 
   eval :: Query pq cq cs form out m ~> DSL pq cq cs form out m
   eval = case _ of
+    TestModify variant a -> do
+      pure a
+
     Modify fs a -> do
       new <- modifyState \st -> st { form = fs st.form }
       H.raise $ Changed $ getPublicState new
