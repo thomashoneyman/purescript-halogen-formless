@@ -9762,6 +9762,13 @@ var PS = {};
   var FormSpec = function (x) {
       return x;
   };
+  var FormProxy = (function () {
+      function FormProxy() {
+
+      };
+      FormProxy.value = new FormProxy();
+      return FormProxy;
+  })();
   var newtypeOutputField = new Data_Newtype.Newtype(function (n) {
       return n;
   }, OutputField);
@@ -9845,6 +9852,7 @@ var PS = {};
           };
       };
   };
+  exports["FormProxy"] = FormProxy;
   exports["FormSpec"] = FormSpec;
   exports["OutputField"] = OutputField;
   exports["InputField"] = InputField;
@@ -10603,11 +10611,14 @@ var PS = {};
   var MakeFormSpecFromRow = function (mkFormSpecFromRowBuilder) {
       this.mkFormSpecFromRowBuilder = mkFormSpecFromRowBuilder;
   };
+  var MakeSProxies = function (makeSProxiesBuilder) {
+      this.makeSProxiesBuilder = makeSProxiesBuilder;
+  };
   var unwrapOutput = function (dictRowToList) {
       return function (dictUnwrapRecord) {
           return function (dictNewtype) {
-              return function ($36) {
-                  return Formless_Internal.unwrapRecord(dictRowToList)(dictUnwrapRecord)(Data_Newtype.unwrap(dictNewtype)($36));
+              return function ($47) {
+                  return Formless_Internal.unwrapRecord(dictRowToList)(dictUnwrapRecord)(Data_Newtype.unwrap(dictNewtype)($47));
               };
           };
       };
@@ -10617,8 +10628,8 @@ var PS = {};
           return function (dictCons) {
               return function (sym) {
                   return function (v) {
-                      return function ($37) {
-                          return Data_Lens_Setter.set(Formless_Spec._Result(dictIsSymbol)(dictNewtype)(dictCons)(sym)(Data_Profunctor_Strong.strongFn))(Data_Maybe.Nothing.value)(Data_Lens_Setter.set(Formless_Spec._Touched(dictIsSymbol)(dictNewtype)(dictCons)(sym)(Data_Profunctor_Strong.strongFn))(true)(Data_Lens_Setter.set(Formless_Spec._Input(dictIsSymbol)(dictNewtype)(dictCons)(sym)(Data_Profunctor_Strong.strongFn))(v)($37)));
+                      return function ($48) {
+                          return Data_Lens_Setter.set(Formless_Spec._Result(dictIsSymbol)(dictNewtype)(dictCons)(sym)(Data_Profunctor_Strong.strongFn))(Data_Maybe.Nothing.value)(Data_Lens_Setter.set(Formless_Spec._Touched(dictIsSymbol)(dictNewtype)(dictCons)(sym)(Data_Profunctor_Strong.strongFn))(true)(Data_Lens_Setter.set(Formless_Spec._Input(dictIsSymbol)(dictNewtype)(dictCons)(sym)(Data_Profunctor_Strong.strongFn))(v)($48)));
                       };
                   };
               };
@@ -10630,8 +10641,8 @@ var PS = {};
           return function (dictNewtype) {
               return function (dictCons) {
                   return function (sym) {
-                      return function ($38) {
-                          return Data_Lens_Setter.set(Formless_Spec._Result(dictIsSymbol)(dictNewtype)(dictCons)(sym)(Data_Profunctor_Strong.strongFn))(Data_Maybe.Nothing.value)(Data_Lens_Setter.set(Formless_Spec._Touched(dictIsSymbol)(dictNewtype)(dictCons)(sym)(Data_Profunctor_Strong.strongFn))(false)(Data_Lens_Setter.set(Formless_Spec._Input(dictIsSymbol)(dictNewtype)(dictCons)(sym)(Data_Profunctor_Strong.strongFn))(Formless_Class_Initial.initial(dictInitial))($38)));
+                      return function ($49) {
+                          return Data_Lens_Setter.set(Formless_Spec._Result(dictIsSymbol)(dictNewtype)(dictCons)(sym)(Data_Profunctor_Strong.strongFn))(Data_Maybe.Nothing.value)(Data_Lens_Setter.set(Formless_Spec._Touched(dictIsSymbol)(dictNewtype)(dictCons)(sym)(Data_Profunctor_Strong.strongFn))(false)(Data_Lens_Setter.set(Formless_Spec._Input(dictIsSymbol)(dictNewtype)(dictCons)(sym)(Data_Profunctor_Strong.strongFn))(Formless_Class_Initial.initial(dictInitial))($49)));
                       };
                   };
               };
@@ -10643,8 +10654,8 @@ var PS = {};
           return function (dictCons) {
               return function (sym) {
                   return function (f) {
-                      return function ($39) {
-                          return Data_Lens_Setter.set(Formless_Spec._Result(dictIsSymbol)(dictNewtype)(dictCons)(sym)(Data_Profunctor_Strong.strongFn))(Data_Maybe.Nothing.value)(Data_Lens_Setter.set(Formless_Spec._Touched(dictIsSymbol)(dictNewtype)(dictCons)(sym)(Data_Profunctor_Strong.strongFn))(true)(Formless_Spec._Input(dictIsSymbol)(dictNewtype)(dictCons)(sym)(Data_Profunctor_Strong.strongFn)(f)($39)));
+                      return function ($50) {
+                          return Data_Lens_Setter.set(Formless_Spec._Result(dictIsSymbol)(dictNewtype)(dictCons)(sym)(Data_Profunctor_Strong.strongFn))(Data_Maybe.Nothing.value)(Data_Lens_Setter.set(Formless_Spec._Touched(dictIsSymbol)(dictNewtype)(dictCons)(sym)(Data_Profunctor_Strong.strongFn))(true)(Formless_Spec._Input(dictIsSymbol)(dictNewtype)(dictCons)(sym)(Data_Profunctor_Strong.strongFn)(f)($50)));
                       };
                   };
               };
@@ -10677,12 +10688,14 @@ var PS = {};
           };
       };
   };
-  var mkFormSpecFromRow = function (dictRowToList) {
+  var mkFormSpecFromProxy = function (dictRowToList) {
       return function (dictMakeFormSpecFromRow) {
           return function (dictNewtype) {
-              return function (r) {
-                  var builder = mkFormSpecFromRowBuilder(dictMakeFormSpecFromRow)(Type_Row.RLProxy.value)(r);
-                  return Data_Newtype.wrap(dictNewtype)(Formless_Internal.fromScratch(builder));
+              return function (dictNewtype1) {
+                  return function (v) {
+                      var builder = mkFormSpecFromRowBuilder(dictMakeFormSpecFromRow)(Type_Row.RLProxy.value)(Type_Row.RProxy.value);
+                      return Data_Newtype.wrap(dictNewtype1)(Formless_Internal.fromScratch(builder));
+                  };
               };
           };
       };
@@ -10690,8 +10703,35 @@ var PS = {};
   var mkFormSpec = function (dictRowToList) {
       return function (dictWrapRecord) {
           return function (dictNewtype) {
-              return function ($40) {
-                  return Data_Newtype.wrap(dictNewtype)(Formless_Internal.wrapRecord(dictRowToList)(dictWrapRecord)($40));
+              return function ($51) {
+                  return Data_Newtype.wrap(dictNewtype)(Formless_Internal.wrapRecord(dictRowToList)(dictWrapRecord)($51));
+              };
+          };
+      };
+  };
+  var makeSProxiesNil = new MakeSProxies(function (v) {
+      return Control_Category.identity(Record_Builder.categoryBuilder);
+  });
+  var makeSProxiesBuilder = function (dict) {
+      return dict.makeSProxiesBuilder;
+  };
+  var makeSProxiesCons = function (dictIsSymbol) {
+      return function (dictRow1Cons) {
+          return function (dictMakeSProxies) {
+              return new MakeSProxies(function (v) {
+                  var rest = makeSProxiesBuilder(dictMakeSProxies)(Type_Row.RLProxy.value);
+                  var first = Record_Builder.insert(dictRow1Cons.Cons0())(dictRow1Cons.Lacks1())(dictIsSymbol)(Data_Symbol.SProxy.value)(Data_Symbol.SProxy.value);
+                  return Control_Semigroupoid.compose(Record_Builder.semigroupoidBuilder)(first)(rest);
+              });
+          };
+      };
+  };
+  var mkSProxies = function (dictRowToList) {
+      return function (dictMakeSProxies) {
+          return function (dictNewtype) {
+              return function (v) {
+                  var builder = makeSProxiesBuilder(dictMakeSProxies)(Type_Row.RLProxy.value);
+                  return Formless_Internal.fromScratch(builder);
               };
           };
       };
@@ -10714,6 +10754,7 @@ var PS = {};
           };
       };
   };
+  exports["makeSProxiesBuilder"] = makeSProxiesBuilder;
   exports["mkFormSpecFromRowBuilder"] = mkFormSpecFromRowBuilder;
   exports["getInput"] = getInput;
   exports["getResult"] = getResult;
@@ -10722,10 +10763,14 @@ var PS = {};
   exports["resetField"] = resetField;
   exports["unwrapOutput"] = unwrapOutput;
   exports["mkFormSpec"] = mkFormSpec;
-  exports["mkFormSpecFromRow"] = mkFormSpecFromRow;
+  exports["mkFormSpecFromProxy"] = mkFormSpecFromProxy;
   exports["MakeFormSpecFromRow"] = MakeFormSpecFromRow;
+  exports["mkSProxies"] = mkSProxies;
+  exports["MakeSProxies"] = MakeSProxies;
   exports["mkFormSpecFromRowNil"] = mkFormSpecFromRowNil;
   exports["mkFormSpecFromRowCons"] = mkFormSpecFromRowCons;
+  exports["makeSProxiesNil"] = makeSProxiesNil;
+  exports["makeSProxiesCons"] = makeSProxiesCons;
 })(PS["Formless.Spec.Transform"] = PS["Formless.Spec.Transform"] || {});
 (function(exports) {
   // Generated by purs version 0.12.0
@@ -15555,16 +15600,22 @@ var PS = {};
   var Formless_Spec = PS["Formless.Spec"];
   var Formless_Spec_Transform = PS["Formless.Spec.Transform"];
   var Formless_Validation_Semigroup = PS["Formless.Validation.Semigroup"];
-  var Prelude = PS["Prelude"];
-  var Type_Row = PS["Type.Row"];                 
+  var Prelude = PS["Prelude"];                 
   var Form = function (x) {
       return x;
+  };
+  var proxies = function (dictRowToList) {
+      return function (dictMakeSProxies) {
+          return function (dictNewtype) {
+              return Formless_Spec_Transform.mkSProxies(dictRowToList)(dictMakeSProxies)(dictNewtype)(Formless_Spec.FormProxy.value);
+          };
+      };
   };
   var newtypeForm = new Data_Newtype.Newtype(function (n) {
       return n;
   }, Form);
   var submitter = function (dictMonad) {
-      return function ($8) {
+      return function ($11) {
           return Control_Applicative.pure(dictMonad.Applicative0())(Formless_Spec_Transform.unwrapOutput()(Formless_Internal.unwrapRecordCons(new Data_Symbol.IsSymbol(function () {
               return "email";
           }))()(Formless_Spec.newtypeOutputField)(Formless_Internal.unwrapRecordCons(new Data_Symbol.IsSymbol(function () {
@@ -15573,7 +15624,7 @@ var PS = {};
               return "name";
           }))()(Formless_Spec.newtypeOutputField)(Formless_Internal.unwrapRecordCons(new Data_Symbol.IsSymbol(function () {
               return "whiskey";
-          }))()(Formless_Spec.newtypeOutputField)(Formless_Internal.unwrapRecordNil)(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(newtypeForm)($8));
+          }))()(Formless_Spec.newtypeOutputField)(Formless_Internal.unwrapRecordNil)(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(newtypeForm)($11));
       };
   };
   var validator = Formless_Validation_Semigroup.applyOnInputFields()(Formless_Validation_Semigroup.onInputFieldsCons(new Data_Symbol.IsSymbol(function () {
@@ -15594,8 +15645,8 @@ var PS = {};
       return "email";
   }))))(newtypeForm)(newtypeForm)({
       name: Data_Function.flip(Example_App_Validation.validateMinimumLength)(7),
-      email: function ($9) {
-          return Example_App_Validation.validateEmailRegex(Data_Maybe.fromMaybe("")($9));
+      email: function ($12) {
+          return Example_App_Validation.validateEmailRegex(Data_Maybe.fromMaybe("")($12));
       },
       whiskey: function (v) {
           return Example_App_Validation.validateMaybe(v);
@@ -15604,7 +15655,7 @@ var PS = {};
           return Example_App_Validation.validateMaybe(v);
       }
   });
-  var formSpec = Formless_Spec_Transform.mkFormSpecFromRow()(Formless_Spec_Transform.mkFormSpecFromRowCons(new Data_Symbol.IsSymbol(function () {
+  var formSpec = Formless_Spec_Transform.mkFormSpecFromProxy()(Formless_Spec_Transform.mkFormSpecFromRowCons(new Data_Symbol.IsSymbol(function () {
       return "email";
   }))(Formless_Class_Initial.initialMaybe)()(Formless_Spec_Transform.mkFormSpecFromRowCons(new Data_Symbol.IsSymbol(function () {
       return "language";
@@ -15612,16 +15663,9 @@ var PS = {};
       return "name";
   }))(Formless_Class_Initial.initialString)()(Formless_Spec_Transform.mkFormSpecFromRowCons(new Data_Symbol.IsSymbol(function () {
       return "whiskey";
-  }))(Formless_Class_Initial.initialMaybe)()(Formless_Spec_Transform.mkFormSpecFromRowNil)(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(newtypeForm)(Type_Row.RProxy.value);
-  var _whiskey = Data_Symbol.SProxy.value;
-  var _name = Data_Symbol.SProxy.value;
-  var _language = Data_Symbol.SProxy.value;
-  var _email = Data_Symbol.SProxy.value;
+  }))(Formless_Class_Initial.initialMaybe)()(Formless_Spec_Transform.mkFormSpecFromRowNil)(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(newtypeForm)(newtypeForm)(Formless_Spec.FormProxy.value);
   exports["Form"] = Form;
-  exports["_name"] = _name;
-  exports["_email"] = _email;
-  exports["_whiskey"] = _whiskey;
-  exports["_language"] = _language;
+  exports["proxies"] = proxies;
   exports["formSpec"] = formSpec;
   exports["validator"] = validator;
   exports["submitter"] = submitter;
@@ -15764,6 +15808,7 @@ var PS = {};
   var Example_ExternalComponents_Spec = PS["Example.ExternalComponents.Spec"];
   var Example_ExternalComponents_Types = PS["Example.ExternalComponents.Types"];
   var Formless = PS["Formless"];
+  var Formless_Internal = PS["Formless.Internal"];
   var Formless_Spec_Transform = PS["Formless.Spec.Transform"];
   var Halogen = PS["Halogen"];
   var Halogen_HTML = PS["Halogen.HTML"];
@@ -15778,7 +15823,15 @@ var PS = {};
           label: "Whiskey",
           help: Example_App_UI_Element.resultToHelp(Example_App_Validation.toTextFieldError)("Select a favorite whiskey")(Formless_Spec_Transform.getResult(new Data_Symbol.IsSymbol(function () {
               return "whiskey";
-          }))(Example_ExternalComponents_Spec.newtypeForm)()(Example_ExternalComponents_Spec._whiskey)(state.form))
+          }))(Example_ExternalComponents_Spec.newtypeForm)()((Example_ExternalComponents_Spec.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "email";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "language";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "name";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "whiskey";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))(Example_ExternalComponents_Spec.newtypeForm)).whiskey)(state.form))
       })([ Halogen_HTML.slot(Example_ExternalComponents_Types.Whiskey.value)(Example_App_UI_Typeahead.single(Effect_Aff_Class.monadAffAff)(Example_App_Validation.toTextString)(Data_Eq.eqString)(Data_Semigroup.semigroupString))({
           placeholder: "Lagavulin 12",
           items: [ "Lagavulin 16", "Kilchoman Blue Label", "Laphroaig", "Ardbeg" ]
@@ -15791,7 +15844,15 @@ var PS = {};
           label: "Language",
           help: Example_App_UI_Element.resultToHelp(Example_App_Validation.toTextFieldError)("Choose your favorite programming language.")(Formless_Spec_Transform.getResult(new Data_Symbol.IsSymbol(function () {
               return "language";
-          }))(Example_ExternalComponents_Spec.newtypeForm)()(Example_ExternalComponents_Spec._language)(state.form))
+          }))(Example_ExternalComponents_Spec.newtypeForm)()((Example_ExternalComponents_Spec.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "email";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "language";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "name";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "whiskey";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))(Example_ExternalComponents_Spec.newtypeForm)).language)(state.form))
       })([ Halogen_HTML.slot(Example_ExternalComponents_Types.Language.value)(Example_App_UI_Typeahead.single(Effect_Aff_Class.monadAffAff)(Example_App_Validation.toTextString)(Data_Eq.eqString)(Data_Semigroup.semigroupString))({
           placeholder: "Haskell",
           items: [ "Rust", "Python", "Haskell", "PureScript", "PHP", "JavaScript", "C", "C++", "C#", "C--", "Ruby", "APL" ]
@@ -15804,7 +15865,15 @@ var PS = {};
           label: "Email",
           help: Example_App_UI_Element.resultToHelp(Example_App_Validation.toTextFieldError)("Choose an email address -- carefully.")(Formless_Spec_Transform.getResult(new Data_Symbol.IsSymbol(function () {
               return "email";
-          }))(Example_ExternalComponents_Spec.newtypeForm)()(Example_ExternalComponents_Spec._email)(state.form))
+          }))(Example_ExternalComponents_Spec.newtypeForm)()((Example_ExternalComponents_Spec.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "email";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "language";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "name";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "whiskey";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))(Example_ExternalComponents_Spec.newtypeForm)).email)(state.form))
       })([ Halogen_HTML.slot(Example_ExternalComponents_Types.Email.value)(Example_App_UI_Typeahead.single(Effect_Aff_Class.monadAffAff)(Example_App_Validation.toTextString)(Data_Eq.eqString)(Data_Semigroup.semigroupString))({
           placeholder: "me@you.com",
           items: [ "not@anemail.org", "snail@utopia.snailutopia", "blue@jordans@blordans.pordens", "yea_that_won't_work@email.com", "standard@email.com" ]
@@ -15819,7 +15888,15 @@ var PS = {};
           label: "Name",
           help: "Write your name",
           placeholder: "Dale",
-          sym: Example_ExternalComponents_Spec._name
+          sym: (Example_ExternalComponents_Spec.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "email";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "language";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "name";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "whiskey";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))(Example_ExternalComponents_Spec.newtypeForm)).name
       })(state), email(state), whiskey(state), language(state), Example_App_UI_Element.p_("You can only attempt to submit this form if it is valid " + ("and not already being submitted. You can only attempt " + ("to reset the form if it has been changed from its initial " + "state."))), Halogen_HTML_Elements.br_, Example_App_UI_Element.grouped_([ Example_App_UI_Element.buttonPrimary([ (function () {
           var $0 = state.submitting || Data_Eq.notEq(Formless.eqValidStatus)(state.validity)(Formless.Valid.value);
           if ($0) {
@@ -15998,15 +16075,39 @@ var PS = {};
               if (v.value0 instanceof Example_ExternalComponents_Types.Email) {
                   return Data_Functor.voidRight(Halogen_Query_HalogenM.functorHalogenM)(v.value2)(Halogen_Query.query(Data_Eq.eqUnit)(Data_Unit.unit)(Halogen_Query.action(Formless.ModifyValidate.create(Formless_Spec_Transform.setInput(new Data_Symbol.IsSymbol(function () {
                       return "email";
-                  }))(Example_ExternalComponents_Spec.newtypeForm)()(Example_ExternalComponents_Spec._email)(v.value1.value0)))));
+                  }))(Example_ExternalComponents_Spec.newtypeForm)()((Example_ExternalComponents_Spec.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "email";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "language";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "name";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "whiskey";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))(Example_ExternalComponents_Spec.newtypeForm)).email)(v.value1.value0)))));
               };
               if (v.value0 instanceof Example_ExternalComponents_Types.Whiskey) {
                   return Data_Functor.voidRight(Halogen_Query_HalogenM.functorHalogenM)(v.value2)(Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Halogen_Query.query(Data_Eq.eqUnit)(Data_Unit.unit)(Halogen_Query.action(Formless.ModifyValidate.create(Formless_Spec_Transform.setInput(new Data_Symbol.IsSymbol(function () {
                       return "whiskey";
-                  }))(Example_ExternalComponents_Spec.newtypeForm)()(Example_ExternalComponents_Spec._whiskey)(v.value1.value0)))))(function (v1) {
+                  }))(Example_ExternalComponents_Spec.newtypeForm)()((Example_ExternalComponents_Spec.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "email";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "language";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "name";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "whiskey";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))(Example_ExternalComponents_Spec.newtypeForm)).whiskey)(v.value1.value0)))))(function (v1) {
                       return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Halogen_Query.query(Data_Eq.eqUnit)(Data_Unit.unit)(Halogen_Query.action(Formless.Reset.create(Formless_Spec_Transform.resetField(new Data_Symbol.IsSymbol(function () {
                           return "email";
-                      }))(Formless_Class_Initial.initialMaybe)(Example_ExternalComponents_Spec.newtypeForm)()(Example_ExternalComponents_Spec._email)))))(function (v2) {
+                      }))(Formless_Class_Initial.initialMaybe)(Example_ExternalComponents_Spec.newtypeForm)()((Example_ExternalComponents_Spec.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "email";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "language";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "name";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "whiskey";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))(Example_ExternalComponents_Spec.newtypeForm)).email)))))(function (v2) {
                           return Halogen_Query.query(Data_Eq.eqUnit)(Data_Unit.unit)(Halogen_Query.action(Formless.Send.create(Example_ExternalComponents_Types.Email.value)(Halogen_Query.action(Example_App_UI_Typeahead.Clear.create))));
                       });
                   }));
@@ -16014,11 +16115,19 @@ var PS = {};
               if (v.value0 instanceof Example_ExternalComponents_Types.Language) {
                   return Data_Functor.voidRight(Halogen_Query_HalogenM.functorHalogenM)(v.value2)(Halogen_Query.query(Data_Eq.eqUnit)(Data_Unit.unit)(Halogen_Query.action(Formless.ModifyValidate.create(Formless_Spec_Transform.setInput(new Data_Symbol.IsSymbol(function () {
                       return "language";
-                  }))(Example_ExternalComponents_Spec.newtypeForm)()(Example_ExternalComponents_Spec._language)(v.value1.value0)))));
+                  }))(Example_ExternalComponents_Spec.newtypeForm)()((Example_ExternalComponents_Spec.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "email";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "language";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "name";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "whiskey";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))(Example_ExternalComponents_Spec.newtypeForm)).language)(v.value1.value0)))));
               };
-              throw new Error("Failed pattern match at Example.ExternalComponents.Component line 73, column 52 - line 84, column 77: " + [ v.value0.constructor.name ]);
+              throw new Error("Failed pattern match at Example.ExternalComponents.Component line 73, column 52 - line 84, column 84: " + [ v.value0.constructor.name ]);
           };
-          throw new Error("Failed pattern match at Example.ExternalComponents.Component line 59, column 10 - line 84, column 77: " + [ v.constructor.name ]);
+          throw new Error("Failed pattern match at Example.ExternalComponents.Component line 59, column 10 - line 84, column 84: " + [ v.constructor.name ]);
       };
       return Halogen_Component.parentComponent(Data_Ord.ordUnit)({
           initialState: Data_Function["const"](Data_Unit.unit),
@@ -16070,8 +16179,7 @@ var PS = {};
   var Halogen_Query_HalogenM = PS["Halogen.Query.HalogenM"];
   var Polyform_Validation = PS["Polyform.Validation"];
   var Prelude = PS["Prelude"];
-  var Record = PS["Record"];
-  var Type_Row = PS["Type.Row"];                 
+  var Record = PS["Record"];                 
   var Form = function (x) {
       return x;
   };
@@ -16122,10 +16230,14 @@ var PS = {};
           state: Polyform_Validation.hoistFnV(dictMonadEffect.Monad0())(Data_Monoid.monoidArray)(Control_Applicative.pure(Polyform_Validation.applicativeV(Data_Monoid.monoidArray)))
       });
   };
-  var _state = Data_Symbol.SProxy.value;
-  var _name = Data_Symbol.SProxy.value;
-  var _email = Data_Symbol.SProxy.value;
-  var _city = Data_Symbol.SProxy.value;
+  var _form = Formless_Spec.FormProxy.value;
+  var proxies = function (dictRowToList) {
+      return function (dictMakeSProxies) {
+          return function (dictNewtype) {
+              return Formless_Spec_Transform.mkSProxies(dictRowToList)(dictMakeSProxies)(dictNewtype)(_form);
+          };
+      };
+  };
   var renderFormless = function (state) {
       return Example_App_UI_Element.formContent_([ Example_App_UI_Element.formlessField(new Data_Symbol.IsSymbol(function () {
           return "name";
@@ -16133,37 +16245,69 @@ var PS = {};
           label: "Name",
           help: "Write your name",
           placeholder: "Dale",
-          sym: _name
+          sym: (proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "city";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "email";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "name";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "state";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))(newtypeForm)).name
       })(state), Example_App_UI_Element.formlessField(new Data_Symbol.IsSymbol(function () {
           return "email";
       }))(Example_App_Validation.toTextFieldError)(newtypeForm)()(Example_App_UI_Element.input)({
           label: "Email Address",
           help: "Write your email",
           placeholder: "me@you.com",
-          sym: _email
+          sym: (proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "city";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "email";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "name";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "state";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))(newtypeForm)).email
       })(state), Example_App_UI_Element.formlessField(new Data_Symbol.IsSymbol(function () {
           return "city";
       }))(Example_App_Validation.toTextFieldError)(newtypeForm)()(Example_App_UI_Element.input)({
           label: "City",
           help: "Write your favorite city",
           placeholder: "Los Angeles",
-          sym: _city
+          sym: (proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "city";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "email";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "name";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "state";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))(newtypeForm)).city
       })(state), Example_App_UI_Element.formlessField(new Data_Symbol.IsSymbol(function () {
           return "state";
       }))(Example_App_Validation.toTextFieldError)(newtypeForm)()(Example_App_UI_Element.input)({
           label: "State",
           help: "Write your favorite state of mind",
           placeholder: "",
-          sym: _state
+          sym: (proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "city";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "email";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "name";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "state";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))(newtypeForm)).state
       })(state), Halogen_HTML_Elements.br_, Example_App_UI_Element.p_("You can only attempt to submit this form if it is valid " + ("and not already being submitted. You can only attempt " + ("to reset the form if it has been changed from its initial " + "state."))), Halogen_HTML_Elements.br_, Example_App_UI_Element.grouped_([ Example_App_UI_Element.buttonPrimary([ (function () {
-          var $5 = state.submitting || Data_Eq.notEq(Formless.eqValidStatus)(state.validity)(Formless.Valid.value);
-          if ($5) {
+          var $8 = state.submitting || Data_Eq.notEq(Formless.eqValidStatus)(state.validity)(Formless.Valid.value);
+          if ($8) {
               return Halogen_HTML_Properties.disabled(true);
           };
           return Halogen_HTML_Events.onClick(Halogen_HTML_Events.input_(Formless.Submit.create));
       })() ])([ Halogen_HTML_Core.text("Submit") ]), Example_App_UI_Element.button([ (function () {
-          var $6 = !state.dirty;
-          if ($6) {
+          var $9 = !state.dirty;
+          if ($9) {
               return Halogen_HTML_Properties.disabled(true);
           };
           return Halogen_HTML_Events.onClick(Halogen_HTML_Events.input_(Formless.ResetAll.create));
@@ -16236,7 +16380,7 @@ var PS = {};
           }))(Data_Monoid_Additive.monoidAdditive(Data_Semiring.semiringInt))()(Formless_Internal.consSumRecord(new Data_Symbol.IsSymbol(function () {
               return "state";
           }))(Data_Monoid_Additive.monoidAdditive(Data_Semiring.semiringInt))()(Formless_Internal.nilSumRecord(Data_Monoid_Additive.monoidAdditive(Data_Semiring.semiringInt)))))))(newtypeForm)(newtypeForm)(newtypeForm)(newtypeForm))({
-              formSpec: Formless_Spec_Transform.mkFormSpecFromRow()(Formless_Spec_Transform.mkFormSpecFromRowCons(new Data_Symbol.IsSymbol(function () {
+              formSpec: Formless_Spec_Transform.mkFormSpecFromProxy()(Formless_Spec_Transform.mkFormSpecFromRowCons(new Data_Symbol.IsSymbol(function () {
                   return "city";
               }))(Formless_Class_Initial.initialString)()(Formless_Spec_Transform.mkFormSpecFromRowCons(new Data_Symbol.IsSymbol(function () {
                   return "email";
@@ -16244,9 +16388,9 @@ var PS = {};
                   return "name";
               }))(Formless_Class_Initial.initialString)()(Formless_Spec_Transform.mkFormSpecFromRowCons(new Data_Symbol.IsSymbol(function () {
                   return "state";
-              }))(Formless_Class_Initial.initialString)()(Formless_Spec_Transform.mkFormSpecFromRowNil)(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(newtypeForm)(Type_Row.RProxy.value),
+              }))(Formless_Class_Initial.initialString)()(Formless_Spec_Transform.mkFormSpecFromRowNil)(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(newtypeForm)(newtypeForm)(_form),
               validator: validator(Effect_Aff.monadEffectAff),
-              submitter: function ($14) {
+              submitter: function ($17) {
                   return Control_Applicative.pure(Effect_Aff.applicativeAff)(Formless_Spec_Transform.unwrapOutput()(Formless_Internal.unwrapRecordCons(new Data_Symbol.IsSymbol(function () {
                       return "city";
                   }))()(Formless_Spec.newtypeOutputField)(Formless_Internal.unwrapRecordCons(new Data_Symbol.IsSymbol(function () {
@@ -16255,7 +16399,7 @@ var PS = {};
                       return "name";
                   }))()(Formless_Spec.newtypeOutputField)(Formless_Internal.unwrapRecordCons(new Data_Symbol.IsSymbol(function () {
                       return "state";
-                  }))()(Formless_Spec.newtypeOutputField)(Formless_Internal.unwrapRecordNil)(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(newtypeForm)($14));
+                  }))()(Formless_Spec.newtypeOutputField)(Formless_Internal.unwrapRecordNil)(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(newtypeForm)($17));
               },
               render: renderFormless
           })(Halogen_HTML_Events.input(HandleFormless.create)) ]);
@@ -16290,7 +16434,7 @@ var PS = {};
                   return "form";
               }))()()(Data_Symbol.SProxy.value)(v.value0.value0)))));
           };
-          throw new Error("Failed pattern match at Example.Polyform.Component line 42, column 27 - line 47, column 84: " + [ v.value0.constructor.name ]);
+          throw new Error("Failed pattern match at Example.Polyform.Component line 41, column 27 - line 46, column 84: " + [ v.value0.constructor.name ]);
       };
       return Halogen_Component.parentComponent(Data_Ord.ordUnit)({
           initialState: Data_Function["const"](Data_Unit.unit),
@@ -16302,10 +16446,8 @@ var PS = {};
   exports["HandleFormless"] = HandleFormless;
   exports["component"] = component;
   exports["Form"] = Form;
-  exports["_name"] = _name;
-  exports["_email"] = _email;
-  exports["_city"] = _city;
-  exports["_state"] = _state;
+  exports["_form"] = _form;
+  exports["proxies"] = proxies;
   exports["validator"] = validator;
   exports["renderFormless"] = renderFormless;
   exports["newtypeForm"] = newtypeForm;
@@ -16314,6 +16456,7 @@ var PS = {};
   // Generated by purs version 0.12.0
   "use strict";
   var Data_Eq = PS["Data.Eq"];
+  var Data_Function = PS["Data.Function"];
   var Data_Generic_Rep = PS["Data.Generic.Rep"];
   var Data_Generic_Rep_Show = PS["Data.Generic.Rep.Show"];
   var Data_Maybe = PS["Data.Maybe"];
@@ -16321,11 +16464,12 @@ var PS = {};
   var Data_Ord = PS["Data.Ord"];
   var Data_Ordering = PS["Data.Ordering"];
   var Data_Show = PS["Data.Show"];
-  var Data_String_Read = PS["Data.String.Read"];
   var Data_Symbol = PS["Data.Symbol"];
   var Example_App_Validation = PS["Example.App.Validation"];
   var Formless = PS["Formless"];
   var Formless_Class_Initial = PS["Formless.Class.Initial"];
+  var Formless_Spec = PS["Formless.Spec"];
+  var Formless_Spec_Transform = PS["Formless.Spec.Transform"];
   var Prelude = PS["Prelude"];                 
   var Low = (function () {
       function Low() {
@@ -16388,9 +16532,16 @@ var PS = {};
       if (v instanceof InstallCost) {
           return "Install Cost";
       };
-      throw new Error("Failed pattern match at Example.RealWorld.Data.Options line 42, column 1 - line 42, column 39: " + [ v.constructor.name ]);
+      throw new Error("Failed pattern match at Example.RealWorld.Data.Options line 40, column 1 - line 40, column 39: " + [ v.constructor.name ]);
   });
   var showDollars = Data_Show.showInt;
+  var proxies = function (dictRowToList) {
+      return function (dictMakeSProxies) {
+          return function (dictNewtype) {
+              return Formless_Spec_Transform.mkSProxies(dictRowToList)(dictMakeSProxies)(dictNewtype)(Formless_Spec.FormProxy.value);
+          };
+      };
+  };
   var newtypeOptionsForm = new Data_Newtype.Newtype(function (n) {
       return n;
   }, OptionsForm);
@@ -16405,7 +16556,7 @@ var PS = {};
       if (x instanceof Fast) {
           return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(Data_Generic_Rep.NoArguments.value));
       };
-      throw new Error("Failed pattern match at Example.RealWorld.Data.Options line 60, column 8 - line 60, column 48: " + [ x.constructor.name ]);
+      throw new Error("Failed pattern match at Example.RealWorld.Data.Options line 52, column 8 - line 52, column 48: " + [ x.constructor.name ]);
   }, function (x) {
       if (x instanceof Data_Generic_Rep.Inl) {
           return Low.value;
@@ -16416,7 +16567,7 @@ var PS = {};
       if (x instanceof Data_Generic_Rep.Inr && x.value0 instanceof Data_Generic_Rep.Inr) {
           return Fast.value;
       };
-      throw new Error("Failed pattern match at Example.RealWorld.Data.Options line 60, column 8 - line 60, column 48: " + [ x.constructor.name ]);
+      throw new Error("Failed pattern match at Example.RealWorld.Data.Options line 52, column 8 - line 52, column 48: " + [ x.constructor.name ]);
   });
   var showSpeed = new Data_Show.Show(Data_Generic_Rep_Show.genericShow(genericSpeed)(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
       return "Low";
@@ -16435,7 +16586,7 @@ var PS = {};
       if (x instanceof InstallCost) {
           return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(Data_Generic_Rep.NoArguments.value));
       };
-      throw new Error("Failed pattern match at Example.RealWorld.Data.Options line 35, column 8 - line 35, column 50: " + [ x.constructor.name ]);
+      throw new Error("Failed pattern match at Example.RealWorld.Data.Options line 33, column 8 - line 33, column 50: " + [ x.constructor.name ]);
   }, function (x) {
       if (x instanceof Data_Generic_Rep.Inl) {
           return ViewCost.value;
@@ -16446,7 +16597,7 @@ var PS = {};
       if (x instanceof Data_Generic_Rep.Inr && x.value0 instanceof Data_Generic_Rep.Inr) {
           return InstallCost.value;
       };
-      throw new Error("Failed pattern match at Example.RealWorld.Data.Options line 35, column 8 - line 35, column 50: " + [ x.constructor.name ]);
+      throw new Error("Failed pattern match at Example.RealWorld.Data.Options line 33, column 8 - line 33, column 50: " + [ x.constructor.name ]);
   });
   var showMetric = new Data_Show.Show(Data_Generic_Rep_Show.genericShow(genericMetric)(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
       return "ViewCost";
@@ -16499,15 +16650,7 @@ var PS = {};
           };
           return false;
       };
-  });                                 
-  var _viewCost = Data_Symbol.SProxy.value;
-  var _speed = Data_Symbol.SProxy.value;
-  var _size = Data_Symbol.SProxy.value;
-  var _metric = Data_Symbol.SProxy.value;
-  var _installCost = Data_Symbol.SProxy.value;
-  var _enable = Data_Symbol.SProxy.value;
-  var _dimensions = Data_Symbol.SProxy.value;
-  var _clickCost = Data_Symbol.SProxy.value;
+  });
   exports["Dollars"] = Dollars;
   exports["ViewCost"] = ViewCost;
   exports["ClickCost"] = ClickCost;
@@ -16515,14 +16658,7 @@ var PS = {};
   exports["Low"] = Low;
   exports["Medium"] = Medium;
   exports["Fast"] = Fast;
-  exports["_enable"] = _enable;
-  exports["_metric"] = _metric;
-  exports["_viewCost"] = _viewCost;
-  exports["_clickCost"] = _clickCost;
-  exports["_installCost"] = _installCost;
-  exports["_size"] = _size;
-  exports["_dimensions"] = _dimensions;
-  exports["_speed"] = _speed;
+  exports["proxies"] = proxies;
   exports["Options"] = Options;
   exports["OptionsForm"] = OptionsForm;
   exports["showDollars"] = showDollars;
@@ -16541,6 +16677,7 @@ var PS = {};
   // Generated by purs version 0.12.0
   "use strict";
   var Data_Eq = PS["Data.Eq"];
+  var Data_Function = PS["Data.Function"];
   var Data_Maybe = PS["Data.Maybe"];
   var Data_Newtype = PS["Data.Newtype"];
   var Data_Semigroup = PS["Data.Semigroup"];
@@ -16549,6 +16686,8 @@ var PS = {};
   var Example_App_Validation = PS["Example.App.Validation"];
   var Example_RealWorld_Data_Options = PS["Example.RealWorld.Data.Options"];
   var Formless = PS["Formless"];
+  var Formless_Spec = PS["Formless.Spec"];
+  var Formless_Spec_Transform = PS["Formless.Spec.Transform"];
   var Prelude = PS["Prelude"];
   var Group = function (x) {
       return x;
@@ -16586,6 +16725,13 @@ var PS = {};
   }))(Data_Show.showRecordFieldsCons(new Data_Symbol.IsSymbol(function () {
       return "whiskey";
   }))(Data_Show.showRecordFieldsNil)(Data_Show.showString))(Data_Show.showString))(Data_Show.showArray(Data_Show.showString)))(Data_Maybe.showMaybe(Example_RealWorld_Data_Options.showOptions)))(Data_Show.showString))(showGroupId))(Data_Show.showArray(Data_Show.showString)))(showAdmin));
+  var proxies = function (dictRowToList) {
+      return function (dictMakeSProxies) {
+          return function (dictNewtype) {
+              return Formless_Spec_Transform.mkSProxies(dictRowToList)(dictMakeSProxies)(dictNewtype)(Formless_Spec.FormProxy.value);
+          };
+      };
+  };
   var newtypeGroupForm = new Data_Newtype.Newtype(function (n) {
       return n;
   }, GroupForm);
@@ -16596,22 +16742,9 @@ var PS = {};
   var eqAdmin = Data_Eq.eqRec()(Data_Eq.eqRowCons(Data_Eq.eqRowNil)()(new Data_Symbol.IsSymbol(function () {
       return "id";
   }))(Data_Maybe.eqMaybe(eqGroupId)));
-  var _whiskey = Data_Symbol.SProxy.value;
-  var _secretKey2 = Data_Symbol.SProxy.value;
-  var _secretKey1 = Data_Symbol.SProxy.value;
-  var _pixels = Data_Symbol.SProxy.value; 
-  var _name = Data_Symbol.SProxy.value;
-  var _applications = Data_Symbol.SProxy.value;
-  var _admin = Data_Symbol.SProxy.value;
-  exports["_name"] = _name;
-  exports["_admin"] = _admin;
-  exports["_applications"] = _applications;
-  exports["_pixels"] = _pixels;
-  exports["_whiskey"] = _whiskey;
   exports["Group"] = Group;
   exports["GroupForm"] = GroupForm;
-  exports["_secretKey1"] = _secretKey1;
-  exports["_secretKey2"] = _secretKey2;
+  exports["proxies"] = proxies;
   exports["eqGroupId"] = eqGroupId;
   exports["showGroupId"] = showGroupId;
   exports["eqAdmin"] = eqAdmin;
@@ -16847,6 +16980,7 @@ var PS = {};
   var Example_RealWorld_Data_Group = PS["Example.RealWorld.Data.Group"];
   var Example_RealWorld_Types = PS["Example.RealWorld.Types"];
   var Formless = PS["Formless"];
+  var Formless_Internal = PS["Formless.Internal"];
   var Formless_Spec_Transform = PS["Formless.Spec.Transform"];
   var Halogen = PS["Halogen"];
   var Halogen_Component_ChildPath = PS["Halogen.Component.ChildPath"];
@@ -16859,7 +16993,21 @@ var PS = {};
           label: "Whiskey",
           help: Example_App_UI_Element.resultToHelp(Example_App_Validation.toTextFieldError)("Choose a whiskey to be awarded")(Formless_Spec_Transform.getResult(new Data_Symbol.IsSymbol(function () {
               return "whiskey";
-          }))(Example_RealWorld_Data_Group.newtypeGroupForm)()(Example_RealWorld_Data_Group._whiskey)(state.form))
+          }))(Example_RealWorld_Data_Group.newtypeGroupForm)()((Example_RealWorld_Data_Group.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "admin";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "applications";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "name";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "pixels";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "secretKey1";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "secretKey2";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "whiskey";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil))))))))(Example_RealWorld_Data_Group.newtypeGroupForm)).whiskey)(state.form))
       })([ Halogen_HTML["slot'"](Halogen_Component_ChildPath.cp2)(Data_Unit.unit)(Example_App_UI_Typeahead.single(Effect_Aff_Class.monadAffAff)(Example_App_Validation.toTextString)(Data_Eq.eqString)(Data_Semigroup.semigroupString))({
           placeholder: "Choose a whiskey",
           items: [ "Laphroiag 10", "Lagavulin 12", "Lagavulin 16", "Oban 16", "Kilchoman Blue Label" ]
@@ -16873,7 +17021,21 @@ var PS = {};
       label: "Secret Key 2",
       help: "Confirm the secret identifier for the group.",
       placeholder: "iasncat3ihba/0",
-      sym: Example_RealWorld_Data_Group._secretKey2
+      sym: (Example_RealWorld_Data_Group.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "admin";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "applications";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "name";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "pixels";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "secretKey1";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "secretKey2";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "whiskey";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil))))))))(Example_RealWorld_Data_Group.newtypeGroupForm)).secretKey2
   });
   var renderSecretKey1 = Example_App_UI_Element.formlessField(new Data_Symbol.IsSymbol(function () {
       return "secretKey1";
@@ -16881,14 +17043,42 @@ var PS = {};
       label: "Secret Key 1",
       help: "Provide a secret identifier for the group.",
       placeholder: "iasncat3ihba/0",
-      sym: Example_RealWorld_Data_Group._secretKey1
+      sym: (Example_RealWorld_Data_Group.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "admin";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "applications";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "name";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "pixels";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "secretKey1";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "secretKey2";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "whiskey";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil))))))))(Example_RealWorld_Data_Group.newtypeGroupForm)).secretKey1
   });
   var renderPixels = function (state) {
       return Example_App_UI_Element.field({
           label: "Tracking Pixels",
           help: Example_App_UI_Element.resultToHelp(Example_App_Validation.toTextFieldError)("Choose a pixel to track")(Formless_Spec_Transform.getResult(new Data_Symbol.IsSymbol(function () {
               return "pixels";
-          }))(Example_RealWorld_Data_Group.newtypeGroupForm)()(Example_RealWorld_Data_Group._pixels)(state.form))
+          }))(Example_RealWorld_Data_Group.newtypeGroupForm)()((Example_RealWorld_Data_Group.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "admin";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "applications";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "name";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "pixels";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "secretKey1";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "secretKey2";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "whiskey";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil))))))))(Example_RealWorld_Data_Group.newtypeGroupForm)).pixels)(state.form))
       })([ Halogen_HTML["slot'"](Halogen_Component_ChildPath.cp1)(Example_RealWorld_Types.Pixels.value)(Example_App_UI_Typeahead.multi(Effect_Aff_Class.monadAffAff)(Example_App_Validation.toTextString)(Data_Eq.eqString))({
           placeholder: "Search pixels",
           items: [ "My favorite pixel", "Your favorite pixel", "Application main pixel", "A pixel for you is a pixel for me" ]
@@ -16902,14 +17092,42 @@ var PS = {};
       label: "Name",
       help: "Give the group a name.",
       placeholder: "January Analytics Seminar",
-      sym: Example_RealWorld_Data_Group._name
+      sym: (Example_RealWorld_Data_Group.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "admin";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "applications";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "name";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "pixels";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "secretKey1";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "secretKey2";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "whiskey";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil))))))))(Example_RealWorld_Data_Group.newtypeGroupForm)).name
   });
   var renderApplications = function (state) {
       return Example_App_UI_Element.field({
           label: "Application Targets",
           help: Example_App_UI_Element.resultToHelp(Example_App_Validation.toTextFieldError)("Applications are available in several sizes")(Formless_Spec_Transform.getResult(new Data_Symbol.IsSymbol(function () {
               return "applications";
-          }))(Example_RealWorld_Data_Group.newtypeGroupForm)()(Example_RealWorld_Data_Group._applications)(state.form))
+          }))(Example_RealWorld_Data_Group.newtypeGroupForm)()((Example_RealWorld_Data_Group.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "admin";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "applications";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "name";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "pixels";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "secretKey1";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "secretKey2";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "whiskey";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil))))))))(Example_RealWorld_Data_Group.newtypeGroupForm)).applications)(state.form))
       })([ Halogen_HTML["slot'"](Halogen_Component_ChildPath.cp1)(Example_RealWorld_Types.Applications.value)(Example_App_UI_Typeahead.multi(Effect_Aff_Class.monadAffAff)(Example_App_Validation.toTextString)(Data_Eq.eqString))({
           placeholder: "Search one or more applications",
           items: [ "Facebook", "Google", "Twitter", "Pinterest" ]
@@ -16937,7 +17155,21 @@ var PS = {};
           label: "Administrator",
           help: Example_App_UI_Element.resultToHelp(Example_App_Validation.toTextFieldError)("Choose an administrator for the account")(Formless_Spec_Transform.getResult(new Data_Symbol.IsSymbol(function () {
               return "admin";
-          }))(Example_RealWorld_Data_Group.newtypeGroupForm)()(Example_RealWorld_Data_Group._admin)(state.form))
+          }))(Example_RealWorld_Data_Group.newtypeGroupForm)()((Example_RealWorld_Data_Group.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "admin";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "applications";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "name";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "pixels";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "secretKey1";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "secretKey2";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "whiskey";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil))))))))(Example_RealWorld_Data_Group.newtypeGroupForm)).admin)(state.form))
       })([ Halogen_HTML["slot'"](Halogen_Component_ChildPath.cp3)(Data_Unit.unit)(Example_App_UI_Dropdown.component(Effect_Aff_Class.monadAffAff)(Example_RealWorld_Data_Group.toTextAdmin)(Example_RealWorld_Data_Group.eqAdmin))({
           items: items,
           placeholder: "Choose an admin"
@@ -16982,6 +17214,7 @@ var PS = {};
   var Example_RealWorld_Data_Options = PS["Example.RealWorld.Data.Options"];
   var Example_RealWorld_Types = PS["Example.RealWorld.Types"];
   var Formless = PS["Formless"];
+  var Formless_Internal = PS["Formless.Internal"];
   var Formless_Spec = PS["Formless.Spec"];
   var Formless_Spec_Transform = PS["Formless.Spec.Transform"];
   var Halogen = PS["Halogen"];
@@ -16998,22 +17231,102 @@ var PS = {};
       label: "View Cost",
       placeholder: "100",
       help: "Enter a dollar amount for view costs.",
-      sym: Example_RealWorld_Data_Options._viewCost
+      sym: (Example_RealWorld_Data_Options.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "clickCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "dimensions";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "enable";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "installCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "metric";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "size";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "speed";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "viewCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))))))(Example_RealWorld_Data_Options.newtypeOptionsForm)).viewCost
   });
   var renderSpeed = function (state) {
       var speed = Data_Lens_Getter.view(Formless_Spec._Field(new Data_Symbol.IsSymbol(function () {
           return "speed";
-      }))(Example_RealWorld_Data_Options.newtypeOptionsForm)()(Example_RealWorld_Data_Options._speed)(Data_Lens_Internal_Forget.strongForget))(state.form);
+      }))(Example_RealWorld_Data_Options.newtypeOptionsForm)()((Example_RealWorld_Data_Options.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "clickCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "dimensions";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "enable";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "installCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "metric";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "size";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "speed";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "viewCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))))))(Example_RealWorld_Data_Options.newtypeOptionsForm)).speed)(Data_Lens_Internal_Forget.strongForget))(state.form);
       return Example_App_UI_Element.field({
           label: "Speed",
           help: new Data_Either.Right("How fast do you want to go?")
       })([ Halogen_HTML_Elements.label([ Example_App_UI_Element.css("radio") ])([ Halogen_HTML_Elements.input([ Halogen_HTML_Properties.name("speed"), Example_App_UI_Element.css("radio"), Halogen_HTML_Properties.type_(Halogen_HTML_Core.inputTypeIsProp)(DOM_HTML_Indexed_InputType.InputRadio.value), Halogen_HTML_Properties.checked(Data_Eq.eq(Example_RealWorld_Data_Options.eqSpeed)(speed.input)(Example_RealWorld_Data_Options.Low.value)), Halogen_HTML_Events.onClick(Halogen_HTML_Events.input_(Formless.Modify.create(Formless_Spec_Transform.setInput(new Data_Symbol.IsSymbol(function () {
           return "speed";
-      }))(Example_RealWorld_Data_Options.newtypeOptionsForm)()(Example_RealWorld_Data_Options._speed)(Example_RealWorld_Data_Options.Low.value)))) ]), Halogen_HTML_Core.text(" " + Data_Show.show(Example_RealWorld_Data_Options.showSpeed)(Example_RealWorld_Data_Options.Low.value)) ]), Halogen_HTML_Elements.label([ Example_App_UI_Element.css("radio") ])([ Halogen_HTML_Elements.input([ Halogen_HTML_Properties.name("speed"), Example_App_UI_Element.css("radio"), Halogen_HTML_Properties.type_(Halogen_HTML_Core.inputTypeIsProp)(DOM_HTML_Indexed_InputType.InputRadio.value), Halogen_HTML_Properties.checked(Data_Eq.eq(Example_RealWorld_Data_Options.eqSpeed)(speed.input)(Example_RealWorld_Data_Options.Medium.value)), Halogen_HTML_Events.onClick(Halogen_HTML_Events.input_(Formless.Modify.create(Formless_Spec_Transform.setInput(new Data_Symbol.IsSymbol(function () {
+      }))(Example_RealWorld_Data_Options.newtypeOptionsForm)()((Example_RealWorld_Data_Options.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "clickCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "dimensions";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "enable";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "installCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "metric";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "size";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
           return "speed";
-      }))(Example_RealWorld_Data_Options.newtypeOptionsForm)()(Example_RealWorld_Data_Options._speed)(Example_RealWorld_Data_Options.Medium.value)))) ]), Halogen_HTML_Core.text(" " + Data_Show.show(Example_RealWorld_Data_Options.showSpeed)(Example_RealWorld_Data_Options.Medium.value)) ]), Halogen_HTML_Elements.label([ Example_App_UI_Element.css("radio") ])([ Halogen_HTML_Elements.input([ Halogen_HTML_Properties.name("speed"), Example_App_UI_Element.css("radio"), Halogen_HTML_Properties.type_(Halogen_HTML_Core.inputTypeIsProp)(DOM_HTML_Indexed_InputType.InputRadio.value), Halogen_HTML_Properties.checked(Data_Eq.eq(Example_RealWorld_Data_Options.eqSpeed)(speed.input)(Example_RealWorld_Data_Options.Fast.value)), Halogen_HTML_Events.onClick(Halogen_HTML_Events.input_(Formless.Modify.create(Formless_Spec_Transform.setInput(new Data_Symbol.IsSymbol(function () {
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "viewCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))))))(Example_RealWorld_Data_Options.newtypeOptionsForm)).speed)(Example_RealWorld_Data_Options.Low.value)))) ]), Halogen_HTML_Core.text(" " + Data_Show.show(Example_RealWorld_Data_Options.showSpeed)(Example_RealWorld_Data_Options.Low.value)) ]), Halogen_HTML_Elements.label([ Example_App_UI_Element.css("radio") ])([ Halogen_HTML_Elements.input([ Halogen_HTML_Properties.name("speed"), Example_App_UI_Element.css("radio"), Halogen_HTML_Properties.type_(Halogen_HTML_Core.inputTypeIsProp)(DOM_HTML_Indexed_InputType.InputRadio.value), Halogen_HTML_Properties.checked(Data_Eq.eq(Example_RealWorld_Data_Options.eqSpeed)(speed.input)(Example_RealWorld_Data_Options.Medium.value)), Halogen_HTML_Events.onClick(Halogen_HTML_Events.input_(Formless.Modify.create(Formless_Spec_Transform.setInput(new Data_Symbol.IsSymbol(function () {
           return "speed";
-      }))(Example_RealWorld_Data_Options.newtypeOptionsForm)()(Example_RealWorld_Data_Options._speed)(Example_RealWorld_Data_Options.Fast.value)))) ]), Halogen_HTML_Core.text(" " + Data_Show.show(Example_RealWorld_Data_Options.showSpeed)(Example_RealWorld_Data_Options.Fast.value)) ]) ]);
+      }))(Example_RealWorld_Data_Options.newtypeOptionsForm)()((Example_RealWorld_Data_Options.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "clickCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "dimensions";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "enable";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "installCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "metric";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "size";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "speed";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "viewCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))))))(Example_RealWorld_Data_Options.newtypeOptionsForm)).speed)(Example_RealWorld_Data_Options.Medium.value)))) ]), Halogen_HTML_Core.text(" " + Data_Show.show(Example_RealWorld_Data_Options.showSpeed)(Example_RealWorld_Data_Options.Medium.value)) ]), Halogen_HTML_Elements.label([ Example_App_UI_Element.css("radio") ])([ Halogen_HTML_Elements.input([ Halogen_HTML_Properties.name("speed"), Example_App_UI_Element.css("radio"), Halogen_HTML_Properties.type_(Halogen_HTML_Core.inputTypeIsProp)(DOM_HTML_Indexed_InputType.InputRadio.value), Halogen_HTML_Properties.checked(Data_Eq.eq(Example_RealWorld_Data_Options.eqSpeed)(speed.input)(Example_RealWorld_Data_Options.Fast.value)), Halogen_HTML_Events.onClick(Halogen_HTML_Events.input_(Formless.Modify.create(Formless_Spec_Transform.setInput(new Data_Symbol.IsSymbol(function () {
+          return "speed";
+      }))(Example_RealWorld_Data_Options.newtypeOptionsForm)()((Example_RealWorld_Data_Options.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "clickCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "dimensions";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "enable";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "installCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "metric";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "size";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "speed";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "viewCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))))))(Example_RealWorld_Data_Options.newtypeOptionsForm)).speed)(Example_RealWorld_Data_Options.Fast.value)))) ]), Halogen_HTML_Core.text(" " + Data_Show.show(Example_RealWorld_Data_Options.showSpeed)(Example_RealWorld_Data_Options.Fast.value)) ]) ]);
   };
   var renderSize = Example_App_UI_Element.formlessField(new Data_Symbol.IsSymbol(function () {
       return "size";
@@ -17021,14 +17334,46 @@ var PS = {};
       label: "Size",
       placeholder: "10.233",
       help: "Enter a total campaign size.",
-      sym: Example_RealWorld_Data_Options._size
+      sym: (Example_RealWorld_Data_Options.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "clickCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "dimensions";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "enable";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "installCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "metric";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "size";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "speed";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "viewCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))))))(Example_RealWorld_Data_Options.newtypeOptionsForm)).size
   });
   var renderMetric = function (state) {
       return Example_App_UI_Element.field({
           label: "Metric",
           help: Example_App_UI_Element.resultToHelp(Example_App_Validation.toTextFieldError)("Choose a metric to optimize for.")(Formless_Spec_Transform.getResult(new Data_Symbol.IsSymbol(function () {
               return "metric";
-          }))(Example_RealWorld_Data_Options.newtypeOptionsForm)()(Example_RealWorld_Data_Options._metric)(state.form))
+          }))(Example_RealWorld_Data_Options.newtypeOptionsForm)()((Example_RealWorld_Data_Options.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "clickCost";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "dimensions";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "enable";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "installCost";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "metric";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "size";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "speed";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "viewCost";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))))))(Example_RealWorld_Data_Options.newtypeOptionsForm)).metric)(state.form))
       })([ Halogen_HTML.slot(Data_Unit.unit)(Example_App_UI_Dropdown.component(Effect_Aff_Class.monadAffAff)(Example_RealWorld_Data_Options.toTextMetric)(Example_RealWorld_Data_Options.eqMetric))({
           placeholder: "Choose a metric",
           items: [ Example_RealWorld_Data_Options.ViewCost.value, Example_RealWorld_Data_Options.ClickCost.value, Example_RealWorld_Data_Options.InstallCost.value ]
@@ -17042,7 +17387,23 @@ var PS = {};
       label: "Install Cost",
       placeholder: "10",
       help: "Enter a dollar amount you're willing to pay for an app instal.",
-      sym: Example_RealWorld_Data_Options._installCost
+      sym: (Example_RealWorld_Data_Options.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "clickCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "dimensions";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "enable";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "installCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "metric";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "size";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "speed";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "viewCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))))))(Example_RealWorld_Data_Options.newtypeOptionsForm)).installCost
   });
   var renderEnabled = function (state) {
       return Example_App_UI_Element.field({
@@ -17050,9 +17411,41 @@ var PS = {};
           help: new Data_Either.Right("Do you want to enable this set of options?")
       })([ Halogen_HTML_Elements.label([ Example_App_UI_Element.css("checkbox") ])([ Halogen_HTML_Elements.input([ Example_App_UI_Element.css("checkbox"), Halogen_HTML_Properties.type_(Halogen_HTML_Core.inputTypeIsProp)(DOM_HTML_Indexed_InputType.InputCheckbox.value), Halogen_HTML_Properties.checked(Formless_Spec_Transform.getInput(new Data_Symbol.IsSymbol(function () {
           return "enable";
-      }))(Example_RealWorld_Data_Options.newtypeOptionsForm)()(Example_RealWorld_Data_Options._enable)(state.form)), Halogen_HTML_Events.onChange(Halogen_HTML_Events.input_(Formless.Modify.create(Formless_Spec_Transform.modifyInput(new Data_Symbol.IsSymbol(function () {
+      }))(Example_RealWorld_Data_Options.newtypeOptionsForm)()((Example_RealWorld_Data_Options.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "clickCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "dimensions";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
           return "enable";
-      }))(Example_RealWorld_Data_Options.newtypeOptionsForm)()(Example_RealWorld_Data_Options._enable)(Data_HeytingAlgebra.not(Data_HeytingAlgebra.heytingAlgebraBoolean))))) ]), Halogen_HTML_Core.text(" Enable extra options") ]) ]);
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "installCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "metric";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "size";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "speed";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "viewCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))))))(Example_RealWorld_Data_Options.newtypeOptionsForm)).enable)(state.form)), Halogen_HTML_Events.onChange(Halogen_HTML_Events.input_(Formless.Modify.create(Formless_Spec_Transform.modifyInput(new Data_Symbol.IsSymbol(function () {
+          return "enable";
+      }))(Example_RealWorld_Data_Options.newtypeOptionsForm)()((Example_RealWorld_Data_Options.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "clickCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "dimensions";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "enable";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "installCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "metric";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "size";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "speed";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "viewCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))))))(Example_RealWorld_Data_Options.newtypeOptionsForm)).enable)(Data_HeytingAlgebra.not(Data_HeytingAlgebra.heytingAlgebraBoolean))))) ]), Halogen_HTML_Core.text(" Enable extra options") ]) ]);
   };
   var renderDimensions = Example_App_UI_Element.formlessField(new Data_Symbol.IsSymbol(function () {
       return "dimensions";
@@ -17060,7 +17453,23 @@ var PS = {};
       label: "Dimensions",
       placeholder: "1.027",
       help: "Enter a total campaign dimension set ratio buzzword.",
-      sym: Example_RealWorld_Data_Options._dimensions
+      sym: (Example_RealWorld_Data_Options.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "clickCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "dimensions";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "enable";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "installCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "metric";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "size";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "speed";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "viewCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))))))(Example_RealWorld_Data_Options.newtypeOptionsForm)).dimensions
   });
   var renderOthers = function (state) {
       return [ renderSize(state), renderDimensions(state), renderSpeed(state) ];
@@ -17071,7 +17480,23 @@ var PS = {};
       label: "Click Cost",
       placeholder: "1",
       help: "Enter a dollar amount you're willing to pay for a click.",
-      sym: Example_RealWorld_Data_Options._clickCost
+      sym: (Example_RealWorld_Data_Options.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "clickCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "dimensions";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "enable";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "installCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "metric";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "size";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "speed";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "viewCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))))))(Example_RealWorld_Data_Options.newtypeOptionsForm)).clickCost
   });
   var renderMetrics = function (state) {
       var renderMetricField = function (v) {
@@ -17091,13 +17516,45 @@ var PS = {};
       };
       return [ renderMetric(state), renderMetricField(Formless_Spec_Transform.getInput(new Data_Symbol.IsSymbol(function () {
           return "metric";
-      }))(Example_RealWorld_Data_Options.newtypeOptionsForm)()(Example_RealWorld_Data_Options._metric)(state.form)) ];
+      }))(Example_RealWorld_Data_Options.newtypeOptionsForm)()((Example_RealWorld_Data_Options.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "clickCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "dimensions";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "enable";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "installCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "metric";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "size";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "speed";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "viewCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))))))(Example_RealWorld_Data_Options.newtypeOptionsForm)).metric)(state.form)) ];
   };
   var render = function (state) {
       return Example_App_UI_Element.formContent_([ renderEnabled(state), Halogen_HTML_Elements.div([ (function () {
           var $5 = Formless_Spec_Transform.getInput(new Data_Symbol.IsSymbol(function () {
               return "enable";
-          }))(Example_RealWorld_Data_Options.newtypeOptionsForm)()(Example_RealWorld_Data_Options._enable)(state.form);
+          }))(Example_RealWorld_Data_Options.newtypeOptionsForm)()((Example_RealWorld_Data_Options.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "clickCost";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "dimensions";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "enable";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "installCost";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "metric";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "size";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "speed";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+              return "viewCost";
+          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))))))(Example_RealWorld_Data_Options.newtypeOptionsForm)).enable)(state.form);
           if ($5) {
               return Example_App_UI_Element.css("");
           };
@@ -17138,8 +17595,7 @@ var PS = {};
   var Formless_Spec_Transform = PS["Formless.Spec.Transform"];
   var Formless_Validation_Semigroup = PS["Formless.Validation.Semigroup"];
   var Prelude = PS["Prelude"];
-  var Record = PS["Record"];
-  var Type_Row = PS["Type.Row"];                 
+  var Record = PS["Record"];                 
   var groupFormValidate = function (dictMonad) {
       return function (form) {
           var validateBudget = Data_Function["const"](Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(new Data_Maybe.Just(100)));
@@ -17176,12 +17632,40 @@ var PS = {};
               secretKey1: function (i) {
                   return Control_Apply.applySecond(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(Example_App_Validation.validateNonEmpty(i))(Example_App_Validation.validateEqual(Formless_Spec_Transform.getInput(new Data_Symbol.IsSymbol(function () {
                       return "secretKey2";
-                  }))(Example_RealWorld_Data_Group.newtypeGroupForm)()(Example_RealWorld_Data_Group._secretKey2)(form))(i));
+                  }))(Example_RealWorld_Data_Group.newtypeGroupForm)()((Example_RealWorld_Data_Group.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "admin";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "applications";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "name";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "pixels";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "secretKey1";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "secretKey2";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "whiskey";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil))))))))(Example_RealWorld_Data_Group.newtypeGroupForm)).secretKey2)(form))(i));
               },
               secretKey2: function (i) {
                   return Control_Apply.applySecond(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(Example_App_Validation.validateNonEmpty(i))(Example_App_Validation.validateEqual(Formless_Spec_Transform.getInput(new Data_Symbol.IsSymbol(function () {
                       return "secretKey1";
-                  }))(Example_RealWorld_Data_Group.newtypeGroupForm)()(Example_RealWorld_Data_Group._secretKey1)(form))(i));
+                  }))(Example_RealWorld_Data_Group.newtypeGroupForm)()((Example_RealWorld_Data_Group.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "admin";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "applications";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "name";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "pixels";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "secretKey1";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "secretKey2";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "whiskey";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil))))))))(Example_RealWorld_Data_Group.newtypeGroupForm)).secretKey1)(form))(i));
               },
               admin: Example_App_Validation.validateMaybe,
               applications: Example_App_Validation.validateNonEmptyArray,
@@ -17221,7 +17705,7 @@ var PS = {};
           });
       };
   };
-  var groupFormSpec = Formless_Spec_Transform.mkFormSpecFromRow()(Formless_Spec_Transform.mkFormSpecFromRowCons(new Data_Symbol.IsSymbol(function () {
+  var groupFormSpec = Formless_Spec_Transform.mkFormSpecFromProxy()(Formless_Spec_Transform.mkFormSpecFromRowCons(new Data_Symbol.IsSymbol(function () {
       return "admin";
   }))(Formless_Class_Initial.initialMaybe)()(Formless_Spec_Transform.mkFormSpecFromRowCons(new Data_Symbol.IsSymbol(function () {
       return "applications";
@@ -17235,7 +17719,7 @@ var PS = {};
       return "secretKey2";
   }))(Formless_Class_Initial.initialString)()(Formless_Spec_Transform.mkFormSpecFromRowCons(new Data_Symbol.IsSymbol(function () {
       return "whiskey";
-  }))(Formless_Class_Initial.initialMaybe)()(Formless_Spec_Transform.mkFormSpecFromRowNil)(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Example_RealWorld_Data_Group.newtypeGroupForm)(Type_Row.RProxy.value);
+  }))(Formless_Class_Initial.initialMaybe)()(Formless_Spec_Transform.mkFormSpecFromRowNil)(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Example_RealWorld_Data_Group.newtypeGroupForm)(Example_RealWorld_Data_Group.newtypeGroupForm)(Formless_Spec.FormProxy.value);
   exports["groupFormSpec"] = groupFormSpec;
   exports["groupFormSubmit"] = groupFormSubmit;
   exports["groupFormValidate"] = groupFormValidate;
@@ -17262,15 +17746,30 @@ var PS = {};
   var Formless_Spec = PS["Formless.Spec"];
   var Formless_Spec_Transform = PS["Formless.Spec.Transform"];
   var Formless_Validation_Semigroup = PS["Formless.Validation.Semigroup"];
-  var Prelude = PS["Prelude"];
-  var Type_Row = PS["Type.Row"];                 
+  var Prelude = PS["Prelude"];                 
   var optionsFormValidate = function (v) {
       var validateInt = function (str) {
           return Data_Functor.map(Data_Validation_Semigroup.functorV)(Data_Int.toNumber)(Example_App_Validation.validateInt(str));
       };
       var metric = Formless_Spec_Transform.getInput(new Data_Symbol.IsSymbol(function () {
           return "metric";
-      }))(Example_RealWorld_Data_Options.newtypeOptionsForm)()(Example_RealWorld_Data_Options._metric)(v);
+      }))(Example_RealWorld_Data_Options.newtypeOptionsForm)()((Example_RealWorld_Data_Options.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "clickCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "dimensions";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "enable";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "installCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "metric";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "size";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "speed";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+          return "viewCost";
+      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))))))(Example_RealWorld_Data_Options.newtypeOptionsForm)).metric)(v);
       var validateMetric = function (m) {
           return function (str) {
               if (Data_Eq.eq(Data_Maybe.eqMaybe(Example_RealWorld_Data_Options.eqMetric))(metric)(new Data_Maybe.Just(m))) {
@@ -17281,7 +17780,7 @@ var PS = {};
               if (Data_Boolean.otherwise) {
                   return Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(Data_Maybe.Nothing.value);
               };
-              throw new Error("Failed pattern match at Example.RealWorld.Spec.OptionsForm line 46, column 5 - line 48, column 33: " + [ m.constructor.name, str.constructor.name ]);
+              throw new Error("Failed pattern match at Example.RealWorld.Spec.OptionsForm line 45, column 5 - line 47, column 33: " + [ m.constructor.name, str.constructor.name ]);
           };
       };
       return {
@@ -17295,7 +17794,7 @@ var PS = {};
           speed: Formless_Validation_Semigroup.onInputField(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupUnit)))(v.speed)
       };
   };
-  var optionsFormSpec = Formless_Spec_Transform.mkFormSpecFromRow()(Formless_Spec_Transform.mkFormSpecFromRowCons(new Data_Symbol.IsSymbol(function () {
+  var optionsFormSpec = Formless_Spec_Transform.mkFormSpecFromProxy()(Formless_Spec_Transform.mkFormSpecFromRowCons(new Data_Symbol.IsSymbol(function () {
       return "clickCost";
   }))(Formless_Class_Initial.initialString)()(Formless_Spec_Transform.mkFormSpecFromRowCons(new Data_Symbol.IsSymbol(function () {
       return "dimensions";
@@ -17311,7 +17810,7 @@ var PS = {};
       return "speed";
   }))(Example_RealWorld_Data_Options.initialSpeed)()(Formless_Spec_Transform.mkFormSpecFromRowCons(new Data_Symbol.IsSymbol(function () {
       return "viewCost";
-  }))(Formless_Class_Initial.initialString)()(Formless_Spec_Transform.mkFormSpecFromRowNil)(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Example_RealWorld_Data_Options.newtypeOptionsForm)(Type_Row.RProxy.value);
+  }))(Formless_Class_Initial.initialString)()(Formless_Spec_Transform.mkFormSpecFromRowNil)(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))(Example_RealWorld_Data_Options.newtypeOptionsForm)(Example_RealWorld_Data_Options.newtypeOptionsForm)(Formless_Spec.FormProxy.value);
   var defaultOptionsSpec = Formless_Spec_Transform.mkFormSpec()(Formless_Internal.wrapRecordCons(new Data_Symbol.IsSymbol(function () {
       return "clickCost";
   }))()(Formless_Spec.newtypeFormSpec)(Formless_Internal.wrapRecordCons(new Data_Symbol.IsSymbol(function () {
@@ -17795,46 +18294,144 @@ var PS = {};
                       return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(v.value1);
                   });
               };
-              throw new Error("Failed pattern match at Example.RealWorld.Component line 155, column 22 - line 163, column 15: " + [ v.value0.constructor.name ]);
+              throw new Error("Failed pattern match at Example.RealWorld.Component line 154, column 22 - line 162, column 15: " + [ v.value0.constructor.name ]);
           };
           if (v instanceof Example_RealWorld_Types.TASingle) {
               return Data_Functor.voidRight(Halogen_Query_HalogenM.functorHalogenM)(v.value1)(Halogen_Query["query'"](Data_Either.eqEither(Data_Eq.eqUnit)(Data_Either.eqEither(Data_Eq.eqUnit)(Data_Eq.eqVoid)))(Halogen_Component_ChildPath.cp1)(Data_Unit.unit)(Halogen_Query.action(Formless.ModifyValidate.create(Formless_Spec_Transform.setInput(new Data_Symbol.IsSymbol(function () {
                   return "whiskey";
-              }))(Example_RealWorld_Data_Group.newtypeGroupForm)()(Example_RealWorld_Data_Group._whiskey)(v.value0.value0)))));
+              }))(Example_RealWorld_Data_Group.newtypeGroupForm)()((Example_RealWorld_Data_Group.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                  return "admin";
+              }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                  return "applications";
+              }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                  return "name";
+              }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                  return "pixels";
+              }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                  return "secretKey1";
+              }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                  return "secretKey2";
+              }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                  return "whiskey";
+              }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil))))))))(Example_RealWorld_Data_Group.newtypeGroupForm)).whiskey)(v.value0.value0)))));
           };
           if (v instanceof Example_RealWorld_Types.TAMulti) {
               return Data_Functor.voidRight(Halogen_Query_HalogenM.functorHalogenM)(v.value2)((function () {
                   if (v.value0 instanceof Example_RealWorld_Types.Applications) {
                       return Halogen_Query["query'"](Data_Either.eqEither(Data_Eq.eqUnit)(Data_Either.eqEither(Data_Eq.eqUnit)(Data_Eq.eqVoid)))(Halogen_Component_ChildPath.cp1)(Data_Unit.unit)(Halogen_Query.action(Formless.ModifyValidate.create(Formless_Spec_Transform.setInput(new Data_Symbol.IsSymbol(function () {
                           return "applications";
-                      }))(Example_RealWorld_Data_Group.newtypeGroupForm)()(Example_RealWorld_Data_Group._applications)(v.value1.value0))));
+                      }))(Example_RealWorld_Data_Group.newtypeGroupForm)()((Example_RealWorld_Data_Group.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "admin";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "applications";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "name";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "pixels";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "secretKey1";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "secretKey2";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "whiskey";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil))))))))(Example_RealWorld_Data_Group.newtypeGroupForm)).applications)(v.value1.value0))));
                   };
                   if (v.value0 instanceof Example_RealWorld_Types.Pixels) {
                       return Halogen_Query["query'"](Data_Either.eqEither(Data_Eq.eqUnit)(Data_Either.eqEither(Data_Eq.eqUnit)(Data_Eq.eqVoid)))(Halogen_Component_ChildPath.cp1)(Data_Unit.unit)(Halogen_Query.action(Formless.ModifyValidate.create(Formless_Spec_Transform.setInput(new Data_Symbol.IsSymbol(function () {
                           return "pixels";
-                      }))(Example_RealWorld_Data_Group.newtypeGroupForm)()(Example_RealWorld_Data_Group._pixels)(v.value1.value0))));
+                      }))(Example_RealWorld_Data_Group.newtypeGroupForm)()((Example_RealWorld_Data_Group.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "admin";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "applications";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "name";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "pixels";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "secretKey1";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "secretKey2";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "whiskey";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil))))))))(Example_RealWorld_Data_Group.newtypeGroupForm)).pixels)(v.value1.value0))));
                   };
-                  throw new Error("Failed pattern match at Example.RealWorld.Component line 168, column 55 - line 172, column 84: " + [ v.value0.constructor.name ]);
+                  throw new Error("Failed pattern match at Example.RealWorld.Component line 167, column 55 - line 171, column 93: " + [ v.value0.constructor.name ]);
               })());
           };
           if (v instanceof Example_RealWorld_Types.AdminDropdown) {
               return Data_Functor.voidRight(Halogen_Query_HalogenM.functorHalogenM)(v.value1)(Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Halogen_Query["query'"](Data_Either.eqEither(Data_Eq.eqUnit)(Data_Either.eqEither(Data_Eq.eqUnit)(Data_Eq.eqVoid)))(Halogen_Component_ChildPath.cp1)(Data_Unit.unit)(Halogen_Query.action(Formless.Reset.create(Formless_Spec_Transform.resetField(new Data_Symbol.IsSymbol(function () {
                   return "secretKey1";
-              }))(Formless_Class_Initial.initialString)(Example_RealWorld_Data_Group.newtypeGroupForm)()(Example_RealWorld_Data_Group._secretKey1)))))(function (v1) {
+              }))(Formless_Class_Initial.initialString)(Example_RealWorld_Data_Group.newtypeGroupForm)()((Example_RealWorld_Data_Group.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                  return "admin";
+              }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                  return "applications";
+              }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                  return "name";
+              }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                  return "pixels";
+              }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                  return "secretKey1";
+              }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                  return "secretKey2";
+              }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                  return "whiskey";
+              }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil))))))))(Example_RealWorld_Data_Group.newtypeGroupForm)).secretKey1)))))(function (v1) {
                   return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Halogen_Query["query'"](Data_Either.eqEither(Data_Eq.eqUnit)(Data_Either.eqEither(Data_Eq.eqUnit)(Data_Eq.eqVoid)))(Halogen_Component_ChildPath.cp1)(Data_Unit.unit)(Halogen_Query.action(Formless.Reset.create(Formless_Spec_Transform.resetField(new Data_Symbol.IsSymbol(function () {
                       return "secretKey2";
-                  }))(Formless_Class_Initial.initialString)(Example_RealWorld_Data_Group.newtypeGroupForm)()(Example_RealWorld_Data_Group._secretKey2)))))(function (v2) {
+                  }))(Formless_Class_Initial.initialString)(Example_RealWorld_Data_Group.newtypeGroupForm)()((Example_RealWorld_Data_Group.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "admin";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "applications";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "name";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "pixels";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "secretKey1";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "secretKey2";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                      return "whiskey";
+                  }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil))))))))(Example_RealWorld_Data_Group.newtypeGroupForm)).secretKey2)))))(function (v2) {
                       if (v.value0 instanceof Example_App_UI_Dropdown.Selected) {
                           return Halogen_Query["query'"](Data_Either.eqEither(Data_Eq.eqUnit)(Data_Either.eqEither(Data_Eq.eqUnit)(Data_Eq.eqVoid)))(Halogen_Component_ChildPath.cp1)(Data_Unit.unit)(Halogen_Query.action(Formless.ModifyValidate.create(Formless_Spec_Transform.setInput(new Data_Symbol.IsSymbol(function () {
                               return "admin";
-                          }))(Example_RealWorld_Data_Group.newtypeGroupForm)()(Example_RealWorld_Data_Group._admin)(new Data_Maybe.Just(v.value0.value0)))));
+                          }))(Example_RealWorld_Data_Group.newtypeGroupForm)()((Example_RealWorld_Data_Group.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                              return "admin";
+                          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                              return "applications";
+                          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                              return "name";
+                          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                              return "pixels";
+                          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                              return "secretKey1";
+                          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                              return "secretKey2";
+                          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                              return "whiskey";
+                          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil))))))))(Example_RealWorld_Data_Group.newtypeGroupForm)).admin)(new Data_Maybe.Just(v.value0.value0)))));
                       };
                       if (v.value0 instanceof Example_App_UI_Dropdown.Cleared) {
                           return Halogen_Query["query'"](Data_Either.eqEither(Data_Eq.eqUnit)(Data_Either.eqEither(Data_Eq.eqUnit)(Data_Eq.eqVoid)))(Halogen_Component_ChildPath.cp1)(Data_Unit.unit)(Halogen_Query.action(Formless.ModifyValidate.create(Formless_Spec_Transform.setInput(new Data_Symbol.IsSymbol(function () {
                               return "admin";
-                          }))(Example_RealWorld_Data_Group.newtypeGroupForm)()(Example_RealWorld_Data_Group._admin)(Data_Maybe.Nothing.value))));
+                          }))(Example_RealWorld_Data_Group.newtypeGroupForm)()((Example_RealWorld_Data_Group.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                              return "admin";
+                          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                              return "applications";
+                          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                              return "name";
+                          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                              return "pixels";
+                          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                              return "secretKey1";
+                          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                              return "secretKey2";
+                          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                              return "whiskey";
+                          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil))))))))(Example_RealWorld_Data_Group.newtypeGroupForm)).admin)(Data_Maybe.Nothing.value))));
                       };
-                      throw new Error("Failed pattern match at Example.RealWorld.Component line 177, column 7 - line 181, column 89: " + [ v.value0.constructor.name ]);
+                      throw new Error("Failed pattern match at Example.RealWorld.Component line 176, column 7 - line 180, column 98: " + [ v.value0.constructor.name ]);
                   });
               }));
           };
@@ -17858,7 +18455,23 @@ var PS = {};
                           $71.optionsFormDirty = v.value0.value0.dirty;
                           $71.optionsEnabled = Formless_Spec_Transform.getInput(new Data_Symbol.IsSymbol(function () {
                               return "enable";
-                          }))(Example_RealWorld_Data_Options.newtypeOptionsForm)()(Example_RealWorld_Data_Options._enable)(v.value0.value0.form);
+                          }))(Example_RealWorld_Data_Options.newtypeOptionsForm)()((Example_RealWorld_Data_Options.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                              return "clickCost";
+                          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                              return "dimensions";
+                          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                              return "enable";
+                          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                              return "installCost";
+                          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                              return "metric";
+                          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                              return "size";
+                          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                              return "speed";
+                          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                              return "viewCost";
+                          }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))))))(Example_RealWorld_Data_Options.newtypeOptionsForm)).enable)(v.value0.value0.form);
                           return $71;
                       }))(function (v2) {
                           var validator = Data_Functor.map(Data_Functor.functorFn)(Control_Applicative.pure(Effect_Aff.applicativeAff))(Example_RealWorld_Spec_OptionsForm.optionsFormValidate);
@@ -17916,24 +18529,56 @@ var PS = {};
                       });
                   });
               };
-              throw new Error("Failed pattern match at Example.RealWorld.Component line 186, column 24 - line 211, column 15: " + [ v.value0.constructor.name ]);
+              throw new Error("Failed pattern match at Example.RealWorld.Component line 185, column 24 - line 210, column 15: " + [ v.value0.constructor.name ]);
           };
           if (v instanceof Example_RealWorld_Types.MetricDropdown) {
               return Data_Functor.voidRight(Halogen_Query_HalogenM.functorHalogenM)(v.value1)((function () {
                   if (v.value0 instanceof Example_App_UI_Dropdown.Selected) {
                       return Halogen_Query["query'"](Data_Either.eqEither(Data_Eq.eqUnit)(Data_Either.eqEither(Data_Eq.eqUnit)(Data_Eq.eqVoid)))(Halogen_Component_ChildPath.cp2)(Data_Unit.unit)(Halogen_Query.action(Formless.ModifyValidate.create(Formless_Spec_Transform.setInput(new Data_Symbol.IsSymbol(function () {
                           return "metric";
-                      }))(Example_RealWorld_Data_Options.newtypeOptionsForm)()(Example_RealWorld_Data_Options._metric)(new Data_Maybe.Just(v.value0.value0)))));
+                      }))(Example_RealWorld_Data_Options.newtypeOptionsForm)()((Example_RealWorld_Data_Options.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "clickCost";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "dimensions";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "enable";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "installCost";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "metric";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "size";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "speed";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "viewCost";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))))))(Example_RealWorld_Data_Options.newtypeOptionsForm)).metric)(new Data_Maybe.Just(v.value0.value0)))));
                   };
                   if (v.value0 instanceof Example_App_UI_Dropdown.Cleared) {
                       return Halogen_Query["query'"](Data_Either.eqEither(Data_Eq.eqUnit)(Data_Either.eqEither(Data_Eq.eqUnit)(Data_Eq.eqVoid)))(Halogen_Component_ChildPath.cp2)(Data_Unit.unit)(Halogen_Query.action(Formless.ModifyValidate.create(Formless_Spec_Transform.setInput(new Data_Symbol.IsSymbol(function () {
                           return "metric";
-                      }))(Example_RealWorld_Data_Options.newtypeOptionsForm)()(Example_RealWorld_Data_Options._metric)(Data_Maybe.Nothing.value))));
+                      }))(Example_RealWorld_Data_Options.newtypeOptionsForm)()((Example_RealWorld_Data_Options.proxies()(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "clickCost";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "dimensions";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "enable";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "installCost";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "metric";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "size";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "speed";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesCons(new Data_Symbol.IsSymbol(function () {
+                          return "viewCost";
+                      }))(Formless_Internal.row1Cons()())(Formless_Spec_Transform.makeSProxiesNil)))))))))(Example_RealWorld_Data_Options.newtypeOptionsForm)).metric)(Data_Maybe.Nothing.value))));
                   };
-                  throw new Error("Failed pattern match at Example.RealWorld.Component line 213, column 32 - line 217, column 87: " + [ v.value0.constructor.name ]);
+                  throw new Error("Failed pattern match at Example.RealWorld.Component line 212, column 32 - line 216, column 96: " + [ v.value0.constructor.name ]);
               })());
           };
-          throw new Error("Failed pattern match at Example.RealWorld.Component line 120, column 10 - line 217, column 87: " + [ v.constructor.name ]);
+          throw new Error("Failed pattern match at Example.RealWorld.Component line 119, column 10 - line 216, column 96: " + [ v.constructor.name ]);
       };
       return Halogen_Component.parentComponent(Data_Either.ordEither(Data_Ord.ordUnit)(Data_Either.ordEither(Data_Ord.ordUnit)(Data_Ord.ordVoid)))({
           initialState: Data_Function["const"](initialState),
