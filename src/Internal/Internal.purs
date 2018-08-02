@@ -3,15 +3,12 @@ module Formless.Internal where
 import Prelude
 
 import Data.Either (Either(..), hush)
-import Data.Lens as Lens
-import Data.Lens.Iso.Newtype (_Newtype)
-import Data.Lens.Record (prop)
 import Data.Maybe (Maybe(..))
 import Data.Monoid.Additive (Additive(..))
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Data.Variant (Variant, on)
-import Formless.Spec (FormSpec(..), InputField(..), OutputField(..), InputFieldRow, _input, _result, _touched)
+import Formless.Spec (FormSpec(..), InputField(..), OutputField(..))
 import Prim.Row as Row
 import Prim.RowList as RL
 import Record as Record
@@ -531,30 +528,20 @@ instance inputSetterCons ::
   ( IsSymbol sym
   , Row.Cons sym (InputField e i o) fin fout
   , Row.Cons sym i rout' rout
-  , Newtype (InputField e i o) { input :: i, touched :: Boolean, result :: Maybe (Either e o) }
   , BuildInputSetters tail rin fin' rout' fout
   ) => BuildInputSetters (RL.Cons sym i tail) rin fin rout fout
   where
   buildInputSetters _ _ =
-    on sym
-      (\a ->
-        ( Lens.set (prop sym <<< _Newtype <<< prop _input) a
-        <<< Lens.set (prop sym <<< _Newtype <<< prop _touched) true
-        <<< Lens.set (prop sym <<< _Newtype <<< prop _result) (Nothing :: Maybe (Either e o))
-        )
-      )
-      <<< rest
+    on sym f <<< rest
     where
       sym = SProxy :: SProxy sym
 
-      rest
-        :: (Variant rin -> Record fout -> Record fout)
-        -> Variant rout'
-        -> Record fout
-        -> Record fout
-      rest =
-        let
-          tail = RLProxy :: RLProxy tail
-          fin' = RProxy  :: RProxy fin'
-         in
-          buildInputSetters tail fin'
+      f a = Record.set sym $ InputField
+        { input: a
+        , touched: false
+        , result: Nothing
+        }
+
+      rest = buildInputSetters
+        (RLProxy :: RLProxy tail)
+        (RProxy :: RProxy fin')
