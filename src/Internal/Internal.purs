@@ -3,17 +3,22 @@ module Formless.Internal where
 import Prelude
 
 import Data.Either (Either(..), hush)
+import Data.Lens as Lens
+import Data.Lens.Iso.Newtype (_Newtype)
+import Data.Lens.Record (prop)
 import Data.Maybe (Maybe(..))
 import Data.Monoid.Additive (Additive(..))
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
-import Formless.Spec (FormSpec(..), InputField(..), OutputField(..))
+import Data.Variant (Variant, on)
+import Formless.Spec (FormSpec(..), InputField(..), OutputField(..), _input)
 import Prim.Row as Row
 import Prim.RowList as RL
 import Record as Record
 import Record.Builder (Builder)
 import Record.Builder as Builder
 import Type.Data.RowList (RLProxy(..))
+import Type.Row (RProxy(..))
 
 -----
 -- Types
@@ -317,7 +322,6 @@ instance countErrorsCons
           Just (Left _) -> Additive 1
           _ -> Additive 0
 
-
 -- | A class to check if all fields in an InputField record have been touched or not
 class AllTouched (rl :: RL.RowList) (r :: # Type) where
   allTouchedImpl :: RLProxy rl -> Record r -> Boolean
@@ -360,7 +364,6 @@ instance unwrapRecordCons
       rest = unwrapRecordBuilder (RLProxy :: RLProxy tail) r
       first = Builder.insert _name val
 
-
 -- | The class to efficiently wrap a record of newtypes
 class WrapRecord (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
   wrapRecordBuilder :: RLProxy xs -> Record row -> FromScratch to
@@ -384,7 +387,7 @@ instance wrapRecordCons
       rest = wrapRecordBuilder (RLProxy :: RLProxy tail) r
       first = Builder.insert _name val
 
--- | The class to efficiently run the sequenceRecord function on a record.
+-- | The class to efficiently run the build with sequenceRecord on a record.
 class Applicative m <= SequenceRecord rl row to m | rl -> row to m where
   sequenceRecordImpl :: RLProxy rl -> Record row -> m (FromScratch to)
 
@@ -498,3 +501,49 @@ instance applyRowListCons
 
         rltail :: ∀ l v t. RLProxy (RL.Cons l v t) -> RLProxy t
         rltail _ = RLProxy
+
+
+mkInputSetter
+  :: ∀ rl vals rin fin rout fout
+   . RL.RowToList vals rl
+  => BuildInputSetters rl rin fin rout fout
+  => RProxy vals
+  -> (Variant rin -> Record fout -> Record fout)
+  -> Variant rout
+  -> Record fout
+  -> Record fout
+mkInputSetter k =
+  buildInputSetters (RLProxy :: RLProxy rl) (RProxy :: RProxy fin)
+
+
+class BuildInputSetters rl rin fin rout fout | rl rin fin -> rout fout where
+  buildInputSetters
+    :: RLProxy rl
+    -> RProxy fin
+    -> (Variant rin -> Record fout -> Record fout)
+    -> Variant rout
+    -> Record fout
+    -> Record fout
+
+instance inputSetterNil :: BuildInputSetters RL.Nil r fin r fout where
+  buildInputSetters _ _ = identity
+
+instance inputSetterCons ::
+  ( IsSymbol sym
+  , Row.Cons sym (InputField e i o) fin fout
+  , Row.Cons sym i rout' rout
+  , BuildInputSetters tail rin fin' rout' fout
+  ) => BuildInputSetters (RL.Cons sym i tail) rin fin rout fout
+  where
+  buildInputSetters _ _ =
+    let
+      sym  = SProxy  :: SProxy sym
+      tail = RLProxy :: RLProxy tail
+      fin  = RProxy  :: RProxy fin'
+
+      setInput = Lens.set (prop sym <<< _Newtype <<< prop _input)
+
+    in
+      on sym setInput <<< buildInputSetters tail fin
+
+

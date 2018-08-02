@@ -15,7 +15,12 @@ import Data.Symbol (class IsSymbol, SProxy(..))
 import Prim.Row (class Cons)
 
 -- | @monoidmusician
-data FormProxy (form :: (# Type -> Type) -> (Type -> Type -> Type -> Type) -> Type) = FormProxy
+data FormProxy
+  ( form
+      :: (# Type -> Type)
+      -> (Type -> Type -> Type -> Type)
+      -> Type
+  ) = FormProxy
 
 -- | The type that will be applied to the user's input row to
 -- | create the spec form that we'll compare against to measure

@@ -4,9 +4,11 @@ import Prelude
 
 import Data.Either (Either)
 import Data.Lens (set, view)
+import Data.Lens.Record (prop)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
+import Data.Variant (Variant, on)
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
 import Formless.Spec (FormProxy, FormSpec(..), InputField, OutputField, _Input, _Result, _Touched)
@@ -249,3 +251,44 @@ instance makeSProxiesCons
     where
       rest = makeSProxiesBuilder (RLProxy :: RLProxy tail)
       first = Builder.insert (SProxy :: SProxy name) (SProxy :: SProxy name)
+
+
+class BuildInputSetters rl rin fin rout fout | rl rin fin -> rout fout where
+  buildInputSetters
+    :: RLProxy rl
+    -> RProxy fin
+    -> (Variant rin -> Record fout -> Record fout)
+    -> Variant rout
+    -> Record fout
+    -> Record fout
+
+instance inputSetterNil :: BuildInputSetters RL.Nil r fin r fout where
+  buildInputSetters _ _ = identity
+
+instance inputSetterCons ::
+  ( IsSymbol sym
+  , Row.Cons sym { input :: a | r } fin fout
+  , Row.Cons sym a rout' rout
+  , BuildInputSetters tail rin fin' rout' fout
+  ) => BuildInputSetters (RL.Cons sym a tail) rin fin rout fout
+  where
+  buildInputSetters _ _ =
+    let
+      sym  = SProxy  :: SProxy sym
+      tail = RLProxy :: RLProxy tail
+      fin  = RProxy  :: RProxy fin'
+    in
+      on sym (set (prop sym <<< prop (SProxy :: SProxy "input")))
+        <<< buildInputSetters tail fin
+
+inputSetter
+  :: ∀ rl vals rin fin rout fout
+   . RL.RowToList vals rl
+  => BuildInputSetters rl rin fin rout fout
+  => RProxy vals
+  -> (Variant rin -> Record fout -> Record fout)
+  -> Variant rout
+  -> Record fout
+  -> Record fout
+inputSetter k =
+  buildInputSetters (RLProxy :: RLProxy rl) (RProxy :: RProxy fin)

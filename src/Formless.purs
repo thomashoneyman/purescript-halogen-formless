@@ -42,8 +42,9 @@ import Data.Monoid.Additive (Additive)
 import Data.Newtype (class Newtype, over, unwrap)
 import Data.Symbol (SProxy(..))
 import Data.Traversable (traverse, traverse_)
-import Data.Variant (Variant)
+import Data.Variant (Variant, case_)
 import Formless.Class.Initial (class Initial, initial)
+import Formless.Internal (mkInputSetter)
 import Formless.Internal as Internal
 import Formless.Spec (ErrorType, FormProxy(..), FormSpec(..), InputField(..), InputFieldRow, InputType, OutputField(..), OutputType, _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched)
 import Formless.Spec.Transform (class MakeFormSpecFromRow, class MakeSProxies, SProxies, getInput, getResult, makeSProxiesBuilder, mkFormSpec, mkFormSpecFromProxy, mkFormSpecFromRowBuilder, mkSProxies, modifyInput, resetField, setInput, touchField, unwrapOutput)
@@ -57,7 +58,7 @@ import Renderless.State (getState, modifyState, modifyState_, modifyStore_, putS
 import Type.Row (type (+))
 
 data Query pq cq cs form out m a
-  = TestModify (form Variant Internal.Input) a
+  = ModifyOne (form Variant Internal.Input) a
   | Modify (form Record InputField -> form Record InputField) a
   | ModifyValidate (form Record InputField -> form Record InputField) a
   | Reset (form Record InputField -> form Record InputField) a
@@ -242,7 +243,7 @@ component =
 
   eval :: Query pq cq cs form out m ~> DSL pq cq cs form out m
   eval = case _ of
-    TestModify variant a -> do
+    ModifyOne variant a -> do
       pure a
 
     Modify fs a -> do
@@ -327,9 +328,7 @@ component =
       pure $ reply $ getPublicState st
 
     -- Only allows actions; always returns nothing.
-    Send cs cq a -> do
-      _ <- H.query cs cq
-      pure a
+    Send cs cq a -> H.query cs cq $> a
 
     Raise query a -> do
       H.raise (Emit query)
