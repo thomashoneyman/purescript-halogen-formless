@@ -8,7 +8,7 @@ import Data.Monoid.Additive (Additive(..))
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Data.Variant (Variant, on)
-import Formless.Spec (FormSpec(..), InputField(..), OutputField(..))
+import Formless.Spec (FormProxy, FormSpec(..), InputField(..), OutputField(..))
 import Prim.Row as Row
 import Prim.RowList as RL
 import Record as Record
@@ -500,20 +500,21 @@ instance applyRowListCons
         rltail _ = RLProxy
 
 
-mkInputSetter
-  :: ∀ rl vals rin fin rout fout
-   . RL.RowToList vals rl
+buildInputSetters
+  :: ∀ rl form row rin fin rout fout
+   . RL.RowToList row rl
   => BuildInputSetters rl rin fin rout fout
-  => RProxy vals
+  => Newtype (form Record InputField) (Record row)
+  => FormProxy form
   -> (Variant rin -> Record fout -> Record fout)
   -> Variant rout
   -> Record fout
   -> Record fout
-mkInputSetter k =
-  buildInputSetters (RLProxy :: RLProxy rl) (RProxy :: RProxy fin)
+buildInputSetters k =
+  buildInputSettersImpl (RLProxy :: RLProxy rl) (RProxy :: RProxy fin)
 
 class BuildInputSetters rl rin fin rout fout | rl rin fin -> rout fout where
-  buildInputSetters
+  buildInputSettersImpl
     :: RLProxy rl
     -> RProxy fin
     -> (Variant rin -> Record fout -> Record fout)
@@ -522,7 +523,7 @@ class BuildInputSetters rl rin fin rout fout | rl rin fin -> rout fout where
     -> Record fout
 
 instance inputSetterNil :: BuildInputSetters RL.Nil r fin r fout where
-  buildInputSetters _ _ = identity
+  buildInputSettersImpl _ _ = identity
 
 instance inputSetterCons ::
   ( IsSymbol sym
@@ -531,7 +532,7 @@ instance inputSetterCons ::
   , BuildInputSetters tail rin fin' rout' fout
   ) => BuildInputSetters (RL.Cons sym i tail) rin fin rout fout
   where
-  buildInputSetters _ _ =
+  buildInputSettersImpl _ _ =
     on sym f <<< rest
     where
       sym = SProxy :: SProxy sym
@@ -542,6 +543,6 @@ instance inputSetterCons ::
         , result: Nothing
         }
 
-      rest = buildInputSetters
+      rest = buildInputSettersImpl
         (RLProxy :: RLProxy tail)
         (RProxy :: RProxy fin')

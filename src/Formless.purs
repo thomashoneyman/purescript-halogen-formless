@@ -44,7 +44,6 @@ import Data.Symbol (SProxy(..))
 import Data.Traversable (traverse, traverse_)
 import Data.Variant (Variant, case_)
 import Formless.Class.Initial (class Initial, initial)
-import Formless.Internal (mkInputSetter)
 import Formless.Internal as Internal
 import Formless.Spec (ErrorType, FormProxy(..), FormSpec(..), InputField(..), InputFieldRow, InputType, OutputField(..), OutputType, _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched)
 import Formless.Spec.Transform (class MakeFormSpecFromRow, class MakeSProxies, SProxies, getInput, getResult, makeSProxiesBuilder, mkFormSpec, mkFormSpecFromProxy, mkFormSpecFromRowBuilder, mkSProxies, modifyInput, resetField, setInput, touchField, unwrapOutput)
@@ -209,6 +208,7 @@ component
   => Internal.SumRecord countxs count (Additive Int)
   => Newtype (form Record FormSpec) (Record spec)
   => Newtype (form Record InputField) (Record field)
+  => Newtype (form Variant InputField) (Variant field)
   => Newtype (form Record OutputField) (Record output)
   => Newtype (form Record Internal.Input) (Record inputs)
   => Component pq cq cs form out m
@@ -368,6 +368,12 @@ component =
   -- Remove internal fields and return the public state
   getPublicState :: State form out m -> PublicState form
   getPublicState = Record.delete (SProxy :: SProxy "internal")
+
+  withInputVariant
+    :: form Variant InputField -> (State form out m -> State form out m)
+  withInputVariant =
+    Internal.buildInputSetters (FormProxy :: FormProxy form) case_
+    <<< unwrap
 
   -- Run submission without raising messages or replies
   runSubmit :: DSL pq cq cs form out m (Maybe out)
