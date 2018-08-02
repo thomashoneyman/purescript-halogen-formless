@@ -34,20 +34,26 @@ derive instance newtypeFormSpec :: Newtype (FormSpec e i o) _
 newtype OutputField error input output = OutputField output
 derive instance newtypeOutputField :: Newtype (OutputField e i o) _
 
+-- | A wrapper to represent only the input type.
+newtype InputField error input output = InputField input
+derive instance newtypeInputField :: Newtype (InputField e i o) _
+derive newtype instance eqInputField :: Eq i => Eq (InputField e i o)
+derive newtype instance ordInputField :: Ord i => Ord (InputField e i o)
+
 -- | The type that we need to record state across the form, but
 -- | we don't need this from the user -- we can fill in 'touched'
 -- | and 'result' on their behalf.
-newtype InputField e i o = InputField (Record (InputFieldRow e i o))
-derive instance newtypeInputField :: Newtype (InputField e i o) _
+newtype FormInput e i o = FormInput (Record (FormInputRow e i o))
+derive instance newtypeFormInput :: Newtype (FormInput e i o) _
 
--- | The row used for the InputField newtype and in lens type signatures
-type InputFieldRow error input output =
+-- | The row used for the FormInput newtype and in lens type signatures
+type FormInputRow error input output =
   ( input :: input
   , touched :: Boolean
   , result :: Maybe (Either error output)
   )
 
--- | Proxies for each of the fields in InputField and FormSpec for easy access
+-- | Proxies for each of the fields in FormInput and FormSpec for easy access
 _input = SProxy :: SProxy "input"
 _touched = SProxy :: SProxy "touched"
 _result = SProxy :: SProxy "result"
@@ -59,30 +65,30 @@ _result = SProxy :: SProxy "result"
 _Field
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
-  => Newtype (form Record InputField) (Record fields)
-  => Cons sym (InputField e i o) t0 fields
+  => Newtype (form Record FormInput) (Record fields)
+  => Cons sym (FormInput e i o) t0 fields
   => SProxy sym
-  -> Lens' (form Record InputField) (Record (InputFieldRow e i o))
+  -> Lens' (form Record FormInput) (Record (FormInputRow e i o))
 _Field sym = _Newtype <<< prop sym <<< _Newtype
 
 -- | Easy access to any given field's input value from the form
 _Input
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
-  => Newtype (form Record InputField) (Record fields)
-  => Cons sym (InputField e i o) t0 fields
+  => Newtype (form Record FormInput) (Record fields)
+  => Cons sym (FormInput e i o) t0 fields
   => SProxy sym
-  -> Lens' (form Record InputField) i
+  -> Lens' (form Record FormInput) i
 _Input sym = _Field sym <<< prop _input
 
 -- | Easy access to any given field's touched value from the form
 _Touched
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
-  => Newtype (form Record InputField) (Record fields)
-  => Cons sym (InputField e i o) t0 fields
+  => Newtype (form Record FormInput) (Record fields)
+  => Cons sym (FormInput e i o) t0 fields
   => SProxy sym
-  -> Lens' (form Record InputField) Boolean
+  -> Lens' (form Record FormInput) Boolean
 _Touched sym = _Field sym <<< prop _touched
 
 -- | Easy access to any given field's result value from the form, if the
@@ -90,10 +96,10 @@ _Touched sym = _Field sym <<< prop _touched
 _Result
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
-  => Newtype (form Record InputField) (Record fields)
-  => Cons sym (InputField e i o) t0 fields
+  => Newtype (form Record FormInput) (Record fields)
+  => Cons sym (FormInput e i o) t0 fields
   => SProxy sym
-  -> Lens' (form Record InputField) (Maybe (Either e o))
+  -> Lens' (form Record FormInput) (Maybe (Either e o))
 _Result sym = _Field sym <<< prop _result
 
 -- | Easy access to any given field's error from its result field in the form,
@@ -101,10 +107,10 @@ _Result sym = _Field sym <<< prop _result
 _Error
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
-  => Newtype (form Record InputField) (Record fields)
-  => Cons sym (InputField e i o) t0 fields
+  => Newtype (form Record FormInput) (Record fields)
+  => Cons sym (FormInput e i o) t0 fields
   => SProxy sym
-  -> Traversal' (form Record InputField) e
+  -> Traversal' (form Record FormInput) e
 _Error sym = _Result sym <<< _Just <<< _Left
 
 -- | Easy access to any given field's output from its result field in the form,
@@ -112,10 +118,10 @@ _Error sym = _Result sym <<< _Just <<< _Left
 _Output
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
-  => Newtype (form Record InputField) (Record fields)
-  => Cons sym (InputField e i o) t0 fields
+  => Newtype (form Record FormInput) (Record fields)
+  => Cons sym (FormInput e i o) t0 fields
   => SProxy sym
-  -> Traversal' (form Record InputField) o
+  -> Traversal' (form Record FormInput) o
 _Output sym = _Result sym <<< _Just <<< _Right
 
 

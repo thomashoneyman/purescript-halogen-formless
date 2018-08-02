@@ -9,7 +9,7 @@ import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
-import Formless.Spec (FormProxy, FormSpec(..), InputField, OutputField, _Input, _Result, _Touched)
+import Formless.Spec (FormInput, FormProxy, FormSpec(..), InputField, OutputField, _Input, _Result, _Touched)
 import Prim.Row as Row
 import Prim.RowList as RL
 import Record.Builder as Builder
@@ -18,64 +18,64 @@ import Type.Row (RLProxy(..), RProxy(..))
 getInput
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
-  => Newtype (form Record InputField) (Record fields)
-  => Row.Cons sym (InputField e i o) t0 fields
+  => Newtype (form Record FormInput) (Record fields)
+  => Row.Cons sym (FormInput e i o) t0 fields
   => SProxy sym
-  -> form Record InputField
+  -> form Record FormInput
   -> i
 getInput sym = view (_Input sym)
 
 getResult
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
-  => Newtype (form Record InputField) (Record fields)
-  => Row.Cons sym (InputField e i o) t0 fields
+  => Newtype (form Record FormInput) (Record fields)
+  => Row.Cons sym (FormInput e i o) t0 fields
   => SProxy sym
-  -> form Record InputField
+  -> form Record FormInput
   -> Maybe (Either e o)
 getResult sym = view (_Result sym)
 
 setInput
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
-  => Newtype (form Record InputField) (Record fields)
-  => Row.Cons sym (InputField e i o) t0 fields
+  => Newtype (form Record FormInput) (Record fields)
+  => Row.Cons sym (FormInput e i o) t0 fields
   => SProxy sym
   -> i
-  -> form Record InputField
-  -> form Record InputField
+  -> form Record FormInput
+  -> form Record FormInput
 setInput sym v = set (_Result sym) Nothing <<< set (_Touched sym) true <<< set (_Input sym) v
 
 modifyInput
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
-  => Newtype (form Record InputField) (Record fields)
-  => Row.Cons sym (InputField e i o) t0 fields
+  => Newtype (form Record FormInput) (Record fields)
+  => Row.Cons sym (FormInput e i o) t0 fields
   => SProxy sym
   -> (i -> i)
-  -> form Record InputField
-  -> form Record InputField
+  -> form Record FormInput
+  -> form Record FormInput
 modifyInput sym f = set (_Result sym) Nothing <<< set (_Touched sym) true <<< (_Input sym) f
 
 touchField
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
-  => Newtype (form Record InputField) (Record fields)
-  => Row.Cons sym (InputField e i o) t0 fields
+  => Newtype (form Record FormInput) (Record fields)
+  => Row.Cons sym (FormInput e i o) t0 fields
   => SProxy sym
-  -> form Record InputField
-  -> form Record InputField
+  -> form Record FormInput
+  -> form Record FormInput
 touchField sym = set (_Touched sym) true
 
 resetField
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
   => Initial i
-  => Newtype (form Record InputField) (Record fields)
-  => Row.Cons sym (InputField e i o) t0 fields
+  => Newtype (form Record FormInput) (Record fields)
+  => Row.Cons sym (FormInput e i o) t0 fields
   => SProxy sym
-  -> form Record InputField
-  -> form Record InputField
+  -> form Record FormInput
+  -> form Record FormInput
 resetField sym =
   set (_Result sym) Nothing
   <<< set (_Touched sym) false
@@ -156,7 +156,7 @@ mkFormSpecFromProxy
   :: ∀ row xs row' form' form
    . RL.RowToList row xs
   => MakeFormSpecFromRow xs row row'
-  => Newtype (form Record Internal.Input) (Record row)
+  => Newtype (form Record InputField) (Record row)
   => Newtype (form' Record FormSpec) (Record row')
   => FormProxy form
   -> form' Record FormSpec
@@ -178,11 +178,11 @@ instance mkFormSpecFromRowNil :: MakeFormSpecFromRow RL.Nil row () where
 instance mkFormSpecFromRowCons
   :: ( IsSymbol name
      , Initial i
-     , Row.Cons name (Internal.Input e i o) trash row
+     , Row.Cons name (InputField e i o) trash row
      , MakeFormSpecFromRow tail row from
      , Internal.Row1Cons name (FormSpec e i o) from to
      )
-  => MakeFormSpecFromRow (RL.Cons name (Internal.Input e i o) tail) row to where
+  => MakeFormSpecFromRow (RL.Cons name (InputField e i o) tail) row to where
   mkFormSpecFromRowBuilder _ r =
     first <<< rest
     where

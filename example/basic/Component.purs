@@ -11,7 +11,7 @@ import Effect.Console (log)
 import Example.App.UI.Element as UI
 import Example.App.Validation as V
 import Formless as F
-import Formless.Validation.Polyform (applyOnInputFields)
+import Formless.Validation.Polyform (applyOnFormInputs)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -71,8 +71,8 @@ type FormRow f =
   , text :: f Unit String String
   )
 
-validator :: ∀ m. Monad m => Form Record F.InputField -> m (Form Record F.InputField)
-validator = applyOnInputFields $ identity
+validator :: ∀ m. Monad m => Form Record F.FormInput -> m (Form Record F.FormInput)
+validator = applyOnFormInputs $ identity
   { name: V.minLength 5
   , text: V.notRequired
   }

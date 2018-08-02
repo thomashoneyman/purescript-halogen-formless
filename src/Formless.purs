@@ -48,7 +48,7 @@ import Data.Traversable (traverse, traverse_)
 import Data.Variant (Variant, case_)
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
-import Formless.Spec (ErrorType, FormProxy(..), FormSpec(..), InputField(..), InputFieldRow, InputType, OutputField(..), OutputType, _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched)
+import Formless.Spec (ErrorType, FormInput(..), FormInputRow, FormProxy(..), FormSpec(..), InputField(..), InputType, OutputField(..), OutputType, _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched)
 import Formless.Spec.Transform (class MakeFormSpecFromRow, class MakeSProxies, SProxies, getInput, getResult, makeSProxiesBuilder, mkFormSpec, mkFormSpecFromProxy, mkFormSpecFromRowBuilder, mkSProxies, modifyInput, resetField, setInput, touchField, unwrapOutput)
 import Halogen as H
 import Halogen.Component.ChildPath (ChildPath, injQuery, injSlot)
@@ -60,10 +60,10 @@ import Renderless.State (getState, modifyState, modifyState_, modifyStore_, putS
 import Type.Row (type (+))
 
 data Query pq cq cs form out m a
-  = ModifyOne (form Variant Internal.Input) a
-  | Modify (form Record InputField -> form Record InputField) a
-  | ModifyValidate (form Record InputField -> form Record InputField) a
-  | Reset (form Record InputField -> form Record InputField) a
+  = ModifyOne (form Variant InputField) a
+  | Modify (form Record FormInput -> form Record FormInput) a
+  | ModifyValidate (form Record FormInput -> form Record FormInput) a
+  | Reset (form Record FormInput -> form Record FormInput) a
   | ResetAll a
   | Reply (PublicState form -> a)
   | Validate a
@@ -116,13 +116,13 @@ type StateRow form r =
   , submitting :: Boolean
   , errors :: Int
   , submitAttempts :: Int
-  , form :: form Record InputField
+  , form :: form Record FormInput
   | r
   )
 
 -- | Values provided by the user but maintained by the component
 type SpecRow form out m r =
-  ( validator :: form Record InputField -> m (form Record InputField)
+  ( validator :: form Record FormInput -> m (form Record FormInput)
   , submitter :: form Record OutputField -> m out
   , formSpec :: form Record FormSpec
   | r
@@ -130,7 +130,7 @@ type SpecRow form out m r =
 
 -- | Values created and maintained by the component
 type InternalStateRow form out =
-  ( initialInputs :: form Record Internal.Input
+  ( initialInputs :: form Record InputField
   , formResult :: Maybe out
   , allTouched :: Boolean
   )
@@ -202,18 +202,18 @@ component
   => RL.RowToList count countxs
   => RL.RowToList inputs inputsxs
   => EqRecord inputsxs inputs
-  => Internal.FormSpecToInputField specxs spec field
-  => Internal.InputFieldsToInput fieldxs field inputs
-  => Internal.SetInputFieldsTouched fieldxs field field
-  => Internal.InputFieldToMaybeOutput fieldxs field output
+  => Internal.FormSpecToFormInput specxs spec field
+  => Internal.FormInputsToInput fieldxs field inputs
+  => Internal.SetFormInputsTouched fieldxs field field
+  => Internal.FormInputToMaybeOutput fieldxs field output
   => Internal.CountErrors fieldxs field count
   => Internal.AllTouched fieldxs field
   => Internal.SumRecord countxs count (Additive Int)
   => Newtype (form Record FormSpec) (Record spec)
-  => Newtype (form Record InputField) (Record field)
-  => Newtype (form Variant Internal.Input) (Variant inputs)
+  => Newtype (form Record FormInput) (Record field)
+  => Newtype (form Variant InputField) (Variant inputs)
   => Newtype (form Record OutputField) (Record output)
-  => Newtype (form Record Internal.Input) (Record inputs)
+  => Newtype (form Record InputField) (Record inputs)
   => Component pq cq cs form out m
 component =
   H.parentComponent
@@ -242,7 +242,7 @@ component =
       }
     }
     where
-      inputFields = Internal.formSpecToInputFields formSpec
+      inputFields = Internal.formSpecToFormInputs formSpec
 
   eval :: Query pq cq cs form out m ~> DSL pq cq cs form out m
   eval = case _ of
@@ -316,7 +316,7 @@ component =
         , dirty = false
         , errors = 0
         , submitAttempts = 0
-        , form = Internal.formSpecToInputFields (_.formSpec $ unwrap st.internal)
+        , form = Internal.formSpecToFormInputs (_.formSpec $ unwrap st.internal)
         , internal = over InternalState (_
             { formResult = Nothing
             , allTouched = false
@@ -338,7 +338,7 @@ component =
       pure a
 
     Replace { formSpec, validator, submitter } a -> do
-      let inputFields = Internal.formSpecToInputFields formSpec
+      let inputFields = Internal.formSpecToFormInputs formSpec
           new =
             { validity: Incomplete
             , dirty: false
@@ -372,12 +372,16 @@ component =
   getPublicState :: State form out m -> PublicState form
   getPublicState = Record.delete (SProxy :: SProxy "internal")
 
-  withInputVariant
-    :: form Variant Internal.Input -> (State form out m -> State form out m)
-  withInputVariant =
-    Lens.over (prop (SProxy :: SProxy "form") <<< _Newtype)
-    <<< Internal.buildInputSetters (FormProxy :: FormProxy form) case_
-    <<< unwrap
+  --  withInputVariant
+  --    :: form Variant InputField -> (State form out m -> State form out m)
+  --  withInputVariant f =
+  --    Lens.over (prop (SProxy :: SProxy "form") <<< _Newtype)
+  --    $ Internal.buildInputSetters (FormProxy :: FormProxy form) case_
+  --    $ form
+  --
+  --    where
+  --      form :: Variant inputs
+  --      form = unwrap f
 
   -- Run submission without raising messages or replies
   runSubmit :: DSL pq cq cs form out m (Maybe out)
@@ -391,7 +395,7 @@ component =
     let internal = unwrap init.internal
     when (not internal.allTouched) do
       modifyState_ _
-       { form = Internal.setInputFieldsTouched init.form
+       { form = Internal.setFormInputsTouched init.form
        , internal = over InternalState (_ { allTouched = true }) init.internal
        }
 
