@@ -37,9 +37,12 @@ import Data.Const (Const)
 import Data.Eq (class EqRecord)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
+import Data.Lens as Lens
+import Data.Lens.Iso.Newtype (_Newtype)
+import Data.Lens.Record (prop)
 import Data.Maybe (Maybe(..))
 import Data.Monoid.Additive (Additive)
-import Data.Newtype (class Newtype, over, unwrap)
+import Data.Newtype (class Newtype, over, unwrap, wrap)
 import Data.Symbol (SProxy(..))
 import Data.Traversable (traverse, traverse_)
 import Data.Variant (Variant, case_)
@@ -208,7 +211,7 @@ component
   => Internal.SumRecord countxs count (Additive Int)
   => Newtype (form Record FormSpec) (Record spec)
   => Newtype (form Record InputField) (Record field)
-  => Newtype (form Variant InputField) (Variant field)
+  => Newtype (form Variant Internal.Input) (Variant inputs)
   => Newtype (form Record OutputField) (Record output)
   => Newtype (form Record Internal.Input) (Record inputs)
   => Component pq cq cs form out m
@@ -370,9 +373,10 @@ component =
   getPublicState = Record.delete (SProxy :: SProxy "internal")
 
   withInputVariant
-    :: form Variant InputField -> (State form out m -> State form out m)
+    :: form Variant Internal.Input -> (State form out m -> State form out m)
   withInputVariant =
-    Internal.buildInputSetters (FormProxy :: FormProxy form) case_
+    Lens.over (prop (SProxy :: SProxy "form") <<< _Newtype)
+    <<< Internal.buildInputSetters (FormProxy :: FormProxy form) case_
     <<< unwrap
 
   -- Run submission without raising messages or replies

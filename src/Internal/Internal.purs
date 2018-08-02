@@ -528,9 +528,9 @@ instance inputSetterNil :: BuildInputSetters RL.Nil r fin r fout where
 instance inputSetterCons ::
   ( IsSymbol sym
   , Row.Cons sym (InputField e i o) fin fout
-  , Row.Cons sym i rout' rout
+  , Row.Cons sym (Input e i o) rout' rout
   , BuildInputSetters tail rin fin' rout' fout
-  ) => BuildInputSetters (RL.Cons sym i tail) rin fin rout fout
+  ) => BuildInputSetters (RL.Cons sym (Input e i o) tail) rin fin rout fout
   where
   buildInputSettersImpl _ _ =
     on sym f <<< rest
@@ -538,7 +538,7 @@ instance inputSetterCons ::
       sym = SProxy :: SProxy sym
 
       f a = Record.set sym $ InputField
-        { input: a
+        { input: unwrap a
         , touched: false
         , result: Nothing
         }
