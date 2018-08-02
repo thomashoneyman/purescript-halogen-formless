@@ -8,7 +8,7 @@ import Data.Monoid.Additive (Additive(..))
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Data.Variant (Variant, on)
-import Formless.Spec (FormInput(..), FormProxy, FormSpec(..), InputField(..), OutputField(..))
+import Formless.Spec (FormField(..), FormProxy, FormSpec(..), InputField(..), OutputField(..))
 import Prim.Row as Row
 import Prim.RowList as RL
 import Record as Record
@@ -80,8 +80,8 @@ checkTouched
   :: ∀ form row xs
    . RL.RowToList row xs
   => AllTouched xs row
-  => Newtype (form Record FormInput) (Record row)
-  => form Record FormInput
+  => Newtype (form Record FormField) (Record row)
+  => form Record FormField
   -> Boolean
 checkTouched = allTouchedImpl (RLProxy :: RLProxy xs) <<< unwrap
 
@@ -92,8 +92,8 @@ countErrors
   => RL.RowToList row' xs'
   => CountErrors xs row row'
   => SumRecord xs' row' (Additive Int)
-  => Newtype (form Record FormInput) (Record row)
-  => form Record FormInput
+  => Newtype (form Record FormField) (Record row)
+  => form Record FormField
   -> Int
 countErrors r = unwrap $ sumRecord $ fromScratch builder
   where builder = countErrorsBuilder (RLProxy :: RLProxy xs) (unwrap r)
@@ -109,51 +109,51 @@ sumRecord = sumImpl (RLProxy :: RLProxy rl)
 
 -- | A helper function that will set all input fields to 'touched = true'. This ensures
 -- | subsequent validations apply to all fields even if not edited by the user.
-setFormInputsTouched
+setFormFieldsTouched
   :: ∀ row xs form
    . RL.RowToList row xs
-  => SetFormInputsTouched xs row row
-  => Newtype (form Record FormInput) (Record row)
-  => form Record FormInput
-  -> form Record FormInput
-setFormInputsTouched r = wrap $ fromScratch builder
-  where builder = setFormInputsTouchedBuilder (RLProxy :: RLProxy xs) (unwrap r)
+  => SetFormFieldsTouched xs row row
+  => Newtype (form Record FormField) (Record row)
+  => form Record FormField
+  -> form Record FormField
+setFormFieldsTouched r = wrap $ fromScratch builder
+  where builder = setFormFieldsTouchedBuilder (RLProxy :: RLProxy xs) (unwrap r)
 
--- | A helper function that will automatically transform a record of FormInput(s) into
+-- | A helper function that will automatically transform a record of FormField(s) into
 -- | just the input value
 inputFieldsToInput
   :: ∀ row xs row' form
    . RL.RowToList row xs
-  => FormInputsToInput xs row row'
-  => Newtype (form Record FormInput) (Record row)
+  => FormFieldsToInput xs row row'
+  => Newtype (form Record FormField) (Record row)
   => Newtype (form Record InputField) (Record row')
-  => form Record FormInput
+  => form Record FormField
   -> form Record InputField
 inputFieldsToInput r = wrap $ fromScratch builder
   where builder = inputFieldsToInputBuilder (RLProxy :: RLProxy xs) (unwrap r)
 
 -- | A helper function that will automatically transform a record of FormSpec(s) into
--- | a record of FormInput(s).
-formSpecToFormInputs
+-- | a record of FormField(s).
+formSpecToFormFields
   :: ∀ row xs row' form
    . RL.RowToList row xs
-  => FormSpecToFormInput xs row row'
+  => FormSpecToFormField xs row row'
   => Newtype (form Record FormSpec) (Record row)
-  => Newtype (form Record FormInput) (Record row')
+  => Newtype (form Record FormField) (Record row')
   => form Record FormSpec
-  -> form Record FormInput
-formSpecToFormInputs r = wrap $ fromScratch builder
-  where builder = formSpecToFormInputBuilder (RLProxy :: RLProxy xs) (unwrap r)
+  -> form Record FormField
+formSpecToFormFields r = wrap $ fromScratch builder
+  where builder = formSpecToFormFieldBuilder (RLProxy :: RLProxy xs) (unwrap r)
 
--- | An intermediate function that transforms a record of FormInput into a record
+-- | An intermediate function that transforms a record of FormField into a record
 -- | of MaybeOutput as a step in producing output fields.
 inputFieldToMaybeOutput
   :: ∀ row xs row' form
    . RL.RowToList row xs
-  => FormInputToMaybeOutput xs row row'
-  => Newtype (form Record FormInput) (Record row)
+  => FormFieldToMaybeOutput xs row row'
+  => Newtype (form Record FormField) (Record row)
   => Newtype (form Record OutputField) (Record row')
-  => form Record FormInput
+  => form Record FormField
   -> Maybe (form Record OutputField)
 inputFieldToMaybeOutput r = map wrap $ fromScratch <$> builder
   where builder = inputFieldToMaybeOutputBuilder (RLProxy :: RLProxy xs) (unwrap r)
@@ -162,43 +162,43 @@ inputFieldToMaybeOutput r = map wrap $ fromScratch <$> builder
 -- Classes (Internal)
 
 -- | A class to set all input fields to touched for validation purposes
-class SetFormInputsTouched (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
-  setFormInputsTouchedBuilder :: RLProxy xs -> Record row -> FromScratch to
+class SetFormFieldsTouched (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
+  setFormFieldsTouchedBuilder :: RLProxy xs -> Record row -> FromScratch to
 
-instance setFormInputsTouchedNil :: SetFormInputsTouched RL.Nil row () where
-  setFormInputsTouchedBuilder _ _ = identity
+instance setFormFieldsTouchedNil :: SetFormFieldsTouched RL.Nil row () where
+  setFormFieldsTouchedBuilder _ _ = identity
 
-instance setFormInputsTouchedCons
+instance setFormFieldsTouchedCons
   :: ( IsSymbol name
-     , Row.Cons name (FormInput e i o) trash row
-     , Row1Cons name (FormInput e i o) from to
-     , SetFormInputsTouched tail row from
+     , Row.Cons name (FormField e i o) trash row
+     , Row1Cons name (FormField e i o) from to
+     , SetFormFieldsTouched tail row from
      )
-  => SetFormInputsTouched (RL.Cons name (FormInput e i o) tail) row to where
-  setFormInputsTouchedBuilder _ r =
+  => SetFormFieldsTouched (RL.Cons name (FormField e i o) tail) row to where
+  setFormFieldsTouchedBuilder _ r =
     first <<< rest
     where
       _name = SProxy :: SProxy name
       val = transform $ Record.get _name r
-      rest = setFormInputsTouchedBuilder (RLProxy :: RLProxy tail) r
+      rest = setFormFieldsTouchedBuilder (RLProxy :: RLProxy tail) r
       first = Builder.insert _name val
-      transform (FormInput i) = FormInput i { touched = true }
+      transform (FormField i) = FormField i { touched = true }
 
 -- | The class that provides the Builder implementation to efficiently transform the record
--- | of FormSpec to record of FormInput.
-class FormInputsToInput (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
+-- | of FormSpec to record of FormField.
+class FormFieldsToInput (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
   inputFieldsToInputBuilder :: RLProxy xs -> Record row -> FromScratch to
 
-instance inputFieldsToInputNil :: FormInputsToInput RL.Nil row () where
+instance inputFieldsToInputNil :: FormFieldsToInput RL.Nil row () where
   inputFieldsToInputBuilder _ _ = identity
 
 instance inputFieldsToInputCons
   :: ( IsSymbol name
-     , Row.Cons name (FormInput e i o) trash row
-     , FormInputsToInput tail row from
+     , Row.Cons name (FormField e i o) trash row
+     , FormFieldsToInput tail row from
      , Row1Cons name (InputField e i o) from to
      )
-  => FormInputsToInput (RL.Cons name (FormInput e i o) tail) row to where
+  => FormFieldsToInput (RL.Cons name (FormField e i o) tail) row to where
   inputFieldsToInputBuilder _ r =
     first <<< rest
     where
@@ -206,31 +206,31 @@ instance inputFieldsToInputCons
       val = transform $ Record.get _name r
       rest = inputFieldsToInputBuilder (RLProxy :: RLProxy tail) r
       first = Builder.insert _name val
-      transform (FormInput fields) = InputField fields.input
+      transform (FormField fields) = InputField fields.input
 
 -- | The class that provides the Builder implementation to efficiently transform the record
--- | of FormSpec to record of FormInput.
-class FormSpecToFormInput (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
-  formSpecToFormInputBuilder :: RLProxy xs -> Record row -> FromScratch to
+-- | of FormSpec to record of FormField.
+class FormSpecToFormField (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
+  formSpecToFormFieldBuilder :: RLProxy xs -> Record row -> FromScratch to
 
-instance formSpecToFormInputNil :: FormSpecToFormInput RL.Nil row () where
-  formSpecToFormInputBuilder _ _ = identity
+instance formSpecToFormFieldNil :: FormSpecToFormField RL.Nil row () where
+  formSpecToFormFieldBuilder _ _ = identity
 
-instance formSpecToFormInputCons
+instance formSpecToFormFieldCons
   :: ( IsSymbol name
      , Row.Cons name (FormSpec e i o) trash row
-     , FormSpecToFormInput tail row from
-     , Row1Cons name (FormInput e i o) from to
+     , FormSpecToFormField tail row from
+     , Row1Cons name (FormField e i o) from to
      )
-  => FormSpecToFormInput (RL.Cons name (FormSpec e i o) tail) row to where
-  formSpecToFormInputBuilder _ r =
+  => FormSpecToFormField (RL.Cons name (FormSpec e i o) tail) row to where
+  formSpecToFormFieldBuilder _ r =
     first <<< rest
     where
       _name = SProxy :: SProxy name
       val = transform $ Record.get _name r
-      rest = formSpecToFormInputBuilder (RLProxy :: RLProxy tail) r
+      rest = formSpecToFormFieldBuilder (RLProxy :: RLProxy tail) r
       first = Builder.insert _name val
-      transform (FormSpec input) = FormInput
+      transform (FormSpec input) = FormField
         { input
         , touched: false
         , result: Nothing
@@ -239,19 +239,19 @@ instance formSpecToFormInputCons
 -- | The class that provides the Builder implementation to efficiently transform the record
 -- | of MaybeOutput to a record of OutputField, but only if all fields were successfully
 -- | validated.
-class FormInputToMaybeOutput (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
+class FormFieldToMaybeOutput (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
   inputFieldToMaybeOutputBuilder :: RLProxy xs -> Record row -> Maybe (FromScratch to)
 
-instance inputFieldToMaybeOutputNil :: FormInputToMaybeOutput RL.Nil row () where
+instance inputFieldToMaybeOutputNil :: FormFieldToMaybeOutput RL.Nil row () where
   inputFieldToMaybeOutputBuilder _ _ = Just identity
 
 instance inputFieldToMaybeOutputCons
   :: ( IsSymbol name
-     , Row.Cons name (FormInput e i o) trash row
-     , FormInputToMaybeOutput tail row from
+     , Row.Cons name (FormField e i o) trash row
+     , FormFieldToMaybeOutput tail row from
      , Row1Cons name (OutputField e i o) from to
      )
-  => FormInputToMaybeOutput (RL.Cons name (FormInput e i o) tail) row to where
+  => FormFieldToMaybeOutput (RL.Cons name (FormField e i o) tail) row to where
   inputFieldToMaybeOutputBuilder _ r =
     transform <$> val <*> rest
     where
@@ -297,11 +297,11 @@ instance countErrorsNil :: CountErrors RL.Nil row () where
 
 instance countErrorsCons
   :: ( IsSymbol name
-     , Row.Cons name (FormInput e i o) trash row
+     , Row.Cons name (FormField e i o) trash row
      , CountErrors tail row from
      , Row1Cons name (Additive Int) from to
      )
-  => CountErrors (RL.Cons name (FormInput e i o) tail) row to where
+  => CountErrors (RL.Cons name (FormField e i o) tail) row to where
   countErrorsBuilder _ r =
     first <<< rest
     where
@@ -309,12 +309,12 @@ instance countErrorsCons
       val = transform $ Record.get _name r
       rest = countErrorsBuilder (RLProxy :: RLProxy tail) r
       first = Builder.insert _name val
-      transform (FormInput { result }) =
+      transform (FormField { result }) =
         case result of
           Just (Left _) -> Additive 1
           _ -> Additive 0
 
--- | A class to check if all fields in an FormInput record have been touched or not
+-- | A class to check if all fields in an FormField record have been touched or not
 class AllTouched (rl :: RL.RowList) (r :: # Type) where
   allTouchedImpl :: RLProxy rl -> Record r -> Boolean
 
@@ -323,10 +323,10 @@ instance nilAllTouched :: AllTouched RL.Nil r where
 
 instance consAllTouched
   :: ( IsSymbol name
-     , Row.Cons name (FormInput e i o) t0 r
+     , Row.Cons name (FormField e i o) t0 r
      , AllTouched tail r
      )
-  => AllTouched (RL.Cons name (FormInput e i o) tail) r
+  => AllTouched (RL.Cons name (FormField e i o) tail) r
   where
     allTouchedImpl _ r =
       if (unwrap (Record.get (SProxy :: SProxy name) r)).touched
@@ -498,7 +498,7 @@ buildInputSetters
   :: ∀ rl form row rin fin rout fout
    . RL.RowToList row rl
   => BuildInputSetters rl rin fin rout fout
-  => Newtype (form Record FormInput) (Record row)
+  => Newtype (form Record InputField) (Record row)
   => FormProxy form
   -> (Variant rin -> Record fout -> Record fout)
   -> Variant rout
@@ -521,7 +521,7 @@ instance inputSetterNil :: BuildInputSetters RL.Nil r fin r fout where
 
 instance inputSetterCons ::
   ( IsSymbol sym
-  , Row.Cons sym (FormInput e i o) fin fout
+  , Row.Cons sym (FormField e i o) fin fout
   , Row.Cons sym (InputField e i o) rout' rout
   , BuildInputSetters tail rin fin' rout' fout
   ) => BuildInputSetters (RL.Cons sym (InputField e i o) tail) rin fin rout fout
@@ -531,7 +531,7 @@ instance inputSetterCons ::
     where
       sym = SProxy :: SProxy sym
 
-      f a = Record.set sym $ FormInput
+      f a = Record.set sym $ FormField
         { input: unwrap a
         , touched: false
         , result: Nothing

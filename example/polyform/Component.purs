@@ -11,7 +11,7 @@ import Effect.Console as Console
 import Example.App.UI.Element as UI
 import Example.App.Validation as V
 import Formless as F
-import Formless.Validation.Polyform (applyOnFormInputs)
+import Formless.Validation.Polyform (applyOnFormFields)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -106,8 +106,8 @@ type FormRow f =
   , state :: f V.Errs String String
   )
 
-validator :: ∀ m. MonadEffect m => Form Record F.FormInput -> m (Form Record F.FormInput)
-validator = applyOnFormInputs
+validator :: ∀ m. MonadEffect m => Form Record F.FormField -> m (Form Record F.FormField)
+validator = applyOnFormFields
   { name: V.Name <$> (V.minLength 5 *> V.maxLength 10)
   , email: V.emailFormat >>> V.emailIsUsed
   , city: V.minLength 0

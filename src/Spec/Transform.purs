@@ -9,7 +9,7 @@ import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
-import Formless.Spec (FormInput, FormProxy, FormSpec(..), InputField, OutputField, _Input, _Result, _Touched)
+import Formless.Spec (FormField, FormProxy, FormSpec(..), InputField, OutputField, _Input, _Result, _Touched)
 import Prim.Row as Row
 import Prim.RowList as RL
 import Record.Builder as Builder
@@ -18,64 +18,64 @@ import Type.Row (RLProxy(..), RProxy(..))
 getInput
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
-  => Newtype (form Record FormInput) (Record fields)
-  => Row.Cons sym (FormInput e i o) t0 fields
+  => Newtype (form Record FormField) (Record fields)
+  => Row.Cons sym (FormField e i o) t0 fields
   => SProxy sym
-  -> form Record FormInput
+  -> form Record FormField
   -> i
 getInput sym = view (_Input sym)
 
 getResult
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
-  => Newtype (form Record FormInput) (Record fields)
-  => Row.Cons sym (FormInput e i o) t0 fields
+  => Newtype (form Record FormField) (Record fields)
+  => Row.Cons sym (FormField e i o) t0 fields
   => SProxy sym
-  -> form Record FormInput
+  -> form Record FormField
   -> Maybe (Either e o)
 getResult sym = view (_Result sym)
 
 setInput
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
-  => Newtype (form Record FormInput) (Record fields)
-  => Row.Cons sym (FormInput e i o) t0 fields
+  => Newtype (form Record FormField) (Record fields)
+  => Row.Cons sym (FormField e i o) t0 fields
   => SProxy sym
   -> i
-  -> form Record FormInput
-  -> form Record FormInput
+  -> form Record FormField
+  -> form Record FormField
 setInput sym v = set (_Result sym) Nothing <<< set (_Touched sym) true <<< set (_Input sym) v
 
 modifyInput
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
-  => Newtype (form Record FormInput) (Record fields)
-  => Row.Cons sym (FormInput e i o) t0 fields
+  => Newtype (form Record FormField) (Record fields)
+  => Row.Cons sym (FormField e i o) t0 fields
   => SProxy sym
   -> (i -> i)
-  -> form Record FormInput
-  -> form Record FormInput
+  -> form Record FormField
+  -> form Record FormField
 modifyInput sym f = set (_Result sym) Nothing <<< set (_Touched sym) true <<< (_Input sym) f
 
 touchField
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
-  => Newtype (form Record FormInput) (Record fields)
-  => Row.Cons sym (FormInput e i o) t0 fields
+  => Newtype (form Record FormField) (Record fields)
+  => Row.Cons sym (FormField e i o) t0 fields
   => SProxy sym
-  -> form Record FormInput
-  -> form Record FormInput
+  -> form Record FormField
+  -> form Record FormField
 touchField sym = set (_Touched sym) true
 
 resetField
   :: ∀ sym form t0 fields e i o
    . IsSymbol sym
   => Initial i
-  => Newtype (form Record FormInput) (Record fields)
-  => Row.Cons sym (FormInput e i o) t0 fields
+  => Newtype (form Record FormField) (Record fields)
+  => Row.Cons sym (FormField e i o) t0 fields
   => SProxy sym
-  -> form Record FormInput
-  -> form Record FormInput
+  -> form Record FormField
+  -> form Record FormField
 resetField sym =
   set (_Result sym) Nothing
   <<< set (_Touched sym) false

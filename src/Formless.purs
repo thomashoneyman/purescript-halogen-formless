@@ -48,7 +48,7 @@ import Data.Traversable (traverse, traverse_)
 import Data.Variant (Variant, case_)
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
-import Formless.Spec (ErrorType, FormInput(..), FormInputRow, FormProxy(..), FormSpec(..), InputField(..), InputType, OutputField(..), OutputType, _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched)
+import Formless.Spec (ErrorType, FormField(..), FormFieldRow, FormProxy(..), FormSpec(..), InputField(..), InputType, OutputField(..), OutputType, _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched)
 import Formless.Spec.Transform (class MakeFormSpecFromRow, class MakeSProxies, SProxies, getInput, getResult, makeSProxiesBuilder, mkFormSpec, mkFormSpecFromProxy, mkFormSpecFromRowBuilder, mkSProxies, modifyInput, resetField, setInput, touchField, unwrapOutput)
 import Halogen as H
 import Halogen.Component.ChildPath (ChildPath, injQuery, injSlot)
@@ -61,9 +61,9 @@ import Type.Row (type (+))
 
 data Query pq cq cs form out m a
   = ModifyOne (form Variant InputField) a
-  | Modify (form Record FormInput -> form Record FormInput) a
-  | ModifyValidate (form Record FormInput -> form Record FormInput) a
-  | Reset (form Record FormInput -> form Record FormInput) a
+  | Modify (form Record FormField -> form Record FormField) a
+  | ModifyValidate (form Record FormField -> form Record FormField) a
+  | Reset (form Record FormField -> form Record FormField) a
   | ResetAll a
   | Reply (PublicState form -> a)
   | Validate a
@@ -116,13 +116,13 @@ type StateRow form r =
   , submitting :: Boolean
   , errors :: Int
   , submitAttempts :: Int
-  , form :: form Record FormInput
+  , form :: form Record FormField
   | r
   )
 
 -- | Values provided by the user but maintained by the component
 type SpecRow form out m r =
-  ( validator :: form Record FormInput -> m (form Record FormInput)
+  ( validator :: form Record FormField -> m (form Record FormField)
   , submitter :: form Record OutputField -> m out
   , formSpec :: form Record FormSpec
   | r
@@ -202,15 +202,15 @@ component
   => RL.RowToList count countxs
   => RL.RowToList inputs inputsxs
   => EqRecord inputsxs inputs
-  => Internal.FormSpecToFormInput specxs spec field
-  => Internal.FormInputsToInput fieldxs field inputs
-  => Internal.SetFormInputsTouched fieldxs field field
-  => Internal.FormInputToMaybeOutput fieldxs field output
+  => Internal.FormSpecToFormField specxs spec field
+  => Internal.FormFieldsToInput fieldxs field inputs
+  => Internal.SetFormFieldsTouched fieldxs field field
+  => Internal.FormFieldToMaybeOutput fieldxs field output
   => Internal.CountErrors fieldxs field count
   => Internal.AllTouched fieldxs field
   => Internal.SumRecord countxs count (Additive Int)
   => Newtype (form Record FormSpec) (Record spec)
-  => Newtype (form Record FormInput) (Record field)
+  => Newtype (form Record FormField) (Record field)
   => Newtype (form Variant InputField) (Variant inputs)
   => Newtype (form Record OutputField) (Record output)
   => Newtype (form Record InputField) (Record inputs)
@@ -242,7 +242,7 @@ component =
       }
     }
     where
-      inputFields = Internal.formSpecToFormInputs formSpec
+      inputFields = Internal.formSpecToFormFields formSpec
 
   eval :: Query pq cq cs form out m ~> DSL pq cq cs form out m
   eval = case _ of
@@ -316,7 +316,7 @@ component =
         , dirty = false
         , errors = 0
         , submitAttempts = 0
-        , form = Internal.formSpecToFormInputs (_.formSpec $ unwrap st.internal)
+        , form = Internal.formSpecToFormFields (_.formSpec $ unwrap st.internal)
         , internal = over InternalState (_
             { formResult = Nothing
             , allTouched = false
@@ -338,7 +338,7 @@ component =
       pure a
 
     Replace { formSpec, validator, submitter } a -> do
-      let inputFields = Internal.formSpecToFormInputs formSpec
+      let inputFields = Internal.formSpecToFormFields formSpec
           new =
             { validity: Incomplete
             , dirty: false
@@ -395,7 +395,7 @@ component =
     let internal = unwrap init.internal
     when (not internal.allTouched) do
       modifyState_ _
-       { form = Internal.setFormInputsTouched init.form
+       { form = Internal.setFormFieldsTouched init.form
        , internal = over InternalState (_ { allTouched = true }) init.internal
        }
 

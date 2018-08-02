@@ -5,9 +5,9 @@ import Prelude
 import Data.Maybe (Maybe, fromMaybe)
 import Data.Newtype (class Newtype)
 import Example.App.Validation as V
-import Formless.Spec (FormProxy(..), FormSpec, FormInput, OutputField, OutputType)
+import Formless.Spec (FormProxy(..), FormSpec, FormField, OutputField, OutputType)
 import Formless.Spec.Transform (SProxies, mkFormSpecFromProxy, mkSProxies, unwrapOutput)
-import Formless.Validation.Semigroup (applyOnFormInputs)
+import Formless.Validation.Semigroup (applyOnFormFields)
 
 type User = Record (FormRow OutputType)
 
@@ -28,8 +28,8 @@ proxies = mkSProxies $ FormProxy :: FormProxy Form
 formSpec :: Form Record FormSpec
 formSpec = mkFormSpecFromProxy $ FormProxy :: FormProxy Form
 
-validator :: Form Record FormInput -> Form Record FormInput
-validator = applyOnFormInputs
+validator :: Form Record FormField -> Form Record FormField
+validator = applyOnFormFields
     { name: flip V.validateMinimumLength 7
     , email: V.validateEmailRegex <<< fromMaybe ""
     , whiskey: \(i :: Maybe String) -> V.validateMaybe i

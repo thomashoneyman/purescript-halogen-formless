@@ -10,36 +10,36 @@ import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Data.Validation.Semigroup (V, unV)
 import Formless.Internal as Internal
-import Formless.Spec (FormInput(..))
+import Formless.Spec (FormField(..))
 import Prim.Row as Row
 import Prim.RowList as RL
 import Record as Record
 import Record.Builder as Builder
 import Type.Row (RLProxy(..))
 
--- | Turn a `V` validator into one that operates on an FormInput
+-- | Turn a `V` validator into one that operates on an FormField
 -- | directly. Does not apply validation to fields unless their
 -- | .touched field is true.
 -- |
 -- | ```purescript
 -- | -- This will validate the input field and set the result field.
--- | { name: validateNonEmpty `onFormInput` form.name
--- | , email :: validateEmailRegex `onFormInput` form.email }
+-- | { name: validateNonEmpty `onFormField` form.name
+-- | , email :: validateEmailRegex `onFormField` form.email }
 -- | ```
-onFormInput
+onFormField
   :: ∀ i e o
    . (i -> V e o)
-  -> FormInput e i o
-  -> FormInput e i o
-onFormInput validator field@(FormInput i)
+  -> FormField e i o
+  -> FormField e i o
+onFormField validator field@(FormField i)
   | not i.touched = field
-  | otherwise = FormInput $ unV
+  | otherwise = FormField $ unV
       (\e -> i { result = Just $ Left e })
       (\v -> i { result = Just $ Right v })
       (validator i.input)
 
 -- | A function to transform a record of validation functions accepting a
--- | particular input type into one that will operate on `FormInput`s with
+-- | particular input type into one that will operate on `FormField`s with
 -- | the same input, error, and output types.
 -- |
 -- | Type inference is not so good with this function. Input types have to
@@ -50,47 +50,47 @@ onFormInput validator field@(FormInput i)
 -- | validateNonEmptyArray :: Array x -> V Error (Array x)
 -- | validateNonEmptyArray = ...
 -- |
--- | validator :: Form FormInput -> Form FormInput
--- | validator = applyOnFormInputs
+-- | validator :: Form FormField -> Form FormField
+-- | validator = applyOnFormFields
 -- |  { name: validateNonEmptyString
 -- |  , email: validateEmailRegex
 -- |  , dates: \(i :: Array String) -> validateNonEmptyArray i }
 -- | ```
-applyOnFormInputs
+applyOnFormFields
   :: ∀ form form' fvxs fv io i o
    . RL.RowToList fv fvxs
-  => OnFormInputs fvxs fv io
+  => OnFormFields fvxs fv io
   => Internal.ApplyRecord io i o
-  => Newtype (form Record FormInput) (Record i)
-  => Newtype (form' Record FormInput) (Record o)
+  => Newtype (form Record FormField) (Record i)
+  => Newtype (form' Record FormField) (Record o)
   => Record fv
-  -> form Record FormInput
-  -> form' Record FormInput
-applyOnFormInputs r = wrap <<< Internal.applyRecord io <<< unwrap
+  -> form Record FormField
+  -> form' Record FormField
+applyOnFormFields r = wrap <<< Internal.applyRecord io <<< unwrap
   where
     io :: Record io
-    io = Builder.build (onFormInputsBuilder (RLProxy :: RLProxy fvxs) r) {}
+    io = Builder.build (onFormFieldsBuilder (RLProxy :: RLProxy fvxs) r) {}
 
 -- | The class that provides the Builder implementation to efficiently unpack a record of
 -- | output fields into a simple record of only the values.
-class OnFormInputs (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
-  onFormInputsBuilder :: RLProxy xs -> Record row -> Internal.FromScratch to
+class OnFormFields (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
+  onFormFieldsBuilder :: RLProxy xs -> Record row -> Internal.FromScratch to
 
-instance onFormInputsNil :: OnFormInputs RL.Nil row () where
-  onFormInputsBuilder _ _ = identity
+instance onFormFieldsNil :: OnFormFields RL.Nil row () where
+  onFormFieldsBuilder _ _ = identity
 
-instance onFormInputsCons
+instance onFormFieldsCons
   :: ( IsSymbol name
      , Row.Cons name (i -> V e o) trash row
-     , OnFormInputs tail row from
-     , Internal.Row1Cons name (FormInput e i o -> FormInput e i o) from to
+     , OnFormFields tail row from
+     , Internal.Row1Cons name (FormField e i o -> FormField e i o) from to
      )
-  => OnFormInputs (RL.Cons name (i -> V e o) tail) row to where
-  onFormInputsBuilder _ r =
+  => OnFormFields (RL.Cons name (i -> V e o) tail) row to where
+  onFormFieldsBuilder _ r =
     first <<< rest
     where
       _name = SProxy :: SProxy name
-      func = onFormInput $ Record.get _name r
-      rest = onFormInputsBuilder (RLProxy :: RLProxy tail) r
+      func = onFormField $ Record.get _name r
+      rest = onFormFieldsBuilder (RLProxy :: RLProxy tail) r
       first = Builder.insert _name func
 

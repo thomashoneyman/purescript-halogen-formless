@@ -7,7 +7,7 @@ import Data.Maybe (Maybe(..))
 import Example.App.Validation as V
 import Example.RealWorld.Data.Options (Dollars(..), Metric(..), OptionsForm(..), Speed(..), proxies)
 import Formless as F
-import Formless.Validation.Semigroup (onFormInput)
+import Formless.Validation.Semigroup (onFormField)
 
 optionsFormSpec :: OptionsForm Record F.FormSpec
 optionsFormSpec = F.mkFormSpecFromProxy $ F.FormProxy :: F.FormProxy OptionsForm
@@ -27,17 +27,17 @@ defaultOptionsSpec = F.mkFormSpec
   }
 
 optionsFormValidate
-  :: OptionsForm Record F.FormInput
-  -> OptionsForm Record F.FormInput
+  :: OptionsForm Record F.FormField
+  -> OptionsForm Record F.FormField
 optionsFormValidate (OptionsForm form) = OptionsForm
-  { enable: pure `onFormInput` form.enable
-  , metric: V.validateMaybe `onFormInput` form.metric
-  , viewCost: (validateMetric ViewCost) `onFormInput` form.viewCost
-  , clickCost: (validateMetric ClickCost) `onFormInput` form.clickCost
-  , installCost: (validateMetric InstallCost) `onFormInput` form.installCost
-  , size: validateInt `onFormInput` form.size
-  , dimensions: validateInt `onFormInput` form.dimensions
-  , speed: pure `onFormInput` form.speed
+  { enable: pure `onFormField` form.enable
+  , metric: V.validateMaybe `onFormField` form.metric
+  , viewCost: (validateMetric ViewCost) `onFormField` form.viewCost
+  , clickCost: (validateMetric ClickCost) `onFormField` form.clickCost
+  , installCost: (validateMetric InstallCost) `onFormField` form.installCost
+  , size: validateInt `onFormField` form.size
+  , dimensions: validateInt `onFormField` form.dimensions
+  , speed: pure `onFormField` form.speed
   }
   where
     metric = F.getInput proxies.metric (OptionsForm form)

@@ -8,7 +8,7 @@ import Data.Validation.Semigroup (V)
 import Example.RealWorld.Data.Group (Group(..), GroupForm, GroupId(..), proxies)
 import Example.App.Validation as V
 import Formless as F
-import Formless.Validation.Semigroup (applyOnFormInputs)
+import Formless.Validation.Semigroup (applyOnFormFields)
 import Record as Record
 
 groupFormSpec :: GroupForm Record F.FormSpec
@@ -27,8 +27,8 @@ groupFormSubmit form = do
     $ F.unwrapOutput form
 
 -- | We'll provide a fairly involved validation function to verify fields are correct
-groupFormValidate :: ∀ m. Monad m => GroupForm Record F.FormInput -> m (GroupForm Record F.FormInput)
-groupFormValidate form = pure $ applyOnFormInputs
+groupFormValidate :: ∀ m. Monad m => GroupForm Record F.FormField -> m (GroupForm Record F.FormField)
+groupFormValidate form = pure $ applyOnFormFields
   ( identity
     { name: V.validateNonEmpty
     , secretKey1:

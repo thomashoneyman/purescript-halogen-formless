@@ -160,8 +160,8 @@ formlessField
   :: ∀ form sym e o t0 fields m pq cq cs out r
    . IsSymbol sym
   => ToText e
-  => Newtype (form Record F.FormInput) (Record fields)
-  => Cons sym (F.FormInput (Array e) String o) t0 fields
+  => Newtype (form Record F.FormField) (Record fields)
+  => Cons sym (F.FormField (Array e) String o) t0 fields
   => ( FieldConfig'
      -> Array ( HH.IProp
                 ( value :: String, onBlur :: FocusEvent, onInput :: Event | r)
