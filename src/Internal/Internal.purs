@@ -11,7 +11,7 @@ import Data.Monoid.Additive (Additive(..))
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Data.Variant (Variant, on)
-import Formless.Spec (FormSpec(..), InputField(..), OutputField(..), _input)
+import Formless.Spec (FormSpec(..), InputField(..), OutputField(..), InputFieldRow, _input, _result, _touched)
 import Prim.Row as Row
 import Prim.RowList as RL
 import Record as Record
@@ -515,7 +515,6 @@ mkInputSetter
 mkInputSetter k =
   buildInputSetters (RLProxy :: RLProxy rl) (RProxy :: RProxy fin)
 
-
 class BuildInputSetters rl rin fin rout fout | rl rin fin -> rout fout where
   buildInputSetters
     :: RLProxy rl
@@ -532,18 +531,30 @@ instance inputSetterCons ::
   ( IsSymbol sym
   , Row.Cons sym (InputField e i o) fin fout
   , Row.Cons sym i rout' rout
+  , Newtype (InputField e i o) { input :: i, touched :: Boolean, result :: Maybe (Either e o) }
   , BuildInputSetters tail rin fin' rout' fout
   ) => BuildInputSetters (RL.Cons sym i tail) rin fin rout fout
   where
   buildInputSetters _ _ =
-    let
-      sym  = SProxy  :: SProxy sym
-      tail = RLProxy :: RLProxy tail
-      fin  = RProxy  :: RProxy fin'
+    on sym
+      (\a ->
+        ( Lens.set (prop sym <<< _Newtype <<< prop _input) a
+        <<< Lens.set (prop sym <<< _Newtype <<< prop _touched) true
+        <<< Lens.set (prop sym <<< _Newtype <<< prop _result) (Nothing :: Maybe (Either e o))
+        )
+      )
+      <<< rest
+    where
+      sym = SProxy :: SProxy sym
 
-      setInput = Lens.set (prop sym <<< _Newtype <<< prop _input)
-
-    in
-      on sym setInput <<< buildInputSetters tail fin
-
-
+      rest
+        :: (Variant rin -> Record fout -> Record fout)
+        -> Variant rout'
+        -> Record fout
+        -> Record fout
+      rest =
+        let
+          tail = RLProxy :: RLProxy tail
+          fin' = RProxy  :: RProxy fin'
+         in
+          buildInputSetters tail fin'
