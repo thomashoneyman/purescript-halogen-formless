@@ -7,15 +7,14 @@ import Data.Maybe (Maybe(..))
 import Data.Monoid.Additive (Additive(..))
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
-import Data.Variant (Variant, on)
-import Formless.Spec (FormField(..), FormProxy, FormSpec(..), InputField(..), OutputField(..))
+import Data.Variant (Variant, case_, on)
+import Formless.Spec (FormField(..), FormSpec(..), InputField(..), OutputField(..))
 import Prim.Row as Row
 import Prim.RowList as RL
 import Record as Record
 import Record.Builder (Builder)
 import Record.Builder as Builder
 import Type.Data.RowList (RLProxy(..))
-import Type.Row (RProxy(..))
 
 -----
 -- Types
@@ -494,49 +493,31 @@ instance applyRowListCons
         rltail :: ∀ l v t. RLProxy (RL.Cons l v t) -> RLProxy t
         rltail _ = RLProxy
 
-buildInputSetters
-  :: ∀ rl form row rin fin rout fout
-   . RL.RowToList row rl
-  => BuildInputSetters rl rin fin rout fout
-  => Newtype (form Record InputField) (Record row)
-  => FormProxy form
-  -> (Variant rin -> Record fout -> Record fout)
-  -> Variant rout
-  -> Record fout
-  -> Record fout
-buildInputSetters k =
-  buildInputSettersImpl (RLProxy :: RLProxy rl) (RProxy :: RProxy fin)
 
-class BuildInputSetters rl rin fin rout fout | rl rin fin -> rout fout where
-  buildInputSettersImpl
-    :: RLProxy rl
-    -> RProxy fin
-    -> (Variant rin -> Record fout -> Record fout)
-    -> Variant rout
-    -> Record fout
-    -> Record fout
+-- | @monoidmusician
+class RecordVariantUpdate r to where
+  rvUpdate :: Variant r -> Record to -> Record to
 
-instance inputSetterNil :: BuildInputSetters RL.Nil r fin r fout where
-  buildInputSettersImpl _ _ = identity
+instance recordVariantUpdate ::
+  ( RL.RowToList r rl
+  , RecordVariantUpdateRL rl r to
+  ) => RecordVariantUpdate r to where
+    rvUpdate = rvUpdateRL (RLProxy :: RLProxy rl)
 
-instance inputSetterCons ::
-  ( IsSymbol sym
-  , Row.Cons sym (FormField e i o) fin fout
-  , Row.Cons sym (InputField e i o) rout' rout
-  , BuildInputSetters tail rin fin' rout' fout
-  ) => BuildInputSetters (RL.Cons sym (InputField e i o) tail) rin fin rout fout
-  where
-  buildInputSettersImpl _ _ =
-    on sym f <<< rest
-    where
-      sym = SProxy :: SProxy sym
+class RecordVariantUpdateRL rl v to | rl -> v where
+  rvUpdateRL :: RLProxy rl -> Variant v -> Record to -> Record to
 
-      f a = Record.set sym $ FormField
-        { input: unwrap a
-        , touched: false
-        , result: Nothing
-        }
+instance rvUpdateNil :: RecordVariantUpdateRL RL.Nil () to where
+  rvUpdateRL _ = case_
 
-      rest = buildInputSettersImpl
-        (RLProxy :: RLProxy tail)
-        (RProxy :: RProxy fin')
+instance rvUpdateCons ::
+  ( IsSymbol s
+  , RecordVariantUpdateRL rl v to
+  , Row.Cons s (FormField e i o) t0 to
+  , Row.Cons s (InputField e i o) v v'
+  ) => RecordVariantUpdateRL (RL.Cons s (InputField e i o) rl) v' to where
+    rvUpdateRL _ =
+      on s
+        (\a -> Record.set s (FormField { input: unwrap a, touched: false, result: Nothing }) )
+        (rvUpdateRL (RLProxy :: RLProxy rl))
+      where s = SProxy :: SProxy s

@@ -37,15 +37,12 @@ import Data.Const (Const)
 import Data.Eq (class EqRecord)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
-import Data.Lens as Lens
-import Data.Lens.Iso.Newtype (_Newtype)
-import Data.Lens.Record (prop)
 import Data.Maybe (Maybe(..))
 import Data.Monoid.Additive (Additive)
 import Data.Newtype (class Newtype, over, unwrap, wrap)
 import Data.Symbol (SProxy(..))
 import Data.Traversable (traverse, traverse_)
-import Data.Variant (Variant, case_)
+import Data.Variant (Variant)
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
 import Formless.Spec (ErrorType, FormField(..), FormFieldRow, FormProxy(..), FormSpec(..), InputField(..), InputType, OutputField(..), OutputType, _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched)
@@ -56,22 +53,21 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Prim.RowList as RL
 import Record as Record
-import Renderless.State (getState, modifyState, modifyState_, modifyStore_, putState)
+import Renderless.State (getState, modifyState, modifyState_, modifyStore_)
 import Type.Row (type (+))
 
 data Query pq cq cs form out m a
-  = ModifyOne (form Variant InputField) a
-  | Modify (form Record FormField -> form Record FormField) a
-  | ModifyValidate (form Record FormField -> form Record FormField) a
-  | Reset (form Record FormField -> form Record FormField) a
+  = Modify (form Variant InputField) a
+  | ModifyValidate (form Variant InputField) a
+  | Reset (form Variant InputField) a
   | ResetAll a
-  | Reply (PublicState form -> a)
-  | Validate a
+  | ValidateAll a
   | Submit a
   | SubmitReply (Maybe out -> a)
+  | Reply (PublicState form -> a)
   | Send cs (cq Unit) a
   | Raise (pq Unit) a
-  | Replace (Record (SpecRow form out m ())) a
+  | ReplaceSpec (form Record FormSpec) a
   | Receive (Input pq cq cs form out m) a
   | AndThen (Query pq cq cs form out m Unit) (Query pq cq cs form out m Unit) a
 
@@ -194,26 +190,28 @@ type Input' form out m = Input (Const Void) (Const Void) Void form out m
 
 -- | The component itself
 component
-  :: ∀ pq cq cs form out m spec specxs field fieldxs output countxs count inputs inputsxs
+  :: ∀ pq cq cs form out m spec specxs fields fieldxs output countxs count inputs inputsxs
    . Ord cs
   => Monad m
   => RL.RowToList spec specxs
-  => RL.RowToList field fieldxs
+  => RL.RowToList fields fieldxs
   => RL.RowToList count countxs
   => RL.RowToList inputs inputsxs
   => EqRecord inputsxs inputs
-  => Internal.FormSpecToFormField specxs spec field
-  => Internal.FormFieldsToInput fieldxs field inputs
-  => Internal.SetFormFieldsTouched fieldxs field field
-  => Internal.FormFieldToMaybeOutput fieldxs field output
-  => Internal.CountErrors fieldxs field count
-  => Internal.AllTouched fieldxs field
+  => Internal.FormSpecToFormField specxs spec fields
+  => Internal.FormFieldsToInput fieldxs fields inputs
+  => Internal.SetFormFieldsTouched fieldxs fields fields
+  => Internal.FormFieldToMaybeOutput fieldxs fields output
+  => Internal.CountErrors fieldxs fields count
+  => Internal.AllTouched fieldxs fields
   => Internal.SumRecord countxs count (Additive Int)
+  => Internal.RecordVariantUpdateRL inputsxs inputs fields
   => Newtype (form Record FormSpec) (Record spec)
-  => Newtype (form Record FormField) (Record field)
-  => Newtype (form Variant InputField) (Variant inputs)
+  => Newtype (form Record FormField) (Record fields)
+  => Newtype (form Variant FormField) (Variant fields)
   => Newtype (form Record OutputField) (Record output)
   => Newtype (form Record InputField) (Record inputs)
+  => Newtype (form Variant InputField) (Variant inputs)
   => Component pq cq cs form out m
 component =
   H.parentComponent
@@ -246,26 +244,25 @@ component =
 
   eval :: Query pq cq cs form out m ~> DSL pq cq cs form out m
   eval = case _ of
-    ModifyOne variant a -> do
+    Modify variant a -> do
+      new <- modifyState (withInputVariant variant)
       pure a
 
-    Modify fs a -> do
-      new <- modifyState \st -> st { form = fs st.form }
+    ModifyValidate variant a -> do
+      new <- modifyState (withInputVariant variant)
+      -- TODO: field-level validation
       H.raise $ Changed $ getPublicState new
       pure a
 
-    ModifyValidate fs a -> do
-      modifyState_ \st -> st { form = fs st.form }
-      eval $ Validate a
+    Reset _ a -> do
+      -- TODO: reset
+      --  modifyState_ \st -> st
+      --    { form = fs st.form
+      --    , internal = over InternalState (_ { allTouched = false }) st.internal
+      --    }
+      pure a
 
-    Reset fs a -> do
-      modifyState_ \st -> st
-        { form = fs st.form
-        , internal = over InternalState (_ { allTouched = false }) st.internal
-        }
-      eval $ Validate a
-
-    Validate a -> do
+    ValidateAll a -> do
       init <- getState
       let internal = unwrap init.internal
       form <- H.lift $ internal.validator init.form
@@ -337,25 +334,25 @@ component =
       H.raise (Emit query)
       pure a
 
-    Replace { formSpec, validator, submitter } a -> do
+    ReplaceSpec formSpec a -> do
       let inputFields = Internal.formSpecToFormFields formSpec
-          new =
-            { validity: Incomplete
-            , dirty: false
-            , errors: 0
-            , submitAttempts: 0
-            , submitting: false
-            , form: inputFields
-            , internal: InternalState
+      new <- modifyState \st -> st
+        { validity = Incomplete
+        , dirty = false
+        , errors = 0
+        , submitAttempts = 0
+        , submitting = false
+        , form = inputFields
+        , internal =
+            InternalState
               { formResult: Nothing
               , formSpec
               , allTouched: false
               , initialInputs: Internal.inputFieldsToInput inputFields
-              , validator
-              , submitter
+              , validator: (unwrap st.internal).validator
+              , submitter: (unwrap st.internal).submitter
               }
-            }
-      putState new
+        }
       H.raise $ Changed $ getPublicState new
       pure a
 
@@ -373,15 +370,18 @@ component =
   getPublicState = Record.delete (SProxy :: SProxy "internal")
 
   withInputVariant
-    :: form Variant InputField -> (State form out m -> State form out m)
-  withInputVariant f =
-    Lens.over (prop (SProxy :: SProxy "form") <<< _Newtype)
-    $ Internal.buildInputSetters (FormProxy :: FormProxy form) case_
-    $ form
-
+    :: form Variant InputField -> State form out m -> State form out m
+  withInputVariant form state =
+    state { form = wrap (updater formR) }
     where
-      form :: Variant inputs
-      form = unwrap f
+      updater :: { | fields } -> { | fields }
+      updater = Internal.rvUpdate formV
+
+      formR :: Record fields
+      formR = unwrap state.form
+
+      formV :: Variant inputs
+      formV = unwrap form
 
   -- Run submission without raising messages or replies
   runSubmit :: DSL pq cq cs form out m (Maybe out)
@@ -400,7 +400,7 @@ component =
        }
 
     -- Necessary to validate after fields are touched, but before parsing
-    _ <- eval $ Validate unit
+    _ <- eval $ ValidateAll unit
 
     -- For performance purposes, only attempt to submit if the form is valid
     validated <- getState
