@@ -372,16 +372,16 @@ component =
   getPublicState :: State form out m -> PublicState form
   getPublicState = Record.delete (SProxy :: SProxy "internal")
 
-  --  withInputVariant
-  --    :: form Variant InputField -> (State form out m -> State form out m)
-  --  withInputVariant f =
-  --    Lens.over (prop (SProxy :: SProxy "form") <<< _Newtype)
-  --    $ Internal.buildInputSetters (FormProxy :: FormProxy form) case_
-  --    $ form
-  --
-  --    where
-  --      form :: Variant inputs
-  --      form = unwrap f
+  withInputVariant
+    :: form Variant InputField -> (State form out m -> State form out m)
+  withInputVariant f =
+    Lens.over (prop (SProxy :: SProxy "form") <<< _Newtype)
+    $ Internal.buildInputSetters (FormProxy :: FormProxy form) case_
+    $ form
+
+    where
+      form :: Variant inputs
+      form = unwrap f
 
   -- Run submission without raising messages or replies
   runSubmit :: DSL pq cq cs form out m (Maybe out)
