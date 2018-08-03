@@ -18,8 +18,8 @@ import Formless as Formless
 -- | This component will only handle output from Formless to keep
 -- | things simple.
 data Query a
-  = GroupForm (Formless.Message Query GroupForm Group) a
-  | OptionsForm (Formless.Message Query OptionsForm Options) a
+  = GroupForm (Formless.Message Query GroupForm Group Aff) a
+  | OptionsForm (Formless.Message Query OptionsForm Options Aff) a
   | TASingle (TA.Message Maybe String) a
   | TAMulti GroupTASlot (TA.Message Array String) a
   | AdminDropdown (Dropdown.Message Admin) a

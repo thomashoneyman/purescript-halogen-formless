@@ -10,7 +10,7 @@ import Effect.Aff (Aff)
 import Example.App.UI.Dropdown as Dropdown
 import Example.App.UI.Element (css)
 import Example.App.UI.Element as UI
-import Example.RealWorld.Data.Options (Metric(..), Speed(..), proxies)
+import Example.RealWorld.Data.Options (Metric(..), Speed(..), prx)
 import Example.RealWorld.Data.Options as OP
 import Example.RealWorld.Types (OptionsCQ, OptionsCS, Query(..))
 import Formless as F
@@ -33,7 +33,7 @@ render state =
   UI.formContent_
     [ renderEnabled state
     , HH.div
-      [ if F.getInput proxies.enable state.form then css "" else css "is-hidden" ]
+      [ if F.getInput prx.enable state.form then css "" else css "is-hidden" ]
       ( renderMetrics state
       <> renderOthers state
       )
@@ -45,7 +45,7 @@ render state =
 renderMetrics :: FormlessState -> Array FormlessHTML
 renderMetrics state =
     [ renderMetric state
-    , renderMetricField (F.getInput proxies.metric state.form)
+    , renderMetricField (F.getInput prx.metric state.form)
     ]
   where
     renderMetricField = case _ of
@@ -75,8 +75,8 @@ renderEnabled state =
       [ HH.input
         [ css "checkbox"
         , HP.type_ InputCheckbox
-        , HP.checked $ F.getInput proxies.enable state.form
-        , HE.onChange $ HE.input_ $ F.Modify (F.modifyInput proxies.enable not)
+        , HP.checked $ F.getInput prx.enable state.form
+        , HE.onChange \_ -> Just $ F.modify prx.enable (not $ F.getInput prx.enable state.form)
         ]
       , HH.text " Enable extra options"
       ]
@@ -86,7 +86,7 @@ renderMetric :: FormlessState -> FormlessHTML
 renderMetric state =
   UI.field
     { label: "Metric"
-    , help: UI.resultToHelp "Choose a metric to optimize for." (F.getResult proxies.metric state.form)
+    , help: UI.resultToHelp "Choose a metric to optimize for." (F.getResult prx.metric state.form)
     }
     [ HH.slot unit Dropdown.component
         { placeholder: "Choose a metric"
@@ -101,7 +101,7 @@ renderViewCost =
     { label: "View Cost"
     , placeholder: "100"
     , help: "Enter a dollar amount for view costs."
-    , sym: proxies.viewCost
+    , sym: prx.viewCost
     }
 
 renderClickCost :: FormlessState -> FormlessHTML
@@ -110,7 +110,7 @@ renderClickCost =
     { label: "Click Cost"
     , placeholder: "1"
     , help: "Enter a dollar amount you're willing to pay for a click."
-    , sym: proxies.clickCost
+    , sym: prx.clickCost
     }
 
 renderInstallCost :: FormlessState -> FormlessHTML
@@ -119,7 +119,7 @@ renderInstallCost =
     { label: "Install Cost"
     , placeholder: "10"
     , help: "Enter a dollar amount you're willing to pay for an app instal."
-    , sym: proxies.installCost
+    , sym: prx.installCost
     }
 
 renderSize :: FormlessState -> FormlessHTML
@@ -128,7 +128,7 @@ renderSize =
     { label: "Size"
     , placeholder: "10.233"
     , help: "Enter a total campaign size."
-    , sym: proxies.size
+    , sym: prx.size
     }
 
 renderDimensions :: FormlessState -> FormlessHTML
@@ -137,7 +137,7 @@ renderDimensions =
     { label: "Dimensions"
     , placeholder: "1.027"
     , help: "Enter a total campaign dimension set ratio buzzword."
-    , sym: proxies.dimensions
+    , sym: prx.dimensions
     }
 
 renderSpeed :: FormlessState -> FormlessHTML
@@ -153,7 +153,7 @@ renderSpeed state =
         , css "radio"
         , HP.type_ InputRadio
         , HP.checked $ speed.input == Low
-        , HE.onClick $ HE.input_ $ F.Modify $ F.setInput proxies.speed Low
+        , HE.onClick $ HE.input_ \_ -> F.modify prx.speed Low
         ]
       , HH.text $ " " <> show Low
       ]
@@ -164,7 +164,7 @@ renderSpeed state =
         , css "radio"
         , HP.type_ InputRadio
         , HP.checked $ speed.input == Medium
-        , HE.onClick $ HE.input_ $ F.Modify $ F.setInput proxies.speed Medium
+        , HE.onClick $ HE.input_ \_ -> F.modify prx.speed Medium
         ]
       , HH.text $ " " <> show Medium
       ]
@@ -175,10 +175,10 @@ renderSpeed state =
         , css "radio"
         , HP.type_ InputRadio
         , HP.checked $ speed.input == Fast
-        , HE.onClick $ HE.input_ $ F.Modify $ F.setInput proxies.speed Fast
+        , HE.onClick $ HE.input_ \_ -> F.modify prx.speed Fast
         ]
       , HH.text $ " " <> show Fast
       ]
     ]
   where
-    speed = view (F._Field proxies.speed) state.form
+    speed = view (F._Field prx.speed) state.form

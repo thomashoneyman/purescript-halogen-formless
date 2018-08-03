@@ -22,7 +22,6 @@ groupFormSubmit form = do
     <<< Record.insert (SProxy :: SProxy "options") Nothing
     $ F.unwrapOutput form
 
-
 groupFormSpec :: ∀ m. Monad m => GroupForm Record (F.FormSpec m)
 groupFormSpec = GroupForm
   { name: F.FormSpec

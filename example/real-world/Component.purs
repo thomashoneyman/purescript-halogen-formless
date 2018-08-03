@@ -14,8 +14,8 @@ import Example.RealWorld.Data.Group as G
 import Example.RealWorld.Data.Options as O
 import Example.RealWorld.Render.GroupForm as GroupForm
 import Example.RealWorld.Render.OptionsForm as OptionsForm
-import Example.RealWorld.Spec.GroupForm (groupFormSpec, groupFormSubmit, groupFormValidate)
-import Example.RealWorld.Spec.OptionsForm (defaultOptionsSpec, optionsFormSpec, optionsFormValidate)
+import Example.RealWorld.Spec.GroupForm (groupFormSpec, groupFormSubmit)
+import Example.RealWorld.Spec.OptionsForm (defaultOptionsSpec, optionsFormSpec)
 import Example.RealWorld.Types (ChildQuery, ChildSlot, GroupTASlot(..), Query(..), State, Tab(..))
 import Formless as F
 import Halogen as H
@@ -94,7 +94,7 @@ component =
           unit
           F.component
           { formSpec: groupFormSpec
-          , validator: groupFormValidate
+          , validator: Nothing
           , submitter: groupFormSubmit
           , render: GroupForm.render
           }
@@ -107,7 +107,7 @@ component =
           unit
           F.component
           { formSpec: defaultOptionsSpec
-          , validator: pure <$> optionsFormValidate
+          , validator: Nothing
           , submitter: pure <<< O.Options <<< F.unwrapOutput
           , render: OptionsForm.render
           }
@@ -162,22 +162,22 @@ component =
         pure a
 
     TASingle (TA.SelectionsChanged new) a -> a <$ do
-      H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput G.proxies.whiskey new)
+      H.query' CP.cp1 unit $ F.modifyValidate G.prx.whiskey new
 
     TAMulti slot (TA.SelectionsChanged new) a -> a <$ case slot of
       Applications ->
-        H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput G.proxies.applications new)
+        H.query' CP.cp1 unit $ F.modifyValidate G.prx.applications new
       Pixels ->
-        H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput G.proxies.pixels new)
+        H.query' CP.cp1 unit $ F.modifyValidate G.prx.pixels new
 
     AdminDropdown m a -> a <$ do
-      _ <- H.query' CP.cp1 unit $ H.action $ F.Reset (F.resetField G.proxies.secretKey1)
-      _ <- H.query' CP.cp1 unit $ H.action $ F.Reset (F.resetField G.proxies.secretKey2)
+      _ <- H.query' CP.cp1 unit $ F.reset G.prx.secretKey1
+      _ <- H.query' CP.cp1 unit $ F.reset G.prx.secretKey2
       case m of
         DD.Selected x -> do
-          H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput G.proxies.admin (Just x))
+          H.query' CP.cp1 unit $ F.modifyValidate G.prx.admin (Just x)
         DD.Cleared -> do
-          H.query' CP.cp1 unit $ H.action $ F.ModifyValidate (F.setInput G.proxies.admin Nothing)
+          H.query' CP.cp1 unit $ F.modifyValidate G.prx.admin Nothing
 
     -----
     -- Options Form
@@ -190,27 +190,27 @@ component =
         st' <- H.modify _
           { optionsFormErrors = fstate.errors
           , optionsFormDirty = fstate.dirty
-          , optionsEnabled = F.getInput O.proxies.enable fstate.form
+          , optionsEnabled = F.getInput O.prx.enable fstate.form
           }
-
-        let submitter = pure <<< O.Options <<< F.unwrapOutput
-            validator = pure <$> optionsFormValidate
 
         -- The generated spec will set enabled to false, but we'll want it to be true before
         -- sending a new spec in to the component.
         when (st.optionsEnabled /= st'.optionsEnabled) do
           case st'.optionsEnabled of
             true -> do
-              let spec' = O.OptionsForm $ _ { enable = F.FormSpec true } $ unwrap optionsFormSpec
-              _ <- H.query' CP.cp2 unit $ H.action $ F.Replace { formSpec: spec', submitter, validator }
+              let
+                spec' = O.OptionsForm
+                  $ (\s -> s { enable = over F.FormSpec (_ { input = true }) s.enable })
+                  $ unwrap optionsFormSpec
+              _ <- H.query' CP.cp2 unit $ H.action $ F.ReplaceSpec spec'
               pure unit
             _ -> do
-              _ <- H.query' CP.cp2 unit $ H.action $ F.Replace { formSpec: defaultOptionsSpec, submitter, validator }
+              _ <- H.query' CP.cp2 unit $ H.action $ F.ReplaceSpec defaultOptionsSpec
               pure unit
         pure a
 
     MetricDropdown m a -> a <$ case m of
       DD.Selected x -> do
-        H.query' CP.cp2 unit $ H.action $ F.ModifyValidate (F.setInput O.proxies.metric (Just x))
+        H.query' CP.cp2 unit $ F.modifyValidate O.prx.metric (Just x)
       DD.Cleared -> do
-        H.query' CP.cp2 unit $ H.action $ F.ModifyValidate (F.setInput O.proxies.metric Nothing)
+        H.query' CP.cp2 unit $ F.modifyValidate O.prx.metric Nothing

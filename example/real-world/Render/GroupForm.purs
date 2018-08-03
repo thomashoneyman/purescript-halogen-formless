@@ -7,7 +7,7 @@ import Effect.Aff (Aff)
 import Example.App.UI.Dropdown as Dropdown
 import Example.App.UI.Element as UI
 import Example.App.UI.Typeahead as Typeahead
-import Example.RealWorld.Data.Group (Admin(..), GroupId(..), proxies)
+import Example.RealWorld.Data.Group (Admin(..), GroupId(..), prx)
 import Example.RealWorld.Data.Group as G
 import Example.RealWorld.Types (GroupCQ, GroupCS, GroupTASlot(..), Query(..))
 import Formless as F
@@ -46,7 +46,7 @@ renderName =
   { label: "Name"
   , help: "Give the group a name."
   , placeholder: "January Analytics Seminar"
-  , sym: proxies.name
+  , sym: prx.name
   }
 
 renderSecretKey1 :: FormlessState -> FormlessHTML
@@ -55,7 +55,7 @@ renderSecretKey1 =
   { label: "Secret Key 1"
   , help: "Provide a secret identifier for the group."
   , placeholder: "iasncat3ihba/0"
-  , sym: proxies.secretKey1
+  , sym: prx.secretKey1
   }
 
 renderSecretKey2 :: FormlessState -> FormlessHTML
@@ -64,14 +64,14 @@ renderSecretKey2 =
   { label: "Secret Key 2"
   , help: "Confirm the secret identifier for the group."
   , placeholder: "iasncat3ihba/0"
-  , sym: proxies.secretKey2
+  , sym: prx.secretKey2
   }
 
 renderAdmin :: FormlessState -> FormlessHTML
 renderAdmin state =
   UI.field
     { label: "Administrator"
-    , help: UI.resultToHelp "Choose an administrator for the account" (F.getResult proxies.admin state.form)
+    , help: UI.resultToHelp "Choose an administrator for the account" (F.getResult prx.admin state.form)
     }
     [ HH.slot' CP.cp3 unit Dropdown.component
         { items, placeholder: "Choose an admin" }
@@ -92,7 +92,7 @@ renderWhiskey :: FormlessState -> FormlessHTML
 renderWhiskey state =
   UI.field
     { label: "Whiskey"
-    , help: UI.resultToHelp "Choose a whiskey to be awarded" (F.getResult proxies.whiskey state.form)
+    , help: UI.resultToHelp "Choose a whiskey to be awarded" (F.getResult prx.whiskey state.form)
     }
     [ HH.slot' CP.cp2 unit Typeahead.single
       { placeholder: "Choose a whiskey"
@@ -111,7 +111,7 @@ renderPixels :: FormlessState -> FormlessHTML
 renderPixels state =
   UI.field
     { label: "Tracking Pixels"
-    , help: UI.resultToHelp "Choose a pixel to track" (F.getResult proxies.pixels state.form)
+    , help: UI.resultToHelp "Choose a pixel to track" (F.getResult prx.pixels state.form)
     }
     [ HH.slot' CP.cp1 Pixels Typeahead.multi
       { placeholder: "Search pixels"
@@ -129,7 +129,7 @@ renderApplications :: FormlessState -> FormlessHTML
 renderApplications state =
   UI.field
     { label: "Application Targets"
-    , help: UI.resultToHelp "Applications are available in several sizes" (F.getResult proxies.applications state.form)
+    , help: UI.resultToHelp "Applications are available in several sizes" (F.getResult prx.applications state.form)
     }
     [ HH.slot' CP.cp1 Applications Typeahead.multi
       { placeholder: "Search one or more applications"
