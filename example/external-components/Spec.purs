@@ -2,12 +2,12 @@ module Example.ExternalComponents.Spec where
 
 import Prelude
 
-import Data.Maybe (Maybe, fromMaybe)
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (class Newtype)
 import Example.App.Validation as V
-import Formless.Spec (FormProxy(..), FormSpec, FormField, OutputField, OutputType)
-import Formless.Spec.Transform (SProxies, mkFormSpecFromProxy, mkSProxies, unwrapOutput)
-import Formless.Validation.Semigroup (applyOnFormFields)
+import Formless.Spec (FormProxy(..), FormSpec(..), OutputField, OutputType)
+import Formless.Spec.Transform (SProxies, mkSProxies, unwrapOutput)
+import Formless.Validation.Semigroup (toEitherPure)
 
 type User = Record (FormRow OutputType)
 
@@ -22,19 +22,28 @@ type FormRow f =
   )
 
 -- | You'll usually want symbol proxies for convenience
-proxies :: SProxies Form
-proxies = mkSProxies $ FormProxy :: FormProxy Form
+prx :: SProxies Form
+prx = mkSProxies $ FormProxy :: FormProxy Form
 
-formSpec :: Form Record FormSpec
-formSpec = mkFormSpecFromProxy $ FormProxy :: FormProxy Form
-
-validator :: Form Record FormField -> Form Record FormField
-validator = applyOnFormFields
-    { name: flip V.validateMinimumLength 7
-    , email: V.validateEmailRegex <<< fromMaybe ""
-    , whiskey: \(i :: Maybe String) -> V.validateMaybe i
-    , language: \(i :: Maybe String) -> V.validateMaybe i
+formSpec :: ∀ m. Monad m => Form Record (FormSpec m)
+formSpec = Form
+  { name: FormSpec
+    { input: ""
+    , validator: toEitherPure $ flip V.validateMinimumLength 7
     }
+  , email: FormSpec
+    { input: Nothing
+    , validator: toEitherPure $ V.validateEmailRegex <<< fromMaybe ""
+    }
+  , whiskey: FormSpec
+    { input: Nothing
+    , validator: toEitherPure V.validateMaybe
+    }
+  , language: FormSpec
+    { input: Nothing
+    , validator: toEitherPure V.validateMaybe
+    }
+  }
 
 submitter :: ∀ m. Monad m => Form Record OutputField -> m User
 submitter = pure <<< unwrapOutput

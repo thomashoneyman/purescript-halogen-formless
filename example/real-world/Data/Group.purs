@@ -64,8 +64,8 @@ _options = SProxy :: SProxy "options"
 newtype GroupForm r f = GroupForm (r (GroupFormRow f))
 derive instance newtypeGroupForm :: Newtype (GroupForm r f) _
 
-proxies :: F.SProxies GroupForm
-proxies = F.mkSProxies $ F.FormProxy :: F.FormProxy GroupForm
+prx :: F.SProxies GroupForm
+prx = F.mkSProxies $ F.FormProxy :: F.FormProxy GroupForm
 
 -- | In order to generate our fields automatically using mkFormSpecFromRow, we'll make
 -- | sure to have the new row as a new type.

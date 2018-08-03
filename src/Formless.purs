@@ -25,6 +25,10 @@ module Formless
   , module Formless.Spec.Transform
   , module Formless.Class.Initial
   , send'
+  , modify
+  , modifyValidate
+  , validate
+  , reset
   )
   where
 

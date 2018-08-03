@@ -6,12 +6,11 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
-import Effect.Class (class MonadEffect)
 import Effect.Console as Console
 import Example.App.UI.Element as UI
 import Example.App.Validation as V
 import Formless as F
-import Formless.Validation.Polyform (applyOnFormFields)
+import Formless.Validation.Polyform (toEither)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -19,7 +18,7 @@ import Halogen.HTML.Properties as HP
 import Polyform.Validation as Validation
 import Record (delete)
 
-data Query a = HandleFormless (F.Message' Form User) a
+data Query a = HandleFormless (F.Message' Form User Aff) a
 
 type State = Unit
 
@@ -71,8 +70,8 @@ component =
     , HH.slot
         unit
         F.component
-        { formSpec: F.mkFormSpecFromProxy _form
-        , validator
+        { formSpec
+        , validator: Nothing
         , submitter: pure <<< F.unwrapOutput
         , render: renderFormless
         }
@@ -96,8 +95,8 @@ _form = F.FormProxy :: F.FormProxy Form
 -- This is a record of symbol proxies, which we can now pass to the
 -- various Formless functions that require them. See the render function
 -- below as an example in practice.
-proxies :: F.SProxies Form
-proxies = F.mkSProxies _form
+prx :: F.SProxies Form
+prx = F.mkSProxies _form
 
 type FormRow f =
   ( name  :: f V.Errs String V.Name
@@ -106,12 +105,25 @@ type FormRow f =
   , state :: f V.Errs String String
   )
 
-validator :: ∀ m. MonadEffect m => Form Record F.FormField -> m (Form Record F.FormField)
-validator = applyOnFormFields
-  { name: V.Name <$> (V.minLength 5 *> V.maxLength 10)
-  , email: V.emailFormat >>> V.emailIsUsed
-  , city: V.minLength 0
-  , state: Validation.hoistFnV pure
+-- Our form spec
+formSpec :: Form Record (F.FormSpec Aff)
+formSpec = Form
+  { name: F.FormSpec
+      { input: ""
+      , validator: toEither $ V.Name <$> (V.minLength 5 *> V.maxLength 10)
+      }
+  , email: F.FormSpec
+      { input: ""
+      , validator: toEither $ V.emailFormat >>> V.emailIsUsed
+      }
+  , city: F.FormSpec
+      { input: ""
+      , validator: toEither $ V.minLength 0
+      }
+  , state: F.FormSpec
+      { input: ""
+      , validator: toEither $ Validation.hoistFnV pure
+      }
   }
 
 renderFormless :: F.State Form User Aff -> F.HTML' Form User Aff
@@ -122,28 +134,28 @@ renderFormless state =
       { label: "Name"
       , help: "Write your name"
       , placeholder: "Dale"
-      , sym: proxies.name
+      , sym: prx.name
       } state
   , UI.formlessField
       UI.input
       { label: "Email Address"
       , help: "Write your email"
       , placeholder: "me@you.com"
-      , sym: proxies.email
+      , sym: prx.email
       } state
   , UI.formlessField
       UI.input
       { label: "City"
       , help: "Write your favorite city"
       , placeholder: "Los Angeles"
-      , sym: proxies.city
+      , sym: prx.city
       } state
   , UI.formlessField
       UI.input
       { label: "State"
       , help: "Write your favorite state of mind"
       , placeholder: ""
-      , sym: proxies.state
+      , sym: prx.state
       } state
     , HH.br_
     , UI.p_ $

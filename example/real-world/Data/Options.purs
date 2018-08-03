@@ -77,8 +77,8 @@ type OptionsRow f =
   , speed        :: f Unit Speed          Speed
   )
 
-proxies :: F.SProxies OptionsForm
-proxies = F.mkSProxies $ F.FormProxy :: F.FormProxy OptionsForm
+prx :: F.SProxies OptionsForm
+prx = F.mkSProxies $ F.FormProxy :: F.FormProxy OptionsForm
 
 -- | This is the data type used throughout the application. In this case, it's the same
 -- | as the form and the underlying row.

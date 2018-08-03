@@ -5,7 +5,7 @@ import Prelude
 import Data.Int as Int
 import Data.Maybe (Maybe(..))
 import Example.App.Validation as V
-import Example.RealWorld.Data.Options (Dollars(..), Metric(..), OptionsForm(..), Speed(..), proxies)
+import Example.RealWorld.Data.Options (Dollars(..), Metric(..), OptionsForm(..), Speed(..), prx)
 import Formless as F
 import Formless.Validation.Semigroup (onFormField)
 

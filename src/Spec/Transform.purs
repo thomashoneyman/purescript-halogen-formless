@@ -9,7 +9,7 @@ import Data.Newtype (class Newtype, unwrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
-import Formless.Spec (FormField, FormProxy, FormSpec, OutputField, _Input, _Result, _Touched)
+import Formless.Spec (FormField, FormProxy, InputField, OutputField, _Input, _Result, _Touched)
 import Prim.Row as Row
 import Prim.RowList as RL
 import Record.Builder as Builder
@@ -197,11 +197,11 @@ unwrapOutput = Internal.unwrapRecord <<< unwrap
 
 -- | A type to collect constraints necessary to apply to prove that a record of
 -- | SProxies is compatible with your form type.
-type SProxies form m =
+type SProxies form =
    ∀ row xs row'
     . RL.RowToList row xs
    => MakeSProxies xs row'
-   => Newtype (form Record (FormSpec m)) (Record row)
+   => Newtype (form Record InputField) (Record row)
    => Record row'
 
 -- | A helper function to produce a record of SProxies given a form spec, to save
@@ -224,10 +224,10 @@ type SProxies form m =
 -- | _name = proxies.name
 -- | ```
 mkSProxies
-  :: ∀ form row xs row' m
+  :: ∀ form row xs row'
    . RL.RowToList row xs
   => MakeSProxies xs row'
-  => Newtype (form Record (FormSpec m)) (Record row)
+  => Newtype (form Record InputField) (Record row)
   => FormProxy form
   -> Record row'
 mkSProxies _ = Internal.fromScratch builder
@@ -252,3 +252,4 @@ instance makeSProxiesCons
     where
       rest = makeSProxiesBuilder (RLProxy :: RLProxy tail)
       first = Builder.insert (SProxy :: SProxy name) (SProxy :: SProxy name)
+

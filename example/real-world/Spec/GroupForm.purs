@@ -4,15 +4,11 @@ import Prelude
 
 import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
-import Data.Validation.Semigroup (V)
-import Example.RealWorld.Data.Group (Group(..), GroupForm, GroupId(..), proxies)
 import Example.App.Validation as V
+import Example.RealWorld.Data.Group (Group(..), GroupForm(..), GroupId(..))
 import Formless as F
-import Formless.Validation.Semigroup (applyOnFormFields)
+import Formless.Validation.Semigroup (toEitherPure)
 import Record as Record
-
-groupFormSpec :: GroupForm Record F.FormSpec
-groupFormSpec = F.mkFormSpecFromProxy $ F.FormProxy :: F.FormProxy GroupForm
 
 groupFormSubmit :: ∀ m. Monad m => GroupForm Record F.OutputField -> m Group
 groupFormSubmit form = do
@@ -26,24 +22,51 @@ groupFormSubmit form = do
     <<< Record.insert (SProxy :: SProxy "options") Nothing
     $ F.unwrapOutput form
 
--- | We'll provide a fairly involved validation function to verify fields are correct
-groupFormValidate :: ∀ m. Monad m => GroupForm Record F.FormField -> m (GroupForm Record F.FormField)
-groupFormValidate form = pure $ applyOnFormFields
-  ( identity
-    { name: V.validateNonEmpty
-    , secretKey1:
-        \i -> V.validateNonEmpty i *> V.validateEqual (F.getInput proxies.secretKey2 form) i
-    , secretKey2:
-        \i -> V.validateNonEmpty i *> V.validateEqual (F.getInput proxies.secretKey1 form) i
-    , admin: V.validateMaybe
-    , applications: V.validateNonEmptyArray
-    , pixels: V.validateNonEmptyArray
-    , whiskey: V.validateMaybe
+
+groupFormSpec :: ∀ m. Monad m => GroupForm Record (F.FormSpec m)
+groupFormSpec = GroupForm
+  { name: F.FormSpec
+    { input: ""
+    , validator: toEitherPure V.validateNonEmpty
     }
-  )
-  form
+  , secretKey1: F.FormSpec
+    { input: ""
+    , validator: toEitherPure V.validateNonEmpty
+    }
+  , secretKey2: F.FormSpec
+    { input: ""
+    , validator: toEitherPure V.validateNonEmpty
+    }
+  , admin: F.FormSpec
+    { input: Nothing
+    , validator: toEitherPure V.validateMaybe
+    }
+  , applications: F.FormSpec
+    { input: []
+    , validator: toEitherPure V.validateNonEmptyArray
+    }
+  , pixels: F.FormSpec
+    { input: []
+    , validator: toEitherPure V.validateNonEmptyArray
+    }
+  , whiskey: F.FormSpec
+    { input: Nothing
+    , validator: toEitherPure V.validateMaybe
+    }
+  }
 
-  where
-
-  validateBudget :: String -> V V.Errs (Maybe Int)
-  validateBudget = const (pure $ Just 100)
+-- | We'll provide a fairly involved validation function to verify fields are correct
+-- | TODO:
+-- | Only fields that you want to validate are necessary. The others will not run.
+--  groupFormValidate :: ∀ m. Monad m => GroupForm Record (F.FormField m) -> m (GroupForm Record (F.FormField m))
+--  groupFormValidate form = pure $ GroupForm
+--    { name: toEitherPure $ (\(i :: String) -> pure i) `onFormField` form'.name
+--    , secretKey1: toEitherPure $ V.validateEqual (F.getInput prx.secretKey2 form) `onFormField` form'.secretKey1
+--    , secretKey2: toEitherPure $ V.validateEqual (F.getInput prx.secretKey2 form) `onFormField` form'.secretKey2
+--    , admin: toEitherPure $ pure `onFormField` form'.admin
+--    , applications: toEitherPure $ pure `onFormField` form'.applications
+--    , pixels: toEitherPure $ pure `onFormField` form'.pixels
+--    , whiskey: toEitherPure $ pure `onFormField` form'.whiskey
+--    }
+--    where
+--      form' = unwrap form
