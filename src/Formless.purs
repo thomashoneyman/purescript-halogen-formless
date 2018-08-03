@@ -14,7 +14,6 @@ module Formless
   , PublicState(..)
   , SpecRow(..)
   , Input(..)
-  , Input'(..)
   , Message(..)
   , Message'(..)
   , StateRow(..)
@@ -37,7 +36,7 @@ import Data.Const (Const)
 import Data.Eq (class EqRecord)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), maybe)
 import Data.Monoid.Additive (Additive)
 import Data.Newtype (class Newtype, over, unwrap, wrap)
 import Data.Symbol (SProxy(..))
@@ -45,15 +44,15 @@ import Data.Traversable (traverse, traverse_)
 import Data.Variant (Variant)
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
-import Formless.Spec (ErrorType, FormField(..), FormFieldRow, FormProxy(..), FormSpec(..), InputField(..), InputType, OutputField(..), OutputType, _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched)
-import Formless.Spec.Transform (class MakeFormSpecFromRow, class MakeSProxies, SProxies, getInput, getResult, makeSProxiesBuilder, mkFormSpec, mkFormSpecFromProxy, mkFormSpecFromRowBuilder, mkSProxies, modifyInput, resetField, setInput, touchField, unwrapOutput)
+import Formless.Spec (ErrorType, FormField(..), FormFieldRow, FormProxy(..), FormSpec(..), InputField(..), InputType, OutputField(..), OutputType, _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched, _validator)
+import Formless.Spec.Transform (class MakeSProxies, SProxies, getInput, getResult, makeSProxiesBuilder, mkSProxies, modifyInput, resetField, setInput, touchField, unwrapOutput)
 import Halogen as H
 import Halogen.Component.ChildPath (ChildPath, injQuery, injSlot)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Prim.RowList as RL
 import Record as Record
-import Renderless.State (getState, modifyState, modifyState_, modifyStore_)
+import Renderless.State (getState, modifyState, modifyState_, modifyStore_, putState)
 import Type.Row (type (+))
 
 data Query pq cq cs form out m a
@@ -64,10 +63,10 @@ data Query pq cq cs form out m a
   | ValidateAll a
   | Submit a
   | SubmitReply (Maybe out -> a)
-  | Reply (PublicState form -> a)
+  | Reply (PublicState form m -> a)
   | Send cs (cq Unit) a
   | Raise (pq Unit) a
-  | ReplaceSpec (form Record FormSpec) a
+  | ReplaceSpec (form Record (FormSpec m)) a
   | Receive (Input pq cq cs form out m) a
   | AndThen (Query pq cq cs form out m Unit) (Query pq cq cs form out m Unit) a
 
@@ -82,7 +81,7 @@ type Component pq cq cs form out m
       HH.HTML
       (Query pq cq cs form out m)
       (Input pq cq cs form out m)
-      (Message pq form out)
+      (Message pq form out m)
       m
 
 -- | The component's HTML type, the result of the render function.
@@ -96,31 +95,31 @@ type DSL pq cq cs form out m
       (Query pq cq cs form out m)
       cq
       cs
-      (Message pq form out)
+      (Message pq form out m)
       m
 
 -- | The component local state
-type State form out m = Record (StateRow form (internal :: InternalState form out m))
+type State form out m = Record (StateRow form m (internal :: InternalState form out m))
 
 -- | The component's public state
-type PublicState form = Record (StateRow form ())
+type PublicState form m = Record (StateRow form m ())
 
 -- | The component's public state
-type StateRow form r =
+type StateRow form m r =
   ( validity :: ValidStatus
   , dirty :: Boolean
   , submitting :: Boolean
   , errors :: Int
   , submitAttempts :: Int
-  , form :: form Record FormField
+  , form :: form Record (FormField m)
   | r
   )
 
 -- | Values provided by the user but maintained by the component
 type SpecRow form out m r =
-  ( validator :: form Record FormField -> m (form Record FormField)
+  ( validator :: Maybe (form Record (FormField m) -> m (form Record (FormField m)))
   , submitter :: form Record OutputField -> m out
-  , formSpec :: form Record FormSpec
+  , formSpec :: form Record (FormSpec m)
   | r
   )
 
@@ -157,9 +156,9 @@ type Input pq cq cs form out m = Record
 -- | The component tries to require as few messages to be handled as possible. You
 -- | can always use the *Reply variants of queries to perform actions and receive
 -- | a result out the other end.
-data Message pq form out
+data Message pq form out m
   = Submitted out
-  | Changed (PublicState form)
+  | Changed (PublicState form m)
   | Emit (pq Unit)
 
 -- | When you are using several different types of child components in Formless
@@ -182,10 +181,7 @@ type Query' form out m = Query (Const Void) (Const Void) Void form out m
 type HTML' form out m = H.ParentHTML (Query' form out m) (Const Void) Void m
 
 -- | A simple Message type when the component does not need embedding
-type Message' form out = Message (Const Void) form out
-
--- | A simple input type for when you aren't embedding anything
-type Input' form out m = Input (Const Void) (Const Void) Void form out m
+type Message' form out m = Message (Const Void) form out m
 
 
 -- | The component itself
@@ -205,10 +201,10 @@ component
   => Internal.CountErrors fieldxs fields count
   => Internal.AllTouched fieldxs fields
   => Internal.SumRecord countxs count (Additive Int)
-  => Internal.RecordVariantUpdateRL inputsxs inputs fields
-  => Newtype (form Record FormSpec) (Record spec)
-  => Newtype (form Record FormField) (Record fields)
-  => Newtype (form Variant FormField) (Variant fields)
+  => Internal.RecordVariantUpdateRL inputsxs inputs fields m
+  => Newtype (form Record (FormSpec m)) (Record spec)
+  => Newtype (form Record (FormField m)) (Record fields)
+  => Newtype (form Variant (FormField m)) (Variant fields)
   => Newtype (form Record OutputField) (Record output)
   => Newtype (form Record InputField) (Record inputs)
   => Newtype (form Variant InputField) (Variant inputs)
@@ -245,24 +241,34 @@ component =
   eval :: Query pq cq cs form out m ~> DSL pq cq cs form out m
   eval = case _ of
     Modify variant a -> do
-      new <- modifyState (modifyWithInputVariant variant)
+      st <- getState
+      new <- H.lift $ modifyWithInputVariant variant st
+      putState new
+      H.raise $ Changed $ getPublicState new
       pure a
 
     ModifyValidate variant a -> do
-      new <- modifyState (modifyWithInputVariant variant)
-      -- TODO: field-level validation
+      st <- getState
+      new <- H.lift $ modifyValidateWithInputVariant variant st
+      putState new
       H.raise $ Changed $ getPublicState new
       pure a
 
     Reset variant a -> do
-      new <- modifyState (resetWithInputVariant variant)
+      st <- getState
+      new <- H.lift $ resetWithInputVariant variant st
+      putState new
       H.raise $ Changed $ getPublicState new
       pure a
 
+    -- Doesn't trigger individual validation functions, but _does_ run the global validation
+    -- function. Perhaps should do both -- set all fields, validate, and then run global
+    -- validation on the result? (form Record OutputField -> m out)? Remove the need for a
+    -- submitter altogether.
     ValidateAll a -> do
       init <- getState
       let internal = unwrap init.internal
-      form <- H.lift $ internal.validator init.form
+      form <- maybe (pure init.form) (\f -> H.lift $ f init.form) internal.validator
       let errors = Internal.countErrors form
 
       -- At this point we can modify most of the state, except for the valid status
@@ -365,42 +371,71 @@ component =
       pure a
 
   -- Remove internal fields and return the public state
-  getPublicState :: State form out m -> PublicState form
+  getPublicState :: State form out m -> PublicState form m
   getPublicState = Record.delete (SProxy :: SProxy "internal")
 
   -- Use a form variant to update the value of a single form field in state
   modifyWithInputVariant
-    :: form Variant InputField -> State form out m -> State form out m
-  modifyWithInputVariant form state =
-    state { form = wrap (updater (unwrap state.form)) }
+    :: form Variant InputField -> State form out m -> m (State form out m)
+  modifyWithInputVariant form state = do
+    form' <- updater (unwrap state.form)
+    pure $ state { form = wrap form' }
     where
-      updater :: { | fields } -> { | fields }
+      updater :: { | fields } -> m { | fields }
       updater = Internal.rvUpdate
-        (\(InputField i) _ -> FormField
-          { input: i
-          , touched: true
-          , result: Nothing
-          })
+        (\(InputField i) (FormField { validator }) -> pure $
+          FormField
+            { input: i
+            , touched: true
+            , result: Nothing
+            , validator
+            }
+        )
+        (unwrap form)
+
+  -- Use a form variant to update the value of a single form field in state
+  -- and also run its validation
+  modifyValidateWithInputVariant
+    :: form Variant InputField -> State form out m -> m (State form out m)
+  modifyValidateWithInputVariant form state = do
+    form' <- updater (unwrap state.form)
+    pure (state { form = wrap form' })
+    where
+      updater :: { | fields } -> m { | fields }
+      updater = Internal.rvUpdate
+        (\(InputField i) (FormField { validator }) -> do
+          res <- validator i
+          pure (FormField
+            { input: i
+            , touched: true
+            , result: Just res
+            , validator
+            })
+        )
         (unwrap form)
 
   -- Reset a field (and update state to ensure the form is not marked with
   -- all fields touched).
   resetWithInputVariant
-    :: form Variant InputField -> State form out m -> State form out m
-  resetWithInputVariant form state =
-    state
-      { form = wrap (updater (unwrap state.form))
+    :: form Variant InputField -> State form out m -> m (State form out m)
+  resetWithInputVariant form state = do
+    form' <- updater (unwrap state.form)
+    pure $ state
+      { form = wrap form'
       , internal = over InternalState (_ { allTouched = false }) state.internal
       }
     where
-      updater :: { | fields } -> { | fields }
+      updater :: { | fields } -> m { | fields }
       updater = Internal.rvUpdate
         -- IMPROVE: Rely on Initial type class?
-        (\(InputField i) _ -> FormField
-          { input: i
-          , touched: false
-          , result: Nothing
-          })
+        (\(InputField i) (FormField { validator }) -> pure $
+          FormField
+            { input: i
+            , touched: false
+            , result: Nothing
+            , validator
+            }
+        )
         (unwrap form)
 
   -- Run submission without raising messages or replies

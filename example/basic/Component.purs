@@ -12,13 +12,13 @@ import Effect.Console (log)
 import Example.App.UI.Element as UI
 import Example.App.Validation as V
 import Formless as F
-import Formless.Validation.Polyform (applyOnFormFields)
+import Formless.Validation.Polyform (toEither)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 
-data Query a = HandleFormless (F.Message' Form Contact) a
+data Query a = HandleFormless (F.Message' Form Contact Aff) a
 
 type ChildQuery = F.Query' Form Contact Aff
 type ChildSlot = Unit
@@ -43,8 +43,8 @@ component = H.parentComponent
         <> "consists of less than 20 lines of code."
     , HH.br_
     , HH.slot unit F.component
-        { formSpec: F.mkFormSpec { name: "", text: "" }
-        , validator
+        { formSpec -- F.mkFormSpec { name: "", text: "" }
+        , validator: Nothing
         , submitter: pure <<< F.unwrapOutput
         , render: renderFormless
         }
@@ -72,10 +72,16 @@ type FormRow f =
   , text :: f Unit String String
   )
 
-validator :: ∀ m. Monad m => Form Record F.FormField -> m (Form Record F.FormField)
-validator = applyOnFormFields $ identity
-  { name: V.minLength 5
-  , text: V.notRequired
+formSpec :: Form Record (F.FormSpec Aff)
+formSpec = Form
+  { name: F.FormSpec
+      { input: ""
+      , validator: toEither $ V.minLength 5
+      }
+  , text: F.FormSpec
+      { input: ""
+      , validator: toEither V.notRequired
+      }
   }
 
 renderFormless :: F.State Form Contact Aff -> F.HTML' Form Contact Aff
