@@ -245,21 +245,18 @@ component =
   eval :: Query pq cq cs form out m ~> DSL pq cq cs form out m
   eval = case _ of
     Modify variant a -> do
-      new <- modifyState (withInputVariant variant)
+      new <- modifyState (modifyWithInputVariant variant)
       pure a
 
     ModifyValidate variant a -> do
-      new <- modifyState (withInputVariant variant)
+      new <- modifyState (modifyWithInputVariant variant)
       -- TODO: field-level validation
       H.raise $ Changed $ getPublicState new
       pure a
 
-    Reset _ a -> do
-      -- TODO: reset
-      --  modifyState_ \st -> st
-      --    { form = fs st.form
-      --    , internal = over InternalState (_ { allTouched = false }) st.internal
-      --    }
+    Reset variant a -> do
+      new <- modifyState (resetWithInputVariant variant)
+      H.raise $ Changed $ getPublicState new
       pure a
 
     ValidateAll a -> do
@@ -272,9 +269,11 @@ component =
       modifyState_ _
         { form = form
         , errors = errors
-          -- Dirty state is computed by checking equality of original input fields vs. current ones.
-          -- This relies on input fields passed by the user having equality defined.
-        , dirty = not $ unwrap (Internal.inputFieldsToInput form) == unwrap internal.initialInputs
+          -- Dirty state is computed by checking equality of original input fields
+          -- vs. current ones. This relies on input fields passed by the user having
+          -- equality defined.
+        , dirty = not
+          $ unwrap (Internal.inputFieldsToInput form) == unwrap internal.initialInputs
         }
 
       -- Need to verify the validity status of the form.
@@ -369,19 +368,40 @@ component =
   getPublicState :: State form out m -> PublicState form
   getPublicState = Record.delete (SProxy :: SProxy "internal")
 
-  withInputVariant
+  -- Use a form variant to update the value of a single form field in state
+  modifyWithInputVariant
     :: form Variant InputField -> State form out m -> State form out m
-  withInputVariant form state =
-    state { form = wrap (updater formR) }
+  modifyWithInputVariant form state =
+    state { form = wrap (updater (unwrap state.form)) }
     where
       updater :: { | fields } -> { | fields }
-      updater = Internal.rvUpdate formV
+      updater = Internal.rvUpdate
+        (\(InputField i) _ -> FormField
+          { input: i
+          , touched: true
+          , result: Nothing
+          })
+        (unwrap form)
 
-      formR :: Record fields
-      formR = unwrap state.form
-
-      formV :: Variant inputs
-      formV = unwrap form
+  -- Reset a field (and update state to ensure the form is not marked with
+  -- all fields touched).
+  resetWithInputVariant
+    :: form Variant InputField -> State form out m -> State form out m
+  resetWithInputVariant form state =
+    state
+      { form = wrap (updater (unwrap state.form))
+      , internal = over InternalState (_ { allTouched = false }) state.internal
+      }
+    where
+      updater :: { | fields } -> { | fields }
+      updater = Internal.rvUpdate
+        -- IMPROVE: Rely on Initial type class?
+        (\(InputField i) _ -> FormField
+          { input: i
+          , touched: false
+          , result: Nothing
+          })
+        (unwrap form)
 
   -- Run submission without raising messages or replies
   runSubmit :: DSL pq cq cs form out m (Maybe out)

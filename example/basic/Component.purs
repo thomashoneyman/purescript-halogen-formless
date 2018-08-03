@@ -4,8 +4,9 @@ import Prelude
 
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
-import Data.Newtype (class Newtype)
+import Data.Newtype (class Newtype, wrap)
 import Data.Symbol (SProxy(..))
+import Data.Variant (inj)
 import Effect.Aff (Aff)
 import Effect.Console (log)
 import Example.App.UI.Element as UI
@@ -86,7 +87,7 @@ renderFormless state =
      , placeholder: "Dale"
      }
      [ HP.value $ F.getInput _name state.form
-     , HE.onValueInput $ HE.input $ F.ModifyValidate <<< F.setInput _name
+     , HE.onValueInput $ HE.input \str -> F.ModifyValidate (wrap (inj _name (wrap str)))
      ]
  , UI.textarea
      { label: "Message"
@@ -94,7 +95,7 @@ renderFormless state =
      , placeholder: "We prefer nice messages, but have at it."
      }
      [ HP.value $ F.getInput _text state.form
-     , HE.onValueInput $ HE.input $ F.Modify <<< F.setInput _text
+     , HE.onValueInput $ HE.input \str -> F.Modify (wrap (inj _text (wrap str)))
      ]
    , UI.buttonPrimary
      [ HE.onClick $ HE.input_ F.Submit ]

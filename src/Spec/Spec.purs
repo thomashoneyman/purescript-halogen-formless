@@ -26,6 +26,8 @@ data FormProxy
 -- | create the spec form that we'll compare against to measure
 -- | 'touched' states, etc. This is what the user is responsible
 -- | for providing.
+
+-- TODO: Add field-level validators
 newtype FormSpec error input output = FormSpec input
 derive instance newtypeFormSpec :: Newtype (FormSpec e i o) _
 

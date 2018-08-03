@@ -496,19 +496,28 @@ instance applyRowListCons
 
 -- | @monoidmusician
 class RecordVariantUpdate r to where
-  rvUpdate :: Variant r -> Record to -> Record to
+  rvUpdate
+    :: (forall e i o. InputField e i o -> FormField e i o -> FormField e i o)
+    -> Variant r
+    -> Record to
+    -> Record to
 
 instance recordVariantUpdate ::
   ( RL.RowToList r rl
   , RecordVariantUpdateRL rl r to
   ) => RecordVariantUpdate r to where
-    rvUpdate = rvUpdateRL (RLProxy :: RLProxy rl)
+    rvUpdate f = rvUpdateRL f (RLProxy :: RLProxy rl)
 
 class RecordVariantUpdateRL rl v to | rl -> v where
-  rvUpdateRL :: RLProxy rl -> Variant v -> Record to -> Record to
+  rvUpdateRL
+    :: (forall e i o. InputField e i o -> FormField e i o -> FormField e i o)
+    -> RLProxy rl
+    -> Variant v
+    -> Record to
+    -> Record to
 
 instance rvUpdateNil :: RecordVariantUpdateRL RL.Nil () to where
-  rvUpdateRL _ = case_
+  rvUpdateRL _ _ = case_
 
 instance rvUpdateCons ::
   ( IsSymbol s
@@ -516,8 +525,7 @@ instance rvUpdateCons ::
   , Row.Cons s (FormField e i o) t0 to
   , Row.Cons s (InputField e i o) v v'
   ) => RecordVariantUpdateRL (RL.Cons s (InputField e i o) rl) v' to where
-    rvUpdateRL _ =
-      on s
-        (\a -> Record.set s (FormField { input: unwrap a, touched: false, result: Nothing }) )
-        (rvUpdateRL (RLProxy :: RLProxy rl))
-      where s = SProxy :: SProxy s
+    rvUpdateRL f _ =
+      on s (\a -> Record.modify s (f a)) (rvUpdateRL f (RLProxy :: RLProxy rl))
+      where
+        s = SProxy :: SProxy s
