@@ -39,9 +39,9 @@ import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Monoid.Additive (Additive)
 import Data.Newtype (class Newtype, over, unwrap, wrap)
-import Data.Symbol (SProxy(..))
+import Data.Symbol (class IsSymbol, SProxy(..))
 import Data.Traversable (traverse, traverse_)
-import Data.Variant (Variant)
+import Data.Variant (Variant, inj)
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
 import Formless.Spec (ErrorType, FormField(..), FormFieldRow, FormProxy(..), FormSpec(..), InputField(..), InputType, OutputField(..), OutputType, _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched, _validator)
@@ -50,6 +50,7 @@ import Halogen as H
 import Halogen.Component.ChildPath (ChildPath, injQuery, injSlot)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
+import Prim.Row as Row
 import Prim.RowList as RL
 import Record as Record
 import Renderless.State (getState, modifyState, modifyState_, modifyStore_, putState)
@@ -57,6 +58,7 @@ import Type.Row (type (+))
 
 data Query pq cq cs form out m a
   = Modify (form Variant InputField) a
+  | Validate (form Variant InputField) a
   | ModifyValidate (form Variant InputField) a
   | Reset (form Variant InputField) a
   | ResetAll a
@@ -201,7 +203,7 @@ component
   => Internal.CountErrors fieldxs fields count
   => Internal.AllTouched fieldxs fields
   => Internal.SumRecord countxs count (Additive Int)
-  => Internal.RecordVariantUpdateRL inputsxs inputs fields m
+  => Internal.UpdateInputVariantRL inputsxs inputs fields m
   => Newtype (form Record (FormSpec m)) (Record spec)
   => Newtype (form Record (FormField m)) (Record fields)
   => Newtype (form Variant (FormField m)) (Variant fields)
@@ -243,6 +245,13 @@ component =
     Modify variant a -> do
       st <- getState
       new <- H.lift $ modifyWithInputVariant variant st
+      putState new
+      H.raise $ Changed $ getPublicState new
+      pure a
+
+    Validate variant a -> do
+      st <- getState
+      new <- H.lift $ validateWithInputVariant variant st
       putState new
       H.raise $ Changed $ getPublicState new
       pure a
@@ -382,7 +391,7 @@ component =
     pure $ state { form = wrap form' }
     where
       updater :: { | fields } -> m { | fields }
-      updater = Internal.rvUpdate
+      updater = Internal.updateInputVariant
         (\(InputField i) (FormField { validator }) -> pure $
           FormField
             { input: i
@@ -402,11 +411,31 @@ component =
     pure (state { form = wrap form' })
     where
       updater :: { | fields } -> m { | fields }
-      updater = Internal.rvUpdate
+      updater = Internal.updateInputVariant
         (\(InputField i) (FormField { validator }) -> do
           res <- validator i
           pure (FormField
             { input: i
+            , touched: true
+            , result: Just res
+            , validator
+            })
+        )
+        (unwrap form)
+
+  -- Validate a field without modifying its input
+  validateWithInputVariant
+    :: form Variant InputField -> State form out m -> m (State form out m)
+  validateWithInputVariant form state = do
+    form' <- updater (unwrap state.form)
+    pure (state { form = wrap form' })
+    where
+      updater :: { | fields } -> m { | fields }
+      updater = Internal.updateInputVariant
+        (\_ (FormField { input, validator }) -> do
+          res <- validator input
+          pure (FormField
+            { input
             , touched: true
             , result: Just res
             , validator
@@ -426,8 +455,9 @@ component =
       }
     where
       updater :: { | fields } -> m { | fields }
-      updater = Internal.rvUpdate
-        -- IMPROVE: Rely on Initial type class?
+      updater = Internal.updateInputVariant
+        -- The input field provided could be anything, but if helper functions are
+        -- used, it'll be the value provided by the Initial type class.
         (\(InputField i) (FormField { validator }) -> pure $
           FormField
             { input: i
@@ -469,3 +499,47 @@ component =
     result <- modifyState \st -> st { submitting = false }
     pure $ _.formResult $ unwrap result.internal
 
+----------
+-- Component Helper Functions for Variants
+
+modify
+  :: ∀ pq cq cs form out m sym inputs t0 e i o
+   . IsSymbol sym
+  => Newtype (form Variant InputField) (Variant inputs)
+  => Row.Cons sym (InputField e i o) t0 inputs
+  => SProxy sym
+  -> i
+  -> Query pq cq cs form out m Unit
+modify sym i = Modify (wrap (inj sym (wrap i))) unit
+
+-- TODO: Shouldn't require an instance of Initial! Only there until
+-- I'm able to come up with a different class for accessing via variants.
+validate
+  :: ∀ pq cq cs form out m sym inputs t0 e i o
+   . IsSymbol sym
+  => Initial i
+  => Newtype (form Variant InputField) (Variant inputs)
+  => Row.Cons sym (InputField e i o) t0 inputs
+  => SProxy sym
+  -> Query pq cq cs form out m Unit
+validate sym = Validate (wrap (inj sym (wrap initial))) unit
+
+modifyValidate
+  :: ∀ pq cq cs form out m sym inputs t0 e i o
+   . IsSymbol sym
+  => Newtype (form Variant InputField) (Variant inputs)
+  => Row.Cons sym (InputField e i o) t0 inputs
+  => SProxy sym
+  -> i
+  -> Query pq cq cs form out m Unit
+modifyValidate sym i = ModifyValidate (wrap (inj sym (wrap i))) unit
+
+reset
+  :: ∀ pq cq cs form out m sym inputs t0 e i o
+   . IsSymbol sym
+  => Initial i
+  => Newtype (form Variant InputField) (Variant inputs)
+  => Row.Cons sym (InputField e i o) t0 inputs
+  => SProxy sym
+  -> Query pq cq cs form out m Unit
+reset sym = Reset (wrap (inj sym (wrap initial))) unit

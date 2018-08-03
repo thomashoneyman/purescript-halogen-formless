@@ -497,22 +497,22 @@ instance applyRowListCons
 
 
 -- | @monoidmusician
-class RecordVariantUpdate r to m where
-  rvUpdate
+class UpdateInputVariant r to m where
+  updateInputVariant
     :: Monad m
     => (∀ e i o. InputField e i o -> FormField m e i o -> m (FormField m e i o))
     -> Variant r
     -> Record to
     -> m (Record to)
 
-instance recordVariantUpdate ::
+instance updateInputVariant' ::
   ( RL.RowToList r rl
-  , RecordVariantUpdateRL rl r to m
-  ) => RecordVariantUpdate r to m where
-    rvUpdate f = rvUpdateRL f (RLProxy :: RLProxy rl)
+  , UpdateInputVariantRL rl r to m
+  ) => UpdateInputVariant r to m where
+    updateInputVariant f = updateInputVariantRL f (RLProxy :: RLProxy rl)
 
-class RecordVariantUpdateRL rl v to m | rl -> v where
-  rvUpdateRL
+class UpdateInputVariantRL rl v to m | rl -> v where
+  updateInputVariantRL
     :: Monad m
     => (∀ e i o. InputField e i o -> FormField m e i o -> m (FormField m e i o))
     -> RLProxy rl
@@ -520,17 +520,17 @@ class RecordVariantUpdateRL rl v to m | rl -> v where
     -> Record to
     -> m (Record to)
 
-instance rvUpdateNil :: RecordVariantUpdateRL RL.Nil () to m where
-  rvUpdateRL _ _ = case_
+instance updateInputVariantNil :: UpdateInputVariantRL RL.Nil () to m where
+  updateInputVariantRL _ _ = case_
 
-instance rvUpdateCons ::
+instance updateInputVariantCons ::
   ( IsSymbol s
-  , RecordVariantUpdateRL rl v to m
+  , UpdateInputVariantRL rl v to m
   , Row.Cons s (FormField m e i o) t0 to
   , Row.Cons s (InputField e i o) v v'
-  ) => RecordVariantUpdateRL (RL.Cons s (InputField e i o) rl) v' to m where
-    rvUpdateRL f _ =
-      on s f' (rvUpdateRL f (RLProxy :: RLProxy rl))
+  ) => UpdateInputVariantRL (RL.Cons s (InputField e i o) rl) v' to m where
+    updateInputVariantRL f _ =
+      on s f' (updateInputVariantRL f (RLProxy :: RLProxy rl))
       where
         f' :: InputField e i o -> { | to } -> m ({ | to })
         f' a r = do
