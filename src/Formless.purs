@@ -12,13 +12,11 @@ module Formless
   , DSL(..)
   , State(..)
   , PublicState(..)
-  , SpecRow(..)
   , Input(..)
   , Message(..)
   , Message'(..)
   , StateRow(..)
   , InternalState(..)
-  , InternalStateRow(..)
   , ValidStatus(..)
   , component
   , module Formless.Spec
@@ -40,7 +38,7 @@ import Data.Const (Const)
 import Data.Eq (class EqRecord)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..))
 import Data.Monoid.Additive (Additive)
 import Data.Newtype (class Newtype, over, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
@@ -48,7 +46,7 @@ import Data.Traversable (traverse, traverse_)
 import Data.Variant (Variant, inj)
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
-import Formless.Spec (ErrorType, FormField(..), FormFieldRow, FormProxy(..), FormSpec(..), InputField(..), InputType, OutputField(..), OutputType, _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched, _validator)
+import Formless.Spec (ErrorType, FormField(..), FormFieldRow, FormProxy(..), InputField(..), InputType, OutputField(..), OutputType, Validator(..), _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched, _validator)
 import Formless.Spec.Transform (class MakeSProxies, SProxies, getInput, getResult, makeSProxiesBuilder, mkSProxies, modifyInput, resetField, setInput, touchField, unwrapOutput)
 import Halogen as H
 import Halogen.Component.ChildPath (ChildPath, injQuery, injSlot)
@@ -58,7 +56,6 @@ import Prim.Row as Row
 import Prim.RowList as RL
 import Record as Record
 import Renderless.State (getState, modifyState, modifyState_, modifyStore_, putState)
-import Type.Row (type (+))
 
 data Query pq cq cs form out m a
   = Modify (form Variant InputField) a
@@ -72,7 +69,7 @@ data Query pq cq cs form out m a
   | Reply (PublicState form m -> a)
   | Send cs (cq Unit) a
   | Raise (pq Unit) a
-  | ReplaceSpec (form Record (FormSpec m)) a
+  | SetInputs (form Record InputField) a
   | Receive (Input pq cq cs form out m) a
   | AndThen (Query pq cq cs form out m Unit) (Query pq cq cs form out m Unit) a
 
@@ -121,25 +118,14 @@ type StateRow form m r =
   | r
   )
 
--- | Values provided by the user but maintained by the component
-type SpecRow form out m r =
-  ( validator :: Maybe (form Record (FormField m) -> m (form Record (FormField m)))
-  , submitter :: form Record OutputField -> m out
-  , formSpec :: form Record (FormSpec m)
-  | r
-  )
-
--- | Values created and maintained by the component
-type InternalStateRow form out =
-  ( initialInputs :: form Record InputField
-  , formResult :: Maybe out
-  , allTouched :: Boolean
-  )
-
 -- | A newtype to make easier type errors for end users to
 -- | read by hiding internal fields
 newtype InternalState form out m = InternalState
-  (Record (SpecRow form out m + InternalStateRow form out))
+  { initialInputs :: form Record InputField
+  , formResult :: Maybe out
+  , allTouched :: Boolean
+  , submitter :: form Record OutputField -> m out
+  }
 derive instance newtypeInternalState :: Newtype (InternalState form out m) _
 
 -- | A type to represent validation status
@@ -154,10 +140,12 @@ instance showValidStatus :: Show ValidStatus where
   show = genericShow
 
 -- | The component's input type
-type Input pq cq cs form out m = Record
-  ( SpecRow form out m
-    (render :: State form out m -> HTML pq cq cs form out m)
-  )
+type Input pq cq cs form out m =
+  { submitter :: form Record OutputField -> m out
+  , inputs :: form Record InputField
+  , validators :: PublicState form m -> form Record (Validator m)
+  , render :: State form out m -> HTML pq cq cs form out m
+  }
 
 -- | The component tries to require as few messages to be handled as possible. You
 -- | can always use the *Reply variants of queries to perform actions and receive
@@ -192,23 +180,21 @@ type Message' form out m = Message (Const Void) form out m
 
 -- | The component itself
 component
-  :: ∀ pq cq cs form out m spec specxs fields fieldxs output countxs count inputs inputsxs
+  :: ∀ pq cq cs form out m fields fieldxs output countxs count inputs inputsxs
    . Ord cs
   => Monad m
-  => RL.RowToList spec specxs
   => RL.RowToList fields fieldxs
   => RL.RowToList count countxs
   => RL.RowToList inputs inputsxs
   => EqRecord inputsxs inputs
-  => Internal.FormSpecToFormField specxs spec fields
-  => Internal.FormFieldsToInput fieldxs fields inputs
+  => Internal.InputFieldsToFormFields inputsxs inputs fields
+  => Internal.FormFieldsToInputFields fieldxs fields inputs
   => Internal.SetFormFieldsTouched fieldxs fields fields
   => Internal.FormFieldToMaybeOutput fieldxs fields output
   => Internal.CountErrors fieldxs fields count
   => Internal.AllTouched fieldxs fields
   => Internal.SumRecord countxs count (Additive Int)
   => Internal.UpdateInputVariantRL inputsxs inputs fields m
-  => Newtype (form Record (FormSpec m)) (Record spec)
   => Newtype (form Record (FormField m)) (Record fields)
   => Newtype (form Variant (FormField m)) (Variant fields)
   => Newtype (form Record OutputField) (Record output)
@@ -225,24 +211,20 @@ component =
   where
 
   initialState :: Input pq cq cs form out m -> StateStore pq cq cs form out m
-  initialState { formSpec, validator, render, submitter } = store render $
+  initialState { inputs, validators, render, submitter } = store render $
     { validity: Incomplete
     , dirty: false
     , errors: 0
     , submitAttempts: 0
     , submitting: false
-    , form: inputFields
+    , form: Internal.inputFieldsToFormFields inputs
     , internal: InternalState
       { formResult: Nothing
-      , formSpec
       , allTouched: false
-      , initialInputs: Internal.inputFieldsToInput inputFields
-      , validator
+      , initialInputs: inputs
       , submitter
       }
     }
-    where
-      inputFields = Internal.formSpecToFormFields formSpec
 
   eval :: Query pq cq cs form out m ~> DSL pq cq cs form out m
   eval = case _ of
@@ -281,37 +263,37 @@ component =
     ValidateAll a -> do
       init <- getState
       let internal = unwrap init.internal
-      form <- maybe (pure init.form) (\f -> H.lift $ f init.form) internal.validator
-      let errors = Internal.countErrors form
+      --  form <- maybe (pure init.form) (\f -> H.lift $ f init.form) internal.validator
+      --  let errors = Internal.countErrors form
 
       -- At this point we can modify most of the state, except for the valid status
-      modifyState_ _
-        { form = form
-        , errors = errors
-          -- Dirty state is computed by checking equality of original input fields
-          -- vs. current ones. This relies on input fields passed by the user having
-          -- equality defined.
-        , dirty = not
-          $ unwrap (Internal.inputFieldsToInput form) == unwrap internal.initialInputs
-        }
+      --  modifyState_ _
+      --    { form = form
+      --    , errors = errors
+      --      -- Dirty state is computed by checking equality of original input fields
+      --      -- vs. current ones. This relies on input fields passed by the user having
+      --      -- equality defined.
+      --    , dirty = not
+      --      $ unwrap (Internal.inputFieldsToInput form) == unwrap internal.initialInputs
+      --    }
 
       -- Need to verify the validity status of the form.
-      new <- case internal.allTouched of
-        true -> modifyState _
-          { validity = if not (errors == 0) then Invalid else Valid }
-        -- If not all fields are touched, then we need to quickly sync the form state
-        -- to verify this is actually the case.
-        _ -> case Internal.checkTouched form of
-          -- The sync revealed all fields really have been touched
-          true -> modifyState \st -> st
-            { validity = if not (errors == 0) then Invalid else Valid
-            , internal = over InternalState (_ { allTouched = true }) st.internal
-            }
-          -- The sync revealed that not all fields have been touched
-          _ -> modifyState _
-            { validity = Incomplete }
+      --  new <- case internal.allTouched of
+      --    true -> modifyState _
+      --      { validity = if not (errors == 0) then Invalid else Valid }
+      --    -- If not all fields are touched, then we need to quickly sync the form state
+      --    -- to verify this is actually the case.
+      --    _ -> case Internal.checkTouched form of
+      --      -- The sync revealed all fields really have been touched
+      --      true -> modifyState \st -> st
+      --        { validity = if not (errors == 0) then Invalid else Valid
+      --        , internal = over InternalState (_ { allTouched = true }) st.internal
+      --        }
+      --      -- The sync revealed that not all fields have been touched
+      --      _ -> modifyState _
+      --        { validity = Incomplete }
 
-      H.raise $ Changed $ getPublicState new
+      --  H.raise $ Changed $ getPublicState new
       pure a
 
     -- Submit, also raising a message to the user
@@ -331,7 +313,7 @@ component =
         , dirty = false
         , errors = 0
         , submitAttempts = 0
-        , form = Internal.formSpecToFormFields (_.formSpec $ unwrap st.internal)
+        , form = st.form -- TODO: replace input fields with new ones
         , internal = over InternalState (_
             { formResult = Nothing
             , allTouched = false
@@ -352,26 +334,28 @@ component =
       H.raise (Emit query)
       pure a
 
-    ReplaceSpec formSpec a -> do
-      let inputFields = Internal.formSpecToFormFields formSpec
-      new <- modifyState \st -> st
-        { validity = Incomplete
-        , dirty = false
-        , errors = 0
-        , submitAttempts = 0
-        , submitting = false
-        , form = inputFields
-        , internal =
-            InternalState
-              { formResult: Nothing
-              , formSpec
-              , allTouched: false
-              , initialInputs: Internal.inputFieldsToInput inputFields
-              , validator: (unwrap st.internal).validator
-              , submitter: (unwrap st.internal).submitter
-              }
-        }
-      H.raise $ Changed $ getPublicState new
+    SetInputs formInputs a -> do
+      --  TODO: Overwrite inputs, setting result fields to Nothing
+      --  st <- getState
+      --  let formSpec' = formSpec st
+      --      formFields = Internal.formSpecToFormFields formSpec'
+      --  new <- modifyState _
+      --    { validity = Incomplete
+      --    , dirty = false
+      --    , errors = 0
+      --    , submitAttempts = 0
+      --    , submitting = false
+      --    , form = formFields
+      --    , internal =
+      --        InternalState
+      --          { formResult: Nothing
+      --          , allTouched: false
+      --          , initialInputs: Internal.inputFieldsToInput formFields
+      --          --  , validator: (unwrap st.internal).validator
+      --          , submitter: (unwrap st.internal).submitter
+      --          }
+      --    }
+      --  H.raise $ Changed $ getPublicState new
       pure a
 
     Receive { render } a -> do
@@ -416,14 +400,17 @@ component =
     where
       updater :: { | fields } -> m { | fields }
       updater = Internal.updateInputVariant
-        (\(InputField i) (FormField { validator }) -> do
-          res <- validator i
-          pure (FormField
-            { input: i
-            , touched: true
-            , result: Just res
-            , validator
-            })
+        (\(InputField i) field@(FormField { validator }) -> do
+          case validator of
+            Nothing -> pure field
+            Just f -> do
+              res <- f i
+              pure (FormField
+                { input: i
+                , touched: true
+                , result: Just res
+                , validator
+                })
         )
         (unwrap form)
 
@@ -436,14 +423,18 @@ component =
     where
       updater :: { | fields } -> m { | fields }
       updater = Internal.updateInputVariant
-        (\_ (FormField { input, validator }) -> do
-          res <- validator input
-          pure (FormField
-            { input
-            , touched: true
-            , result: Just res
-            , validator
-            })
+        (\_ field@(FormField { input, validator }) -> do
+          case validator of
+            -- IMPROVE: Is this ever possible?
+            Nothing -> pure field
+            Just f -> do
+              res <- f input
+              pure (FormField
+                { input
+                , touched: true
+                , result: Just res
+                , validator
+                })
         )
         (unwrap form)
 

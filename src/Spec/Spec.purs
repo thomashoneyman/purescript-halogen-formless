@@ -22,12 +22,9 @@ data FormProxy
       -> Type
   ) = FormProxy
 
--- | The input the user is responsible for providing.
-newtype FormSpec m error input output = FormSpec
-  { input :: input
-  , validator :: input -> m (Either error output)
-  }
-derive instance newtypeFormSpec :: Newtype (FormSpec m e i o) _
+-- | A wrapper to represent the validation function on a form field
+newtype Validator m error input output = Validator (input -> m (Either error output))
+derive instance newtypeValidator :: Newtype (Validator m e i o) _
 
 -- | A wrapper to represent only the output type. Used to represent
 -- | form results at the end of validation.
@@ -51,7 +48,7 @@ type FormFieldRow m error input output =
   ( input :: input
   , touched :: Boolean
   , result :: Maybe (Either error output)
-  , validator :: input -> m (Either error output)
+  , validator :: Maybe (input -> m (Either error output))
   )
 
 -- | Proxies for each of the fields in FormField for easy access
