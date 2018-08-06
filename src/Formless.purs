@@ -46,8 +46,8 @@ import Data.Traversable (traverse, traverse_)
 import Data.Variant (Variant, inj)
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
-import Formless.Spec (ErrorType, FormField(..), FormFieldRow, FormProxy(..), InputField(..), InputType, OutputField(..), OutputType, Validator(..), _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched, _validator)
-import Formless.Spec.Transform (class MakeSProxies, SProxies, getInput, getResult, makeSProxiesBuilder, mkSProxies, modifyInput, resetField, setInput, touchField, unwrapOutput)
+import Formless.Spec (ErrorType, FormField(..), FormFieldRow, FormProxy(..), InputField(..), InputType, OutputField(..), OutputType, Validator(..), _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched, _validator, getError, getField, getInput, getOutput, getResult, getTouched)
+import Formless.Spec.Transform (class MakeInputFieldsFromRow, class MakeSProxies, SProxies, makeSProxiesBuilder, mkInputFields, mkInputFieldsFromProxy, mkInputFieldsFromRowBuilder, mkSProxies, mkValidators, unwrapOutput)
 import Halogen as H
 import Halogen.Component.ChildPath (ChildPath, injQuery, injSlot)
 import Halogen.HTML as HH
@@ -69,7 +69,7 @@ data Query pq cq cs form out m a
   | Reply (PublicState form m -> a)
   | Send cs (cq Unit) a
   | Raise (pq Unit) a
-  | SetInputs (form Record InputField) a
+  | ReplaceInputs (form Record InputField) a
   | Receive (Input pq cq cs form out m) a
   | AndThen (Query pq cq cs form out m Unit) (Query pq cq cs form out m Unit) a
 
@@ -180,7 +180,7 @@ type Message' form out m = Message (Const Void) form out m
 
 -- | The component itself
 component
-  :: ∀ pq cq cs form out m fields fieldxs output countxs count inputs inputsxs
+  :: ∀ pq cq cs form out m fields fieldxs output countxs count inputs inputsxs vs
    . Ord cs
   => Monad m
   => RL.RowToList fields fieldxs
@@ -197,6 +197,9 @@ component
   => Internal.AllTouched fieldxs fields
   => Internal.SumRecord countxs count (Additive Int)
   => Internal.UpdateInputVariantRL inputsxs inputs fields m
+  => Internal.ReplaceFormFieldInputs inputs fieldxs fields fields
+  => Internal.ReplaceFormFieldValidators vs fieldxs fields fields
+  => Newtype (form Record (Validator m)) (Record vs)
   => Newtype (form Record (FormField m)) (Record fields)
   => Newtype (form Variant (FormField m)) (Variant fields)
   => Newtype (form Record OutputField) (Record output)
@@ -214,19 +217,25 @@ component =
 
   initialState :: Input pq cq cs form out m -> StateStore pq cq cs form out m
   initialState { inputs, validators, render, submitter } = store render $
-    { validity: Incomplete
-    , dirty: false
-    , errors: 0
-    , submitAttempts: 0
-    , submitting: false
-    , form: Internal.inputFieldsToFormFields inputs
-    , internal: InternalState
-      { formResult: Nothing
-      , allTouched: false
-      , initialInputs: inputs
-      , submitter
-      }
-    }
+    -- The validators can themselves rely on form state, so must be constructed once there already
+    -- exists some initial state.
+    intermediate { form = Internal.replaceFormFieldValidators validators' intermediate.form }
+    where
+      validators' = validators $ Record.delete (SProxy :: SProxy "internal") intermediate
+      intermediate =
+        { validity: Incomplete
+        , dirty: false
+        , errors: 0
+        , submitAttempts: 0
+        , submitting: false
+        , form: Internal.inputFieldsToFormFields inputs
+        , internal: InternalState
+          { formResult: Nothing
+          , allTouched: false
+          , initialInputs: inputs
+          , submitter
+          }
+        }
 
   eval :: Query pq cq cs form out m ~> DSL pq cq cs form out m
   eval = case _ of
@@ -267,7 +276,7 @@ component =
       let internal = unwrap init.internal
 
           -- The function to run a form field validator on itself
-          runField :: (forall e i o. FormField m e i o -> m (FormField m e i o))
+          runField :: (∀ e i o. FormField m e i o -> m (FormField m e i o))
           runField (FormField field) = case field.validator of
             Nothing -> pure (FormField field) -- TODO: Exception?
             Just f -> do
@@ -354,31 +363,24 @@ component =
       H.raise (Emit query)
       pure a
 
-    SetInputs formInputs a -> do
-      --  TODO: Overwrite inputs, setting result fields to Nothing
-      --  Perhaps the same as initialization? inputFieldsToFormFields then replace
-      --  the validators with the previous ones?
-
-      --  st <- getState
-      --  let formSpec' = formSpec st
-      --      formFields = Internal.formSpecToFormFields formSpec'
-      --  new <- modifyState _
-      --    { validity = Incomplete
-      --    , dirty = false
-      --    , errors = 0
-      --    , submitAttempts = 0
-      --    , submitting = false
-      --    , form = formFields
-      --    , internal =
-      --        InternalState
-      --          { formResult: Nothing
-      --          , allTouched: false
-      --          , initialInputs: Internal.inputFieldsToInput formFields
-      --          --  , validator: (unwrap st.internal).validator
-      --          , submitter: (unwrap st.internal).submitter
-      --          }
-      --    }
-      --  H.raise $ Changed $ getPublicState new
+    ReplaceInputs formInputs a -> do
+      st <- getState
+      new <- modifyState _
+        { validity = Incomplete
+        , dirty = false
+        , errors = 0
+        , submitAttempts = 0
+        , submitting = false
+        , form = Internal.replaceFormFieldInputs formInputs st.form
+        , internal =
+            InternalState
+              { formResult: Nothing
+              , allTouched: false
+              , initialInputs: formInputs
+              , submitter: (unwrap st.internal).submitter
+              }
+        }
+      H.raise $ Changed $ getPublicState new
       pure a
 
     Receive { render } a -> do
@@ -515,7 +517,7 @@ component =
 
     -- Ensure the form is no longer marked submitting
     result <- modifyState \st -> st { submitting = false }
-    pure $ _.formResult $ unwrap result.internal
+    pure (unwrap result.internal).formResult
 
 ----------
 -- Component Helper Functions for Variants
@@ -561,5 +563,4 @@ reset
   => SProxy sym
   -> Query pq cq cs form out m Unit
 reset sym = Reset (wrap (inj sym (wrap initial))) unit
-
 

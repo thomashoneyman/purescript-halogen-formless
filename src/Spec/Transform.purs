@@ -2,88 +2,15 @@ module Formless.Spec.Transform where
 
 import Prelude
 
-import Data.Either (Either)
-import Data.Lens (set, view)
-import Data.Maybe (Maybe(..))
-import Data.Newtype (class Newtype, unwrap)
+import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
-import Formless.Spec (FormField, FormProxy, InputField, OutputField, _Input, _Result, _Touched)
+import Formless.Spec (FormProxy, InputField(..), OutputField, Validator)
 import Prim.Row as Row
 import Prim.RowList as RL
 import Record.Builder as Builder
-import Type.Row (RLProxy(..))
-
-getInput
-  :: ∀ sym form t0 fields m e i o
-   . IsSymbol sym
-  => Newtype (form Record (FormField m)) (Record fields)
-  => Row.Cons sym (FormField m e i o) t0 fields
-  => SProxy sym
-  -> form Record (FormField m)
-  -> i
-getInput sym = view (_Input sym)
-
-getResult
-  :: ∀ sym form t0 fields m e i o
-   . IsSymbol sym
-  => Newtype (form Record (FormField m)) (Record fields)
-  => Row.Cons sym (FormField m e i o) t0 fields
-  => SProxy sym
-  -> form Record (FormField m)
-  -> Maybe (Either e o)
-getResult sym = view (_Result sym)
-
-setInput
-  :: ∀ sym form t0 fields m e i o
-   . IsSymbol sym
-  => Newtype (form Record (FormField m)) (Record fields)
-  => Row.Cons sym (FormField m e i o) t0 fields
-  => SProxy sym
-  -> i
-  -> form Record (FormField m)
-  -> form Record (FormField m)
-setInput sym v = set (_Result sym) Nothing <<< set (_Touched sym) true <<< set (_Input sym) v
-
-modifyInput
-  :: ∀ sym form t0 fields m e i o
-   . IsSymbol sym
-  => Newtype (form Record (FormField m)) (Record fields)
-  => Row.Cons sym (FormField m e i o) t0 fields
-  => SProxy sym
-  -> (i -> i)
-  -> form Record (FormField m)
-  -> form Record (FormField m)
-modifyInput sym f = set (_Result sym) Nothing <<< set (_Touched sym) true <<< (_Input sym) f
-
-touchField
-  :: ∀ sym form t0 fields m e i o
-   . IsSymbol sym
-  => Newtype (form Record (FormField m)) (Record fields)
-  => Row.Cons sym (FormField m e i o) t0 fields
-  => SProxy sym
-  -> form Record (FormField m)
-  -> form Record (FormField m)
-touchField sym = set (_Touched sym) true
-
-resetField
-  :: ∀ sym form t0 fields m e i o
-   . IsSymbol sym
-  => Initial i
-  => Newtype (form Record (FormField m)) (Record fields)
-  => Row.Cons sym (FormField m e i o) t0 fields
-  => SProxy sym
-  -> form Record (FormField m)
-  -> form Record (FormField m)
-resetField sym =
-  set (_Result sym) Nothing
-  <<< set (_Touched sym) false
-  <<< set (_Input sym) initial
-
-
-----------
--- Class
+import Type.Row (RLProxy(..), RProxy(..))
 
 -- | A function to unwrap a record of successful results into an equivalent
 -- | record without any newtypes.
@@ -110,7 +37,21 @@ unwrapOutput
   -> Record row'
 unwrapOutput = Internal.unwrapRecord <<< unwrap
 
--- | A function to transform a record of inputs of labels into a FormSpec.
+-- | A function to transform a record of validators into correct one for the form
+-- |
+-- | ```purescript
+-- | ```
+
+mkValidators
+  :: ∀ row xs form m
+   . RL.RowToList row xs
+  => Internal.WrapRecord xs row row
+  => Newtype (form Record (Validator m)) (Record row)
+  => Record row
+  -> form Record (Validator m)
+mkValidators = wrap <<< Internal.wrapRecord
+
+-- | A function to transform a record of inputs of labels into a InputFields.
 -- |
 -- | ```purescript
 -- | newtype Form f = Form
@@ -119,23 +60,22 @@ unwrapOutput = Internal.unwrapRecord <<< unwrap
 -- | derive instance newtypeForm :: Newtype (Form f) _
 -- |
 -- | -- To retrieve input types only, use the Input type synonym
--- | formSpec :: Form FormSpec
--- | formSpec = mkFormSpec
+-- | inputFields :: Form InputFields
+-- | inputFields = mkInputFields
 -- |   { name: ""
 -- |   , email: "" }
 -- | ```
 
---  TODO: Replace
---  mkFormSpec
---    :: ∀ row xs row' form m
---     . RL.RowToList row xs
---    => Internal.WrapRecord xs row row'
---    => Newtype (form Record (FormSpec m)) (Record row')
---    => Record row
---    -> form Record (FormSpec m)
---  mkFormSpec = wrap <<< Internal.wrapRecord
+mkInputFields
+  :: ∀ row xs form
+   . RL.RowToList row xs
+  => Internal.WrapRecord xs row row
+  => Newtype (form Record InputField) (Record row)
+  => Record row
+  -> form Record InputField
+mkInputFields = wrap <<< Internal.wrapRecord
 
--- | A function to transform a row of labels into a FormSpec. This allows you
+-- | A function to transform a row of labels into a InputFields. This allows you
 -- | to go directly from a custom form newtype to a spec without having to
 -- | fill in any values. Requires that all members have an instance of the
 -- | `Initial` type class (all monoidal values do by default, along with some
@@ -151,49 +91,47 @@ unwrapOutput = Internal.unwrapRecord <<< unwrap
 -- |   , age :: f String String Int
 -- |   )
 -- |
--- | formSpec :: Form FormSpec
--- | formSpec = mkFormSpecFromProxy (FormProxy :: FormProxy Form)
+-- | inputFields :: Form InputFields
+-- | inputFields = mkInputFieldsFromProxy (FormProxy :: FormProxy Form)
 -- | ```
 
---  TODO: Replace
---  mkFormSpecFromProxy
---    :: ∀ row xs row' form' form m
---     . RL.RowToList row xs
---    => MakeFormSpecFromRow xs row row'
---    => Newtype (form Record InputField) (Record row)
---    => Newtype (form' Record (FormSpec m)) (Record row')
---    => FormProxy form
---    -> form' Record (FormSpec m)
---  mkFormSpecFromProxy _ = wrap $ Internal.fromScratch builder
---    where
---      builder = mkFormSpecFromRowBuilder
---        (RLProxy :: RLProxy xs)
---        (RProxy :: RProxy row)
+mkInputFieldsFromProxy
+  :: ∀ row xs form
+   . RL.RowToList row xs
+  => MakeInputFieldsFromRow xs row row
+  => Newtype (form Record InputField) (Record row)
+  => FormProxy form
+  -> form Record InputField
+mkInputFieldsFromProxy _ = wrap $ Internal.fromScratch builder
+  where
+    builder = mkInputFieldsFromRowBuilder
+      (RLProxy :: RLProxy xs)
+      (RProxy :: RProxy row)
 
 -- | The class that provides the Builder implementation to efficiently
--- | transform a row into a proper FormSpec by wrapping it in newtypes and
+-- | transform a row into a proper InputFields by wrapping it in newtypes and
 -- | supplying initial values
---  class MakeFormSpecFromRow (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
---    mkFormSpecFromRowBuilder :: RLProxy xs -> RProxy row -> Internal.FromScratch to
---
---  instance mkFormSpecFromRowNil :: MakeFormSpecFromRow RL.Nil row () where
---    mkFormSpecFromRowBuilder _ _ = identity
---
---  instance mkFormSpecFromRowCons
---    :: ( IsSymbol name
---       , Initial i
---       , Row.Cons name (InputField e i o) trash row
---       , MakeFormSpecFromRow tail row from
---       , Internal.Row1Cons name (FormSpec m e i o) from to
---       )
---    => MakeFormSpecFromRow (RL.Cons name (InputField e i o) tail) row to where
---    mkFormSpecFromRowBuilder _ r =
---      first <<< rest
---      where
---        _name = SProxy :: SProxy name
---        val = FormSpec initial
---        rest = mkFormSpecFromRowBuilder (RLProxy :: RLProxy tail) r
---        first = Builder.insert _name val
+class MakeInputFieldsFromRow (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
+  mkInputFieldsFromRowBuilder :: RLProxy xs -> RProxy row -> Internal.FromScratch to
+
+instance mkInputFieldsFromRowNil :: MakeInputFieldsFromRow RL.Nil row () where
+  mkInputFieldsFromRowBuilder _ _ = identity
+
+instance mkInputFieldsFromRowCons
+  :: ( IsSymbol name
+     , Initial i
+     , Row.Cons name (InputField e i o) trash row
+     , MakeInputFieldsFromRow tail row from
+     , Internal.Row1Cons name (InputField e i o) from to
+     )
+  => MakeInputFieldsFromRow (RL.Cons name (InputField e i o) tail) row to where
+  mkInputFieldsFromRowBuilder _ r =
+    first <<< rest
+    where
+      _name = SProxy :: SProxy name
+      val = InputField initial
+      rest = mkInputFieldsFromRowBuilder (RLProxy :: RLProxy tail) r
+      first = Builder.insert _name val
 
 -- | A type to collect constraints necessary to apply to prove that a record of
 -- | SProxies is compatible with your form type.

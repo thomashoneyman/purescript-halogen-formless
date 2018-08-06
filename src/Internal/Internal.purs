@@ -8,7 +8,7 @@ import Data.Monoid.Additive (Additive(..))
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Data.Variant (Variant, case_, on)
-import Formless.Spec (FormField(..), InputField(..), OutputField(..))
+import Formless.Spec (FormField(..), InputField(..), OutputField(..), Validator)
 import Prim.Row as Row
 import Prim.RowList as RL
 import Record as Record
@@ -504,7 +504,9 @@ instance updateInputVariantCons ::
 
         s = SProxy :: SProxy s
 
+
 ----------
+-- Transform form fields
 ----------
 
 -- | Transform form fields, with pure results
@@ -579,3 +581,90 @@ instance transformFormFieldsTouchedConsM
       val = do
         let (x :: FormField m e i o) = Record.get _name r
         f x
+
+
+----------
+-- Replace form fields
+----------
+
+replaceFormFieldInputs
+  :: ∀ inputs xs fields form m
+   . RL.RowToList fields xs
+  => ReplaceFormFieldInputs inputs xs fields fields
+  => Newtype (form Record (FormField m)) (Record fields)
+  => Newtype (form Record InputField) (Record inputs)
+  => form Record InputField
+  -> form Record (FormField m)
+  -> form Record (FormField m)
+replaceFormFieldInputs inputs fields = wrap $ fromScratch builder
+  where builder = replaceFormFieldInputsBuilder (unwrap inputs) (RLProxy :: RLProxy xs) (unwrap fields)
+
+class ReplaceFormFieldInputs (inputs :: # Type) (xs :: RL.RowList) (fields :: # Type) (to :: # Type) | xs -> to where
+  replaceFormFieldInputsBuilder ::  Record inputs -> RLProxy xs -> Record fields -> FromScratch to
+
+instance replaceFormFieldInputsTouchedNil :: ReplaceFormFieldInputs inputs RL.Nil fields () where
+  replaceFormFieldInputsBuilder _ _ _ = identity
+
+instance replaceFormFieldInputsTouchedCons
+  :: ( IsSymbol name
+     , Newtype (InputField e i o) i
+     , Newtype (FormField m e i o) { input :: i, result :: Maybe (Either e o), validator :: Maybe (i -> m (Either e o)), touched :: Boolean }
+     , Row.Cons name (InputField e i o) trash0 inputs
+     , Row.Cons name (FormField m e i o) trash1 row
+     , Row1Cons name (FormField m e i o) from to
+     , ReplaceFormFieldInputs inputs tail row from
+     )
+  => ReplaceFormFieldInputs inputs (RL.Cons name (FormField m e i o) tail) row to where
+  replaceFormFieldInputsBuilder ir _ fr =
+    first <<< rest
+    where
+      _name = SProxy :: SProxy name
+
+      i :: InputField e i o
+      i = Record.get _name ir
+
+      f = unwrap $ Record.get _name fr
+      first = Builder.insert _name (FormField $ f { input = unwrap i, result = Nothing })
+      rest = replaceFormFieldInputsBuilder ir (RLProxy :: RLProxy tail) fr
+
+
+replaceFormFieldValidators
+  :: ∀ vs xs fields form m
+   . RL.RowToList fields xs
+  => ReplaceFormFieldValidators vs xs fields fields
+  => Newtype (form Record (FormField m)) (Record fields)
+  => Newtype (form Record (Validator m)) (Record vs)
+  => form Record (Validator m)
+  -> form Record (FormField m)
+  -> form Record (FormField m)
+replaceFormFieldValidators vs fields = wrap $ fromScratch builder
+  where builder = replaceFormFieldValidatorsBuilder (unwrap vs) (RLProxy :: RLProxy xs) (unwrap fields)
+
+class ReplaceFormFieldValidators (vs :: # Type) (xs :: RL.RowList) (fields :: # Type) (to :: # Type) | xs -> to where
+  replaceFormFieldValidatorsBuilder ::  Record vs -> RLProxy xs -> Record fields -> FromScratch to
+
+instance replaceFormFieldValidatorsTouchedNil :: ReplaceFormFieldValidators vs RL.Nil fields () where
+  replaceFormFieldValidatorsBuilder _ _ _ = identity
+
+instance replaceFormFieldValidatorsTouchedCons
+  :: ( IsSymbol name
+     , Newtype (Validator m e i o) (i -> m (Either e o))
+     , Newtype (FormField m e i o) { input :: i, result :: Maybe (Either e o), validator :: Maybe (i -> m (Either e o)), touched :: Boolean }
+     , Row.Cons name (Validator m e i o) trash0 vs
+     , Row.Cons name (FormField m e i o) trash1 row
+     , Row1Cons name (FormField m e i o) from to
+     , ReplaceFormFieldValidators vs tail row from
+     )
+  => ReplaceFormFieldValidators vs (RL.Cons name (FormField m e i o) tail) row to where
+  replaceFormFieldValidatorsBuilder vr _ fr =
+    first <<< rest
+    where
+      _name = SProxy :: SProxy name
+
+      v :: Validator m e i o
+      v = Record.get _name vr
+
+      f = unwrap $ Record.get _name fr
+      first = Builder.insert _name (FormField $ f { validator = Just (unwrap v) })
+      rest = replaceFormFieldValidatorsBuilder vr (RLProxy :: RLProxy tail) fr
+
