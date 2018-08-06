@@ -189,7 +189,9 @@ component
   => EqRecord inputsxs inputs
   => Internal.InputFieldsToFormFields inputsxs inputs fields
   => Internal.FormFieldsToInputFields fieldxs fields inputs
-  => Internal.SetFormFieldsTouched fieldxs fields fields
+  => Internal.TransformFormFields fieldxs fields fields m
+  => Internal.TransformFormFieldsM fieldxs fields fields m
+  => Internal.SequenceRecord fieldxs fields fields m
   => Internal.FormFieldToMaybeOutput fieldxs fields output
   => Internal.CountErrors fieldxs fields count
   => Internal.AllTouched fieldxs fields
@@ -263,37 +265,54 @@ component =
     ValidateAll a -> do
       init <- getState
       let internal = unwrap init.internal
-      --  form <- maybe (pure init.form) (\f -> H.lift $ f init.form) internal.validator
-      --  let errors = Internal.countErrors form
+
+          -- The function to run a form field validator on itself
+          runField :: (forall e i o. FormField m e i o -> m (FormField m e i o))
+          runField (FormField field) = case field.validator of
+            Nothing -> pure (FormField field) -- TODO: Exception?
+            Just f -> do
+              res <- f field.input
+              pure (FormField
+                { input: field.input
+                , touched: true
+                , result: Just res
+                , validator: field.validator
+                })
+
+      form <- H.lift $ Internal.transformFormFieldsM runField init.form
+      let errors = Internal.countErrors form
 
       -- At this point we can modify most of the state, except for the valid status
-      --  modifyState_ _
-      --    { form = form
-      --    , errors = errors
-      --      -- Dirty state is computed by checking equality of original input fields
-      --      -- vs. current ones. This relies on input fields passed by the user having
-      --      -- equality defined.
-      --    , dirty = not
-      --      $ unwrap (Internal.inputFieldsToInput form) == unwrap internal.initialInputs
-      --    }
+      modifyState_ _
+        { form = form
+        , errors = errors
+          -- Dirty state is computed by checking equality of original input fields
+          -- vs. current ones. This relies on input fields passed by the user having
+          -- equality defined.
+        , dirty = not
+          $ unwrap (Internal.formFieldsToInputFields form) == unwrap internal.initialInputs
+        }
 
       -- Need to verify the validity status of the form.
-      --  new <- case internal.allTouched of
-      --    true -> modifyState _
-      --      { validity = if not (errors == 0) then Invalid else Valid }
-      --    -- If not all fields are touched, then we need to quickly sync the form state
-      --    -- to verify this is actually the case.
-      --    _ -> case Internal.checkTouched form of
-      --      -- The sync revealed all fields really have been touched
-      --      true -> modifyState \st -> st
-      --        { validity = if not (errors == 0) then Invalid else Valid
-      --        , internal = over InternalState (_ { allTouched = true }) st.internal
-      --        }
-      --      -- The sync revealed that not all fields have been touched
-      --      _ -> modifyState _
-      --        { validity = Incomplete }
+      new <- case internal.allTouched of
+        true -> modifyState _
+          { validity = if not (errors == 0) then Invalid else Valid }
 
-      --  H.raise $ Changed $ getPublicState new
+        -- If not all fields are touched, then we need to quickly sync the form state
+        -- to verify this is actually the case.
+        _ -> case Internal.checkTouched form of
+
+          -- The sync revealed all fields really have been touched
+          true -> modifyState \st -> st
+            { validity = if not (errors == 0) then Invalid else Valid
+            , internal = over InternalState (_ { allTouched = true }) st.internal
+            }
+
+          -- The sync revealed that not all fields have been touched
+          _ -> modifyState _
+            { validity = Incomplete }
+
+      H.raise $ Changed $ getPublicState new
       pure a
 
     -- Submit, also raising a message to the user
@@ -327,7 +346,8 @@ component =
       st <- getState
       pure $ reply $ getPublicState st
 
-    -- Only allows actions; always returns nothing.
+    -- Only allows actions; always returns nothing. In Halogen v5.0.0 branch this does return
+    -- requests as expected in a Halogen component.
     Send cs cq a -> H.query cs cq $> a
 
     Raise query a -> do
@@ -336,6 +356,9 @@ component =
 
     SetInputs formInputs a -> do
       --  TODO: Overwrite inputs, setting result fields to Nothing
+      --  Perhaps the same as initialization? inputFieldsToFormFields then replace
+      --  the validators with the previous ones?
+
       --  st <- getState
       --  let formSpec' = formSpec st
       --      formFields = Internal.formSpecToFormFields formSpec'
@@ -475,7 +498,7 @@ component =
     let internal = unwrap init.internal
     when (not internal.allTouched) do
       modifyState_ _
-       { form = Internal.setFormFieldsTouched init.form
+       { form = Internal.transformFormFields (over FormField (_ { touched = true })) init.form
        , internal = over InternalState (_ { allTouched = true }) init.internal
        }
 
@@ -538,3 +561,5 @@ reset
   => SProxy sym
   -> Query pq cq cs form out m Unit
 reset sym = Reset (wrap (inj sym (wrap initial))) unit
+
+
