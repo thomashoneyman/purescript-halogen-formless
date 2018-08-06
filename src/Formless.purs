@@ -221,7 +221,7 @@ component =
     -- exists some initial state.
     intermediate { form = Internal.replaceFormFieldValidators validators' intermediate.form }
     where
-      validators' = validators $ Record.delete (SProxy :: SProxy "internal") intermediate
+      validators' = validators (getPublicState intermediate)
       intermediate =
         { validity: Incomplete
         , dirty: false
@@ -341,7 +341,7 @@ component =
         , dirty = false
         , errors = 0
         , submitAttempts = 0
-        , form = st.form -- TODO: replace input fields with new ones
+        , form = Internal.replaceFormFieldInputs (unwrap st.internal).initialInputs st.form
         , internal = over InternalState (_
             { formResult = Nothing
             , allTouched = false
