@@ -50,8 +50,8 @@ import Data.Traversable (traverse, traverse_)
 import Data.Variant (Variant, inj)
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
-import Formless.Spec (ErrorType, FormField(..), FormFieldRow, FormProxy(..), InputField(..), InputType, OutputField(..), OutputType, Validator(..), _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched, _validator, getError, getField, getInput, getOutput, getResult, getTouched)
-import Formless.Spec.Transform (class MakeInputFieldsFromRow, class MakeSProxies, SProxies, makeSProxiesBuilder, mkInputFields, mkInputFieldsFromProxy, mkInputFieldsFromRowBuilder, mkSProxies, mkValidators, unwrapOutput)
+import Formless.Spec
+import Formless.Spec.Transform
 import Halogen as H
 import Halogen.Component.ChildPath (ChildPath, injQuery, injSlot)
 import Halogen.HTML as HH
@@ -62,10 +62,10 @@ import Record as Record
 import Renderless.State (getState, modifyState, modifyState_, modifyStore_, putState)
 
 data Query pq cq cs form out m a
-  = Modify (form Variant InputField) a
-  | Validate (form Variant InputField) a
-  | ModifyValidate (form Variant InputField) a
-  | Reset (form Variant InputField) a
+  = Modify (Variant (form InputField)) a
+  | Validate (Variant (form InputField)) a
+  | ModifyValidate (Variant (form InputField)) a
+  | Reset (Variant (form InputField)) a
   | ResetAll a
   | ValidateAll a
   | Submit a
@@ -74,7 +74,7 @@ data Query pq cq cs form out m a
   | Send cs (cq Unit) a
   | SyncFormData a
   | Raise (pq Unit) a
-  | ReplaceInputs (form Record InputField) a
+  | ReplaceInputs (Record (form InputField)) a
   | Receive (Input pq cq cs form out m) a
   | AndThen (Query pq cq cs form out m Unit) (Query pq cq cs form out m Unit) a
 
@@ -119,17 +119,17 @@ type StateRow form m r =
   , submitting :: Boolean
   , errors :: Int
   , submitAttempts :: Int
-  , form :: form Record (FormField m)
+  , form :: Record (form (FormField m))
   | r
   )
 
 -- | A newtype to make easier type errors for end users to
 -- | read by hiding internal fields
 newtype InternalState form out m = InternalState
-  { initialInputs :: form Record InputField
+  { initialInputs :: Record (form InputField)
   , formResult :: Maybe out
   , allTouched :: Boolean
-  , submitter :: form Record OutputField -> m out
+  , submitter :: Record (form OutputField) -> m out
   }
 derive instance newtypeInternalState :: Newtype (InternalState form out m) _
 
@@ -146,9 +146,9 @@ instance showValidStatus :: Show ValidStatus where
 
 -- | The component's input type
 type Input pq cq cs form out m =
-  { submitter :: form Record OutputField -> m out
-  , inputs :: form Record InputField
-  , validators :: PublicState form m -> form Record (Validator m)
+  { submitter :: Record (form OutputField) -> m out
+  , inputs :: Record (form InputField)
+  , validators :: PublicState form m -> Record (form (Validator m))
   , render :: State form out m -> HTML pq cq cs form out m
   }
 
@@ -185,30 +185,24 @@ type Message' form out m = Message (Const Void) form out m
 
 -- | The component itself
 component
-  :: ∀ pq cq cs form out m fields fieldxs output countxs count inputs inputsxs vs
+  :: ∀ pq cq cs form out m fieldxs output countxs count inputsxs vs
    . Ord cs
   => Monad m
-  => RL.RowToList fields fieldxs
+  => RL.RowToList (form (FormField m)) fieldxs
   => RL.RowToList count countxs
-  => RL.RowToList inputs inputsxs
-  => EqRecord inputsxs inputs
-  => Internal.InputFieldsToFormFields inputsxs inputs fields
-  => Internal.FormFieldsToInputFields fieldxs fields inputs
-  => Internal.TransformFormFields fieldxs fields fields m
-  => Internal.TransformFormFieldsM fieldxs fields fields m
-  => Internal.FormFieldToMaybeOutput fieldxs fields output
-  => Internal.CountErrors fieldxs fields count
-  => Internal.AllTouched fieldxs fields
+  => RL.RowToList (form InputField) inputsxs
+  => EqRecord inputsxs (form InputField)
+  => Internal.InputFieldsToFormFields inputsxs (form InputField) (form (FormField m))
+  => Internal.FormFieldsToInputFields fieldxs (form (FormField m)) (form InputField)
+  => Internal.TransformFormFields fieldxs (form (FormField m)) (form (FormField m)) m
+  => Internal.TransformFormFieldsM fieldxs (form (FormField m)) (form (FormField m)) m
+  => Internal.FormFieldToMaybeOutput fieldxs (form (FormField m)) output
+  => Internal.CountErrors fieldxs (form (FormField m)) count
+  => Internal.AllTouched fieldxs (form (FormField m))
   => Internal.SumRecord countxs count (Additive Int)
-  => Internal.UpdateInputVariantRL inputsxs inputs fields m
-  => Internal.ReplaceFormFieldInputs inputs fieldxs fields fields
-  => Internal.ReplaceFormFieldValidators vs fieldxs fields fields
-  => Newtype (form Record (Validator m)) (Record vs)
-  => Newtype (form Record (FormField m)) (Record fields)
-  => Newtype (form Variant (FormField m)) (Variant fields)
-  => Newtype (form Record OutputField) (Record output)
-  => Newtype (form Record InputField) (Record inputs)
-  => Newtype (form Variant InputField) (Variant inputs)
+  => Internal.UpdateInputVariantRL inputsxs (form InputField) (form (FormField m)) m
+  => Internal.ReplaceFormFieldInputs (form InputField) fieldxs (form (FormField m)) (form (FormField m))
+  => Internal.ReplaceFormFieldValidators vs fieldxs (form (FormField m)) (form (FormField m))
   => Component pq cq cs form out m
 component =
   H.parentComponent
@@ -395,12 +389,11 @@ component =
 
   -- Use a form variant to update the value of a single form field in state
   modifyWithInputVariant
-    :: form Variant InputField -> State form out m -> m (State form out m)
+    :: Variant (form InputField) -> State form out m -> m (State form out m)
   modifyWithInputVariant form state = do
     form' <- updater (unwrap state.form)
     pure $ state { form = wrap form' }
     where
-      updater :: { | fields } -> m { | fields }
       updater = Internal.updateInputVariant
         (\(InputField i) (FormField { validator }) -> pure $
           FormField
@@ -415,12 +408,11 @@ component =
   -- Use a form variant to update the value of a single form field in state
   -- and also run its validation
   modifyValidateWithInputVariant
-    :: form Variant InputField -> State form out m -> m (State form out m)
+    :: Variant (form InputField) -> State form out m -> m (State form out m)
   modifyValidateWithInputVariant form state = do
     form' <- updater (unwrap state.form)
     pure (state { form = wrap form' })
     where
-      updater :: { | fields } -> m { | fields }
       updater = Internal.updateInputVariant
         (\(InputField i) field@(FormField { validator }) -> do
           case validator of
@@ -438,12 +430,11 @@ component =
 
   -- Validate a field without modifying its input
   validateWithInputVariant
-    :: form Variant InputField -> State form out m -> m (State form out m)
+    :: Variant (form InputField) -> State form out m -> m (State form out m)
   validateWithInputVariant form state = do
     form' <- updater (unwrap state.form)
     pure (state { form = wrap form' })
     where
-      updater :: { | fields } -> m { | fields }
       updater = Internal.updateInputVariant
         (\_ field@(FormField { input, validator }) -> do
           case validator of
@@ -463,7 +454,7 @@ component =
   -- Reset a field (and update state to ensure the form is not marked with
   -- all fields touched).
   resetWithInputVariant
-    :: form Variant InputField -> State form out m -> m (State form out m)
+    :: Variant (form InputField) -> State form out m -> m (State form out m)
   resetWithInputVariant form state = do
     form' <- updater (unwrap state.form)
     pure $ state
@@ -471,7 +462,6 @@ component =
       , internal = over InternalState (_ { allTouched = false }) state.internal
       }
     where
-      updater :: { | fields } -> m { | fields }
       updater = Internal.updateInputVariant
         -- The input field provided could be anything, but if helper functions are
         -- used, it'll be the value provided by the Initial type class.
@@ -553,7 +543,7 @@ validate_ sym = Validate (wrap (inj sym (wrap initial))) unit
 type WithInput =
   forall pq cq cs form out m a sym inputs t0 e i o
    . IsSymbol sym
-  => Newtype (form Variant InputField) (Variant inputs)
+  => Newtype (Variant (form InputField)) (Variant inputs)
   => Row.Cons sym (InputField e i o) t0 inputs
   => SProxy sym
   -> i
@@ -563,7 +553,7 @@ type WithInput =
 type WithInputAction =
   forall pq cq cs form out m sym inputs t0 e i o
    . IsSymbol sym
-  => Newtype (form Variant InputField) (Variant inputs)
+  => Newtype (Variant (form InputField)) (Variant inputs)
   => Row.Cons sym (InputField e i o) t0 inputs
   => SProxy sym
   -> i
@@ -573,7 +563,7 @@ type WithoutInput =
   forall pq cq cs form out m sym a inputs t0 e i o
    . IsSymbol sym
   => Initial i
-  => Newtype (form Variant InputField) (Variant inputs)
+  => Newtype (Variant (form InputField)) (Variant inputs)
   => Row.Cons sym (InputField e i o) t0 inputs
   => SProxy sym
   -> a
@@ -583,7 +573,7 @@ type WithoutInputAction =
   forall pq cq cs form out m sym inputs t0 e i o
    . IsSymbol sym
   => Initial i
-  => Newtype (form Variant InputField) (Variant inputs)
+  => Newtype (Variant (form InputField)) (Variant inputs)
   => Row.Cons sym (InputField e i o) t0 inputs
   => SProxy sym
   -> Query pq cq cs form out m Unit

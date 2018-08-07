@@ -3,7 +3,7 @@ module Formless.Spec where
 import Prelude
 
 import Data.Either (Either)
-import Data.Lens (Lens', preview, view)
+import Data.Lens (Lens')
 import Data.Lens.Iso.Newtype (_Newtype)
 import Data.Lens.Prism.Either (_Left, _Right)
 import Data.Lens.Prism.Maybe (_Just)
@@ -15,12 +15,7 @@ import Data.Symbol (class IsSymbol, SProxy(..))
 import Prim.Row as Row
 
 -- | @monoidmusician
-data FormProxy
-  ( form
-      :: (# Type -> Type)
-      -> (Type -> Type -> Type -> Type)
-      -> Type
-  ) = FormProxy
+data FormProxy (form :: (Type -> Type -> Type -> Type) -> # Type) = FormProxy
 
 -- | A wrapper to represent the validation function on a form field
 newtype Validator m error input output = Validator (input -> m (Either error output))
@@ -57,135 +52,64 @@ _touched = SProxy :: SProxy "touched"
 _result = SProxy :: SProxy "result"
 _validator = SProxy :: SProxy "validator"
 
-
-----------
--- Conveniences
-
-getField
-  :: ∀ sym form t0 fields m e i o
-   . IsSymbol sym
-  => Newtype (form Record (FormField m)) (Record fields)
-  => Row.Cons sym (FormField m e i o) t0 fields
-  => SProxy sym
-  -> form Record (FormField m)
-  -> Record (FormFieldRow m e i o)
-getField sym = view (_Field sym)
-
-getInput
-  :: ∀ sym form t0 fields m e i o
-   . IsSymbol sym
-  => Newtype (form Record (FormField m)) (Record fields)
-  => Row.Cons sym (FormField m e i o) t0 fields
-  => SProxy sym
-  -> form Record (FormField m)
-  -> i
-getInput sym = view (_Input sym)
-
-getResult
-  :: ∀ sym form t0 fields m e i o
-   . IsSymbol sym
-  => Newtype (form Record (FormField m)) (Record fields)
-  => Row.Cons sym (FormField m e i o) t0 fields
-  => SProxy sym
-  -> form Record (FormField m)
-  -> Maybe (Either e o)
-getResult sym = view (_Result sym)
-
-getError
-  :: ∀ sym form t0 fields m e i o
-   . IsSymbol sym
-  => Newtype (form Record (FormField m)) (Record fields)
-  => Row.Cons sym (FormField m e i o) t0 fields
-  => SProxy sym
-  -> form Record (FormField m)
-  -> Maybe e
-getError sym = preview (_Error sym)
-
-getOutput
-  :: ∀ sym form t0 fields m e i o
-   . IsSymbol sym
-  => Newtype (form Record (FormField m)) (Record fields)
-  => Row.Cons sym (FormField m e i o) t0 fields
-  => SProxy sym
-  -> form Record (FormField m)
-  -> Maybe o
-getOutput sym = preview (_Output sym)
-
-getTouched
-  :: ∀ sym form t0 fields m e i o
-   . IsSymbol sym
-  => Newtype (form Record (FormField m)) (Record fields)
-  => Row.Cons sym (FormField m e i o) t0 fields
-  => SProxy sym
-  -> form Record (FormField m)
-  -> Boolean
-getTouched sym = view (_Touched sym)
-
-
 ----------
 -- Lenses
 
 -- | Easy access to any given field from the form, unwrapped
 _Field
-  :: ∀ sym form t0 fields e i o m
+  :: ∀ sym form t0 e i o m
    . IsSymbol sym
-  => Newtype (form Record (FormField m)) (Record fields)
-  => Row.Cons sym (FormField m e i o) t0 fields
+  => Row.Cons sym (FormField m e i o) t0 (form (FormField m))
   => SProxy sym
-  -> Lens' (form Record (FormField m)) (Record (FormFieldRow m e i o))
-_Field sym = _Newtype <<< prop sym <<< _Newtype
+  -> Lens' (Record (form (FormField m))) (Record (FormFieldRow m e i o))
+_Field sym = prop sym <<< _Newtype
 
 -- | Easy access to any given field's input value from the form
 _Input
-  :: ∀ sym form t0 fields e i o m
+  :: ∀ sym form t0 e i o m
    . IsSymbol sym
-  => Newtype (form Record (FormField m)) (Record fields)
-  => Row.Cons sym (FormField m e i o) t0 fields
+  => Row.Cons sym (FormField m e i o) t0 (form (FormField m))
   => SProxy sym
-  -> Lens' (form Record (FormField m)) i
+  -> Lens' (Record (form (FormField m))) i
 _Input sym = _Field sym <<< prop _input
 
 -- | Easy access to any given field's touched value from the form
 _Touched
-  :: ∀ sym form t0 fields m e i o
+  :: ∀ sym form t0 m e i o
    . IsSymbol sym
-  => Newtype (form Record (FormField m)) (Record fields)
-  => Row.Cons sym (FormField m e i o) t0 fields
+  => Row.Cons sym (FormField m e i o) t0 (form (FormField m))
   => SProxy sym
-  -> Lens' (form Record (FormField m)) Boolean
+  -> Lens' (Record (form (FormField m))) Boolean
 _Touched sym = _Field sym <<< prop _touched
 
 -- | Easy access to any given field's result value from the form, if the
 -- | result exists.
 _Result
-  :: ∀ sym form t0 fields m e i o
+  :: ∀ sym form t0 m e i o
    . IsSymbol sym
-  => Newtype (form Record (FormField m)) (Record fields)
-  => Row.Cons sym (FormField m e i o) t0 fields
+  => Row.Cons sym (FormField m e i o) t0 (form (FormField m))
   => SProxy sym
-  -> Lens' (form Record (FormField m)) (Maybe (Either e o))
+  -> Lens' (Record (form (FormField m))) (Maybe (Either e o))
 _Result sym = _Field sym <<< prop _result
 
 -- | Easy access to any given field's error from its result field in the form,
 -- | if the error exists.
 _Error
-  :: ∀ sym form t0 fields m e i o
+  :: ∀ sym form t0 m e i o
    . IsSymbol sym
-  => Newtype (form Record (FormField m)) (Record fields)
-  => Row.Cons sym (FormField m e i o) t0 fields
+  => Row.Cons sym (FormField m e i o) t0 (form (FormField m))
   => SProxy sym
-  -> Traversal' (form Record (FormField m)) e
+  -> Traversal' (Record (form (FormField m))) e
 _Error sym = _Result sym <<< _Just <<< _Left
 
 -- | Easy access to any given field's output from its result field in the form,
 -- | if the output exists.
 _Output
-  :: ∀ sym form t0 fields m e i o
+  :: ∀ sym form t0 m e i o
    . IsSymbol sym
-  => Newtype (form Record (FormField m)) (Record fields)
-  => Row.Cons sym (FormField m e i o) t0 fields
+  => Row.Cons sym (FormField m e i o) t0 (form (FormField m))
   => SProxy sym
-  -> Traversal' (form Record (FormField m)) o
+  -> Traversal' (Record (form (FormField m))) o
 _Output sym = _Result sym <<< _Just <<< _Right
 
 

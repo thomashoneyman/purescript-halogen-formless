@@ -2,7 +2,6 @@ module Formless.Spec.Transform where
 
 import Prelude
 
-import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
@@ -15,27 +14,15 @@ import Type.Row (RLProxy(..), RProxy(..))
 -- | A function to unwrap a record of successful results into an equivalent
 -- | record without any newtypes.
 -- |
--- | For example, the below User type is identical to the Form type, if it
--- | only held the proper output type Name. You can unwrap a form of output
--- | fields directly into the User type:
--- |
 -- | ```purescript
--- | type User = { name :: Name }
--- | newtype Form f = { name :: f String Error Name }
--- |
--- | formToUser :: Form OutputField -> User
--- | formToUser = unwrapOutput
 -- | ```
--- |
--- | This is especially useful when creating a submitter function.
 unwrapOutput
-  :: ∀ row xs row' form
-   . RL.RowToList row xs
-  => Internal.UnwrapRecord xs row row'
-  => Newtype (form Record OutputField) (Record row)
-  => form Record OutputField
-  -> Record row'
-unwrapOutput = Internal.unwrapRecord <<< unwrap
+  :: ∀ row xs form
+   . RL.RowToList (form OutputField) xs
+  => Internal.UnwrapRecord xs (form OutputField) row
+  => Record (form OutputField)
+  -> Record row
+unwrapOutput = Internal.unwrapRecord
 
 -- | A function to transform a record of validators into correct one for the form
 -- |
@@ -43,37 +30,24 @@ unwrapOutput = Internal.unwrapRecord <<< unwrap
 -- | ```
 
 mkValidators
-  :: ∀ row row' xs form m
+  :: ∀ row xs form m
    . RL.RowToList row xs
-  => Internal.WrapRecord xs row row'
-  => Newtype (form Record (Validator m)) (Record row')
+  => Internal.WrapRecord xs row (form (Validator m))
   => Record row
-  -> form Record (Validator m)
-mkValidators = wrap <<< Internal.wrapRecord
+  -> Record (form (Validator m))
+mkValidators = Internal.wrapRecord
 
 -- | A function to transform a record of inputs of labels into a InputFields.
 -- |
 -- | ```purescript
--- | newtype Form f = Form
--- |   { name :: f String String String
--- |   , email :: f String Void Email }
--- | derive instance newtypeForm :: Newtype (Form f) _
--- |
--- | -- To retrieve input types only, use the Input type synonym
--- | inputFields :: Form InputFields
--- | inputFields = mkInputFields
--- |   { name: ""
--- |   , email: "" }
 -- | ```
-
 mkInputFields
-  :: ∀ row row' xs form
+  :: ∀ row xs form
    . RL.RowToList row xs
-  => Internal.WrapRecord xs row row'
-  => Newtype (form Record InputField) (Record row')
+  => Internal.WrapRecord xs row (form InputField)
   => Record row
-  -> form Record InputField
-mkInputFields = wrap <<< Internal.wrapRecord
+  -> Record (form InputField)
+mkInputFields = Internal.wrapRecord
 
 -- | A function to transform a row of labels into a InputFields. This allows you
 -- | to go directly from a custom form newtype to a spec without having to
@@ -82,31 +56,18 @@ mkInputFields = wrap <<< Internal.wrapRecord
 -- | other primitives).
 -- |
 -- | ```purescript
--- | newtype Form f = Form (Record (MyRow f))
--- | derive instance newtypeForm :: Newtype (Form f) _
--- |
--- | type MyRow f =
--- |   ( name :: f String String String
--- |   , email :: f String Void String
--- |   , age :: f String String Int
--- |   )
--- |
--- | inputFields :: Form InputFields
--- | inputFields = mkInputFieldsFromProxy (FormProxy :: FormProxy Form)
 -- | ```
-
 mkInputFieldsFromProxy
-  :: ∀ row xs form
-   . RL.RowToList row xs
-  => MakeInputFieldsFromRow xs row row
-  => Newtype (form Record InputField) (Record row)
+  :: ∀ xs form
+   . RL.RowToList (form InputField) xs
+  => MakeInputFieldsFromRow xs (form InputField) (form InputField)
   => FormProxy form
-  -> form Record InputField
-mkInputFieldsFromProxy _ = wrap $ Internal.fromScratch builder
+  -> Record (form InputField)
+mkInputFieldsFromProxy _ = Internal.fromScratch builder
   where
     builder = mkInputFieldsFromRowBuilder
       (RLProxy :: RLProxy xs)
-      (RProxy :: RProxy row)
+      (RProxy :: RProxy (form InputField))
 
 -- | The class that provides the Builder implementation to efficiently
 -- | transform a row into a proper InputFields by wrapping it in newtypes and
@@ -136,38 +97,22 @@ instance mkInputFieldsFromRowCons
 -- | A type to collect constraints necessary to apply to prove that a record of
 -- | SProxies is compatible with your form type.
 type SProxies form =
-   ∀ row xs row'
-    . RL.RowToList row xs
-   => MakeSProxies xs row'
-   => Newtype (form Record InputField) (Record row)
-   => Record row'
+   ∀ form xs row
+    . RL.RowToList (form InputField) xs
+   => MakeSProxies xs row
+   => Record row
 
 -- | A helper function to produce a record of SProxies given a form spec, to save
 -- | you the boilerplate of writing them all out.
 -- |
 -- | ```purescript
--- | newtype Form f = Form
--- |   { name :: f Void String String
--- |   , email :: f Void String String
--- |   , city :: f Void Int String
--- |   , other :: f Int String Int
--- |   }
--- | derive instance newtypeForm :: Newtype (Form f) _
--- |
--- | proxies :: Proxies Form
--- | proxies = mkSProxies (FormProxy :: FormProxy Form)
--- |
--- | -- You can now access all your proxies from the record with dot syntax
--- | _name :: SProxy "name"
--- | _name = proxies.name
 -- | ```
 mkSProxies
-  :: ∀ form row xs row'
-   . RL.RowToList row xs
-  => MakeSProxies xs row'
-  => Newtype (form Record InputField) (Record row)
+  :: ∀ form xs row
+   . RL.RowToList (form InputField) xs
+  => MakeSProxies xs row
   => FormProxy form
-  -> Record row'
+  -> Record row
 mkSProxies _ = Internal.fromScratch builder
   where
     builder = makeSProxiesBuilder (RLProxy :: RLProxy xs)

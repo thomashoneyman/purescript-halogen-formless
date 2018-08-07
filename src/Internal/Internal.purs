@@ -65,26 +65,24 @@ wrapRecord = fromScratch <<< wrapRecordBuilder (RLProxy :: RLProxy xs)
 
 -- | A helper function that will count all errors in a record
 checkTouched
-  :: ∀ form row xs m
-   . RL.RowToList row xs
-  => AllTouched xs row
-  => Newtype (form Record (FormField m)) (Record row)
-  => form Record (FormField m)
+  :: ∀ form xs m
+   . RL.RowToList (form (FormField m)) xs
+  => AllTouched xs (form (FormField m))
+  => Record (form (FormField m))
   -> Boolean
-checkTouched = allTouchedImpl (RLProxy :: RLProxy xs) <<< unwrap
+checkTouched = allTouchedImpl (RLProxy :: RLProxy xs)
 
 -- | A helper function that will count all errors in a record
 countErrors
-  :: ∀ form row xs row' xs' m
-   . RL.RowToList row xs
+  :: ∀ form xs row' xs' m
+   . RL.RowToList (form (FormField m)) xs
   => RL.RowToList row' xs'
-  => CountErrors xs row row'
+  => CountErrors xs (form (FormField m)) row'
   => SumRecord xs' row' (Additive Int)
-  => Newtype (form Record (FormField m)) (Record row)
-  => form Record (FormField m)
+  => Record (form (FormField m))
   -> Int
 countErrors r = unwrap $ sumRecord $ fromScratch builder
-  where builder = countErrorsBuilder (RLProxy :: RLProxy xs) (unwrap r)
+  where builder = countErrorsBuilder (RLProxy :: RLProxy xs) r
 
 -- | A helper function that sums a monoidal record
 sumRecord
@@ -98,41 +96,35 @@ sumRecord = sumImpl (RLProxy :: RLProxy rl)
 -- | A helper function that will automatically transform a record of FormField(s) into
 -- | just the input value
 formFieldsToInputFields
-  :: ∀ row xs row' form m
-   . RL.RowToList row xs
-  => FormFieldsToInputFields xs row row'
-  => Newtype (form Record (FormField m)) (Record row)
-  => Newtype (form Record InputField) (Record row')
-  => form Record (FormField m)
-  -> form Record InputField
-formFieldsToInputFields r = wrap $ fromScratch builder
-  where builder = formFieldsToInputFieldsBuilder (RLProxy :: RLProxy xs) (unwrap r)
+  :: ∀ xs form m
+   . RL.RowToList (form (FormField m)) xs
+  => FormFieldsToInputFields xs (form (FormField m)) (form InputField)
+  => Record (form (FormField m))
+  -> Record (form InputField)
+formFieldsToInputFields r = fromScratch builder
+  where builder = formFieldsToInputFieldsBuilder (RLProxy :: RLProxy xs) r
 
 -- | A helper function that will automatically transform a record of FormSpec(s) into
 -- | a record of FormField(s).
 inputFieldsToFormFields
-  :: ∀ row xs row' form m
-   . RL.RowToList row xs
-  => InputFieldsToFormFields xs row row'
-  => Newtype (form Record InputField) (Record row)
-  => Newtype (form Record (FormField m)) (Record row')
-  => form Record InputField
-  -> form Record (FormField m)
-inputFieldsToFormFields r = wrap $ fromScratch builder
-  where builder = inputFieldsToFormFieldsBuilder (RLProxy :: RLProxy xs) (unwrap r)
+  :: ∀ xs form m
+   . RL.RowToList (form InputField) xs
+  => InputFieldsToFormFields xs (form InputField) (form (FormField m))
+  => Record (form InputField)
+  -> Record (form (FormField m))
+inputFieldsToFormFields r = fromScratch builder
+  where builder = inputFieldsToFormFieldsBuilder (RLProxy :: RLProxy xs) r
 
 -- | An intermediate function that transforms a record of FormField into a record
 -- | of MaybeOutput as a step in producing output fields.
 inputFieldToMaybeOutput
-  :: ∀ row xs row' form m
-   . RL.RowToList row xs
-  => FormFieldToMaybeOutput xs row row'
-  => Newtype (form Record (FormField m)) (Record row)
-  => Newtype (form Record OutputField) (Record row')
-  => form Record (FormField m)
-  -> Maybe (form Record OutputField)
-inputFieldToMaybeOutput r = map wrap $ fromScratch <$> builder
-  where builder = inputFieldToMaybeOutputBuilder (RLProxy :: RLProxy xs) (unwrap r)
+  :: ∀ xs form m
+   . RL.RowToList (form (FormField m)) xs
+  => FormFieldToMaybeOutput xs (form (FormField m)) (form OutputField)
+  => Record (form (FormField m))
+  -> Maybe (Record (form OutputField))
+inputFieldToMaybeOutput r = fromScratch <$> builder
+  where builder = inputFieldToMaybeOutputBuilder (RLProxy :: RLProxy xs) r
 
 -----
 -- Classes (Internal)
@@ -212,7 +204,7 @@ instance inputFieldToMaybeOutputCons
       _name = SProxy :: SProxy name
 
       val :: Maybe (OutputField e i o)
-      val = map OutputField $ join $ map hush $ _.result $ unwrap $ Record.get _name r
+      val = map OutputField $ join $ map hush (unwrap $ Record.get _name r).result
 
       rest :: Maybe (FromScratch from)
       rest = inputFieldToMaybeOutputBuilder (RLProxy :: RLProxy tail) r
@@ -283,7 +275,7 @@ instance consAllTouched
   => AllTouched (RL.Cons name (FormField m e i o) tail) r
   where
     allTouchedImpl _ r =
-      if (unwrap (Record.get (SProxy :: SProxy name) r)).touched
+      if (unwrap $ Record.get (SProxy :: SProxy name) r).touched
         then allTouchedImpl (RLProxy :: RLProxy tail) r
         else false
 
@@ -476,15 +468,14 @@ instance updateInputVariantCons ::
 
 -- | Transform form fields, with pure results
 transformFormFields
-  :: ∀ row xs form m
-   . RL.RowToList row xs
-  => TransformFormFields xs row row m
-  => Newtype (form Record (FormField m)) (Record row)
+  :: ∀ xs form m
+   . RL.RowToList (form (FormField m)) xs
+  => TransformFormFields xs (form (FormField m)) (form (FormField m)) m
   => (∀ e i o. FormField m e i o -> FormField m e i o)
-  -> form Record (FormField m)
-  -> form Record (FormField m)
-transformFormFields f r = wrap $ fromScratch builder
-  where builder = transformFormFieldsBuilder f (RLProxy :: RLProxy xs) (unwrap r)
+  -> Record (form (FormField m))
+  -> Record (form (FormField m))
+transformFormFields f r = fromScratch builder
+  where builder = transformFormFieldsBuilder f (RLProxy :: RLProxy xs) r
 
 class TransformFormFields (xs :: RL.RowList) (row :: # Type) (to :: # Type) m | xs -> to where
   transformFormFieldsBuilder :: (∀ e i o. FormField m e i o -> FormField m e i o) -> RLProxy xs -> Record row -> FromScratch to
@@ -509,19 +500,16 @@ instance transformFormFieldsTouchedCons
 
 -- | Transform form fields, with monadic results.
 transformFormFieldsM
-  :: ∀ row xs form m row' form'
-   . RL.RowToList row xs
+  :: ∀ xs form m
+   . RL.RowToList (form (FormField m)) xs
   => Monad m
-  => TransformFormFieldsM xs row row' m
-  => Newtype (form Record (FormField m)) (Record row)
-  => Newtype (form' Record (FormField m)) (Record row')
+  => TransformFormFieldsM xs (form (FormField m)) (form (FormField m)) m
   => (∀ e i o. FormField m e i o -> m (FormField m e i o))
-  -> form Record (FormField m)
-  -> m (form' Record (FormField m))
-transformFormFieldsM f r = map wrap built
+  -> Record (form (FormField m))
+  -> m (Record (form (FormField m)))
+transformFormFieldsM f r = fromScratch <$> builder
   where
-    --  built :: { | row }
-    built = map fromScratch $ transformFormFieldsBuilderM f (RLProxy :: RLProxy xs) (unwrap r)
+    builder = transformFormFieldsBuilderM f (RLProxy :: RLProxy xs) r
 
 class TransformFormFieldsM (xs :: RL.RowList) (row :: # Type) (to :: # Type) m | xs -> to where
   transformFormFieldsBuilderM :: (∀ e i o. FormField m e i o -> m (FormField m e i o)) -> RLProxy xs -> Record row -> m (FromScratch to)
@@ -554,16 +542,14 @@ instance transformFormFieldsTouchedConsM
 ----------
 
 replaceFormFieldInputs
-  :: ∀ inputs xs fields form m
-   . RL.RowToList fields xs
-  => ReplaceFormFieldInputs inputs xs fields fields
-  => Newtype (form Record (FormField m)) (Record fields)
-  => Newtype (form Record InputField) (Record inputs)
-  => form Record InputField
-  -> form Record (FormField m)
-  -> form Record (FormField m)
-replaceFormFieldInputs inputs fields = wrap $ fromScratch builder
-  where builder = replaceFormFieldInputsBuilder (unwrap inputs) (RLProxy :: RLProxy xs) (unwrap fields)
+  :: ∀ xs form m
+   . RL.RowToList (form (FormField m)) xs
+  => ReplaceFormFieldInputs (form InputField) xs (form (FormField m)) (form (FormField m))
+  => Record (form InputField)
+  -> Record (form (FormField m))
+  -> Record (form (FormField m))
+replaceFormFieldInputs inputs fields = fromScratch builder
+  where builder = replaceFormFieldInputsBuilder inputs (RLProxy :: RLProxy xs) fields
 
 class ReplaceFormFieldInputs (inputs :: # Type) (xs :: RL.RowList) (fields :: # Type) (to :: # Type) | xs -> to where
   replaceFormFieldInputsBuilder ::  Record inputs -> RLProxy xs -> Record fields -> FromScratch to
@@ -595,16 +581,14 @@ instance replaceFormFieldInputsTouchedCons
 
 
 replaceFormFieldValidators
-  :: ∀ vs xs fields form m
-   . RL.RowToList fields xs
-  => ReplaceFormFieldValidators vs xs fields fields
-  => Newtype (form Record (FormField m)) (Record fields)
-  => Newtype (form Record (Validator m)) (Record vs)
-  => form Record (Validator m)
-  -> form Record (FormField m)
-  -> form Record (FormField m)
-replaceFormFieldValidators vs fields = wrap $ fromScratch builder
-  where builder = replaceFormFieldValidatorsBuilder (unwrap vs) (RLProxy :: RLProxy xs) (unwrap fields)
+  :: ∀ xs form m
+   . RL.RowToList (form (FormField m)) xs
+  => ReplaceFormFieldValidators (form (Validator m)) xs (form (FormField m)) (form (FormField m))
+  => Record (form (Validator m))
+  -> Record (form (FormField m))
+  -> Record (form (FormField m))
+replaceFormFieldValidators vs fields = fromScratch builder
+  where builder = replaceFormFieldValidatorsBuilder vs (RLProxy :: RLProxy xs) fields
 
 class ReplaceFormFieldValidators (vs :: # Type) (xs :: RL.RowList) (fields :: # Type) (to :: # Type) | xs -> to where
   replaceFormFieldValidatorsBuilder ::  Record vs -> RLProxy xs -> Record fields -> FromScratch to
