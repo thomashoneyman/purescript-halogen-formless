@@ -15,7 +15,7 @@ import Data.Symbol (class IsSymbol, SProxy(..))
 import Prim.Row as Row
 
 -- | @monoidmusician
-data FormProxy (form :: (Type -> Type -> Type -> Type) -> # Type) = FormProxy
+data FormProxy (form :: (# Type -> Type) -> (Type -> Type -> Type -> Type) -> Type) = FormProxy
 
 -- | A wrapper to represent the validation function on a form field
 newtype Validator m error input output = Validator (input -> m (Either error output))
@@ -56,11 +56,12 @@ _validator = SProxy :: SProxy "validator"
 -- Get
 
 type FormFieldGet m e i o x =
-  forall sym form t0
+  forall sym form fields t0
    . IsSymbol sym
-  => Row.Cons sym (FormField m e i o) t0 (form (FormField m))
+  => Newtype (form Record (FormField m)) (Record fields)
+  => Row.Cons sym (FormField m e i o) t0 fields
   => SProxy sym
-  -> Record (form (FormField m))
+  -> form Record (FormField m)
   -> x
 
 -- | Given a form, get the field at the specified symbol
@@ -80,15 +81,16 @@ getResult sym = view (_Result sym)
 -- Lenses
 
 type FormFieldLens m e i o x =
-  forall sym form t0
+  forall sym form fields t0
    . IsSymbol sym
-  => Row.Cons sym (FormField m e i o) t0 (form (FormField m))
+  => Newtype (form Record (FormField m)) (Record fields)
+  => Row.Cons sym (FormField m e i o) t0 fields
   => SProxy sym
-  -> Lens' (Record (form (FormField m))) x
+  -> Lens' (form Record (FormField m)) x
 
 -- | A lens to operate on the field at a given symbol in your form
 _Field :: ∀ m e i o. FormFieldLens m e i o (Record (FormFieldRow m e i o))
-_Field sym = prop sym <<< _Newtype
+_Field sym = _Newtype <<< prop sym <<< _Newtype
 
 -- | A lens to operate on the input at a given symbol in your form
 _Input :: ∀ m e i o. FormFieldLens m e i o i
@@ -105,21 +107,23 @@ _Result sym = _Field sym <<< prop _result
 -- | A traversal to operate on the possible error inside the 'result' field at
 -- | a given symbol in your form
 _Error
-  :: ∀ sym form t0 m e i o
+  :: ∀ sym form fields t0 m e i o
    . IsSymbol sym
-  => Row.Cons sym (FormField m e i o) t0 (form (FormField m))
+  => Newtype (form Record (FormField m)) (Record fields)
+  => Row.Cons sym (FormField m e i o) t0 fields
   => SProxy sym
-  -> Traversal' (Record (form (FormField m))) e
+  -> Traversal' (form Record (FormField m)) e
 _Error sym = _Result sym <<< _Just <<< _Left
 
 -- | A traversal to operate on the possible output inside the 'result' field at
 -- | a given symbol in your form
 _Output
-  :: ∀ sym form t0 m e i o
+  :: ∀ sym form fields t0 m e i o
    . IsSymbol sym
-  => Row.Cons sym (FormField m e i o) t0 (form (FormField m))
+  => Newtype (form Record (FormField m)) (Record fields)
+  => Row.Cons sym (FormField m e i o) t0 fields
   => SProxy sym
-  -> Traversal' (Record (form (FormField m))) o
+  -> Traversal' (form Record (FormField m)) o
 _Output sym = _Result sym <<< _Just <<< _Right
 
 ----------

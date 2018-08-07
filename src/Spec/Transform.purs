@@ -22,16 +22,17 @@ import Type.Row (RLProxy(..), RProxy(..))
 -- | ```purescript
 -- | ```
 mkInputFields
-  :: ∀ xs form
-   . RL.RowToList (form InputField) xs
-  => MakeInputFieldsFromRow xs (form InputField) (form InputField)
+  :: ∀ xs form inputs
+   . RL.RowToList inputs xs
+  => Newtype (form Record InputField) (Record inputs)
+  => MakeInputFieldsFromRow xs inputs inputs
   => FormProxy form
-  -> Record (form InputField)
-mkInputFields _ = Internal.fromScratch builder
+  -> form Record InputField
+mkInputFields _ = wrap $ Internal.fromScratch builder
   where
     builder = mkInputFieldsFromRowBuilder
       (RLProxy :: RLProxy xs)
-      (RProxy :: RProxy (form InputField))
+      (RProxy :: RProxy inputs)
 
 -- | The class that provides the Builder implementation to efficiently
 -- | transform a row into a proper InputFields by wrapping it in newtypes and
@@ -73,7 +74,8 @@ type SProxies form =
 -- | ```
 mkSProxies
   :: ∀ form xs row
-   . RL.RowToList (form InputField) xs
+   . RL.RowToList row xs
+  => Newtype (form Record InputField) (Record row)
   => MakeSProxies xs row
   => FormProxy form
   -> Record row
