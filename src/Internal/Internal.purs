@@ -5,7 +5,7 @@ import Prelude
 import Data.Either (Either(..), hush)
 import Data.Maybe (Maybe(..))
 import Data.Monoid.Additive (Additive(..))
-import Data.Newtype (class Newtype, unwrap, wrap)
+import Data.Newtype (class Newtype, unwrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Data.Variant (Variant, case_, on)
 import Formless.Spec (FormField(..), InputField(..), OutputField(..), Validator, FormFieldRow)
@@ -30,38 +30,8 @@ fromScratch = Builder.build <@> {}
 class (Row.Cons s t r r', Row.Lacks s r) <= Row1Cons s t r r' | s t r -> r', s r' -> t r
 instance row1Cons :: (Row.Cons s t r r', Row.Lacks s r) => Row1Cons s t r r'
 
--- | @monoidmusician
-class (Row1Cons s t r r', RL.RowToList r rl, RL.RowToList r' rl')
-  <= Row3 s t r r' rl rl'
-  | rl' -> s t r r' rl
-  , rl -> r
-  , s t r -> r' rl rl'
-  , s t rl -> r r' rl'
-instance row3 ::
-  (Row1Cons s t r r', RL.RowToList r rl, RL.RowToList r' (RL.Cons s t rl))
-  => Row3 s t r r' rl (RL.Cons s t rl)
-
 -----
 -- Functions
-
--- | Unwraps all the fields in a record, so long as all fields have newtypes
-unwrapRecord
-  :: ∀ row xs row'
-   . RL.RowToList row xs
-  => UnwrapRecord xs row row'
-  => Record row
-  -> Record row'
-unwrapRecord = fromScratch <<< unwrapRecordBuilder (RLProxy :: RLProxy xs)
-
--- | Wraps all the fields in a record, so long as all fields have proper newtype
--- | instances
-wrapRecord
-  :: ∀ row xs row'
-   . RL.RowToList row xs
-  => WrapRecord xs row row'
-  => Record row
-  -> Record row'
-wrapRecord = fromScratch <<< wrapRecordBuilder (RLProxy :: RLProxy xs)
 
 -- | A helper function that will count all errors in a record
 checkTouched
@@ -74,15 +44,15 @@ checkTouched = allTouchedImpl (RLProxy :: RLProxy xs)
 
 -- | A helper function that will count all errors in a record
 countErrors
-  :: ∀ form xs row' xs' m
-   . RL.RowToList (form (FormField m)) xs
-  => RL.RowToList row' xs'
-  => CountErrors xs (form (FormField m)) row'
-  => SumRecord xs' row' (Additive Int)
+  :: ∀ form fs xs row m
+   . RL.RowToList row xs
+  => RL.RowToList (form (FormField m)) fs
+  => CountErrors fs (form (FormField m)) row
+  => SumRecord xs row (Additive Int)
   => Record (form (FormField m))
   -> Int
 countErrors r = unwrap $ sumRecord $ fromScratch builder
-  where builder = countErrorsBuilder (RLProxy :: RLProxy xs) r
+  where builder = countErrorsBuilder (RLProxy :: RLProxy fs) r
 
 -- | A helper function that sums a monoidal record
 sumRecord
@@ -277,144 +247,6 @@ instance consAllTouched
       if (unwrap $ Record.get (SProxy :: SProxy name) r).touched
         then allTouchedImpl (RLProxy :: RLProxy tail) r
         else false
-
--- | The class to efficiently unwrap a record of newtypes
-class UnwrapRecord (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
-  unwrapRecordBuilder :: RLProxy xs -> Record row -> FromScratch to
-
-instance unwrapRecordNil :: UnwrapRecord RL.Nil row () where
-  unwrapRecordBuilder _ _ = identity
-
-instance unwrapRecordCons
-  :: ( IsSymbol name
-     , Row.Cons name wrapper trash row
-     , Newtype wrapper x
-     , UnwrapRecord tail row from
-     , Row1Cons name x from to
-     )
-  => UnwrapRecord (RL.Cons name wrapper tail) row to where
-  unwrapRecordBuilder _ r =
-    first <<< rest
-    where
-      _name = SProxy :: SProxy name
-      val = unwrap $ Record.get _name r
-      rest = unwrapRecordBuilder (RLProxy :: RLProxy tail) r
-      first = Builder.insert _name val
-
--- | The class to efficiently wrap a record of newtypes
-class WrapRecord (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
-  wrapRecordBuilder :: RLProxy xs -> Record row -> FromScratch to
-
-instance wrapRecordNil :: WrapRecord RL.Nil row () where
-  wrapRecordBuilder _ _ = identity
-
-instance wrapRecordCons
-  :: ( IsSymbol name
-     , Row.Cons name x trash row
-     , Newtype wrapper x
-     , WrapRecord tail row from
-     , Row1Cons name wrapper from to
-     )
-  => WrapRecord (RL.Cons name x tail) row to where
-  wrapRecordBuilder _ r =
-    first <<< rest
-    where
-      _name = SProxy :: SProxy name
-      val = wrap $ Record.get _name r
-      rest = wrapRecordBuilder (RLProxy :: RLProxy tail) r
-      first = Builder.insert _name val
-
--- | A class to reduce the type variables required to use applyRecord
-class ApplyRecord (io :: # Type) (i :: # Type) (o :: # Type)
-  | io -> i o
-  , i -> io o
-  , o -> io i
-  where
-  applyRecord :: Record io -> Record i -> Record o
-
-instance applyRecordImpl
-  :: ( RL.RowToList io lio
-     , RL.RowToList i li
-     , RL.RowToList o lo
-     , ApplyRowList lio li lo io i io i o
-     )
-  => ApplyRecord io i o where
-  applyRecord io i = Builder.build (builder io i) {}
-    where
-      builder =
-        applyRowList
-        (RLProxy :: RLProxy lio)
-        (RLProxy :: RLProxy li)
-        (RLProxy :: RLProxy lo)
-
--- | Modified from the original by @LiamGoodacre. Significantly improved
--- | by @MonoidMusician.
--- |
--- | Applies a record of functions to a record of input values to produce
--- | a record of outputs.
-class
-  ( RL.RowToList ior io
-  , RL.RowToList ir i
-  , RL.RowToList or o
-  ) <=
-  ApplyRowList
-    (io :: RL.RowList)
-    (i :: RL.RowList)
-    (o :: RL.RowList)
-    (ior :: # Type)
-    (ir :: # Type)
-    (iorf :: # Type)
-    (irf :: # Type)
-    (or :: # Type)
-    | io -> i o ior ir or
-    , i -> io o ior ir or
-    , o -> io i ior ir or
-  where
-  applyRowList
-    :: RLProxy io
-    -> RLProxy i
-    -> RLProxy o
-    -> Record iorf
-    -> Record irf
-    -> FromScratch or
-
-instance applyRowListNil :: ApplyRowList RL.Nil RL.Nil RL.Nil () () iorf irf () where
-  applyRowList _ _ _ _ _ = identity
-
-instance applyRowListCons
-  :: ( Row.Cons k (i -> o) unused1 iorf
-     , Row.Cons k i unused2 irf
-     , Row3 k (i -> o) tior ior tio (RL.Cons k (i -> o) tio)
-     , Row3 k i tir ir ti (RL.Cons k i ti)
-     , Row3 k o tor or to (RL.Cons k o to)
-     , ApplyRowList tio ti to tior tir iorf irf tor
-     , IsSymbol k
-     )
-  => ApplyRowList
-       (RL.Cons k (i -> o) tio)
-       (RL.Cons k i ti)
-       (RL.Cons k o to)
-       ior
-       ir
-       iorf
-       irf
-       or
-  where
-    applyRowList io i o ior ir =
-      fir <<< tor
-      where
-        _key = SProxy :: SProxy k
-        f = Record.get _key ior
-        x = Record.get _key ir
-
-        fir :: Builder { | tor } { | or }
-        fir = Builder.insert _key (f x)
-
-        tor :: FromScratch tor
-        tor = applyRowList (rltail io) (rltail i) (rltail o) ior ir
-
-        rltail :: ∀ l v t. RLProxy (RL.Cons l v t) -> RLProxy t
-        rltail _ = RLProxy
 
 -- | @monoidmusician
 class UpdateInputVariant r to m where

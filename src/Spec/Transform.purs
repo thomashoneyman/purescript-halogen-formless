@@ -2,52 +2,16 @@ module Formless.Spec.Transform where
 
 import Prelude
 
+import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
-import Formless.Spec (FormProxy, InputField(..), OutputField, Validator)
+import Formless.Spec (FormProxy, InputField(..))
 import Prim.Row as Row
 import Prim.RowList as RL
+import Record as Record
 import Record.Builder as Builder
 import Type.Row (RLProxy(..), RProxy(..))
-
--- | A function to unwrap a record of successful results into an equivalent
--- | record without any newtypes.
--- |
--- | ```purescript
--- | ```
-unwrapOutput
-  :: ∀ row xs form
-   . RL.RowToList (form OutputField) xs
-  => Internal.UnwrapRecord xs (form OutputField) row
-  => Record (form OutputField)
-  -> Record row
-unwrapOutput = Internal.unwrapRecord
-
--- | A function to transform a record of validators into correct one for the form
--- |
--- | ```purescript
--- | ```
-
-mkValidators
-  :: ∀ row xs form m
-   . RL.RowToList row xs
-  => Internal.WrapRecord xs row (form (Validator m))
-  => Record row
-  -> Record (form (Validator m))
-mkValidators = Internal.wrapRecord
-
--- | A function to transform a record of inputs of labels into a InputFields.
--- |
--- | ```purescript
--- | ```
-mkInputFields
-  :: ∀ row xs form
-   . RL.RowToList row xs
-  => Internal.WrapRecord xs row (form InputField)
-  => Record row
-  -> Record (form InputField)
-mkInputFields = Internal.wrapRecord
 
 -- | A function to transform a row of labels into a InputFields. This allows you
 -- | to go directly from a custom form newtype to a spec without having to
@@ -57,13 +21,13 @@ mkInputFields = Internal.wrapRecord
 -- |
 -- | ```purescript
 -- | ```
-mkInputFieldsFromProxy
+mkInputFields
   :: ∀ xs form
    . RL.RowToList (form InputField) xs
   => MakeInputFieldsFromRow xs (form InputField) (form InputField)
   => FormProxy form
   -> Record (form InputField)
-mkInputFieldsFromProxy _ = Internal.fromScratch builder
+mkInputFields _ = Internal.fromScratch builder
   where
     builder = mkInputFieldsFromRowBuilder
       (RLProxy :: RLProxy xs)
@@ -135,4 +99,69 @@ instance makeSProxiesCons
     where
       rest = makeSProxiesBuilder (RLProxy :: RLProxy tail)
       first = Builder.insert (SProxy :: SProxy name) (SProxy :: SProxy name)
+
+-- | Unwraps all the fields in a record, so long as all fields have newtypes
+unwrapRecord
+  :: ∀ row xs row'
+   . RL.RowToList row xs
+  => UnwrapRecord xs row row'
+  => Record row
+  -> Record row'
+unwrapRecord = Internal.fromScratch <<< unwrapRecordBuilder (RLProxy :: RLProxy xs)
+
+-- | Wraps all the fields in a record, so long as all fields have proper newtype
+-- | instances
+wrapRecord
+  :: ∀ row xs row'
+   . RL.RowToList row xs
+  => WrapRecord xs row row'
+  => Record row
+  -> Record row'
+wrapRecord = Internal.fromScratch <<< wrapRecordBuilder (RLProxy :: RLProxy xs)
+
+-- | The class to efficiently unwrap a record of newtypes
+class UnwrapRecord (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
+  unwrapRecordBuilder :: RLProxy xs -> Record row -> Internal.FromScratch to
+
+instance unwrapRecordNil :: UnwrapRecord RL.Nil row () where
+  unwrapRecordBuilder _ _ = identity
+
+instance unwrapRecordCons
+  :: ( IsSymbol name
+     , Row.Cons name wrapper trash row
+     , Newtype wrapper x
+     , UnwrapRecord tail row from
+     , Internal.Row1Cons name x from to
+     )
+  => UnwrapRecord (RL.Cons name wrapper tail) row to where
+  unwrapRecordBuilder _ r =
+    first <<< rest
+    where
+      _name = SProxy :: SProxy name
+      val = unwrap $ Record.get _name r
+      rest = unwrapRecordBuilder (RLProxy :: RLProxy tail) r
+      first = Builder.insert _name val
+
+-- | The class to efficiently wrap a record of newtypes
+class WrapRecord (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
+  wrapRecordBuilder :: RLProxy xs -> Record row -> Internal.FromScratch to
+
+instance wrapRecordNil :: WrapRecord RL.Nil row () where
+  wrapRecordBuilder _ _ = identity
+
+instance wrapRecordCons
+  :: ( IsSymbol name
+     , Row.Cons name x trash row
+     , Newtype wrapper x
+     , WrapRecord tail row from
+     , Internal.Row1Cons name wrapper from to
+     )
+  => WrapRecord (RL.Cons name x tail) row to where
+  wrapRecordBuilder _ r =
+    first <<< rest
+    where
+      _name = SProxy :: SProxy name
+      val = wrap $ Record.get _name r
+      rest = wrapRecordBuilder (RLProxy :: RLProxy tail) r
+      first = Builder.insert _name val
 
