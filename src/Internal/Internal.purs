@@ -116,7 +116,6 @@ inputFieldsToFormFields r = fromScratch builder
   where builder = inputFieldsToFormFieldsBuilder (RLProxy :: RLProxy xs) r
 
 -- | An intermediate function that transforms a record of FormField into a record
--- | of MaybeOutput as a step in producing output fields.
 inputFieldToMaybeOutput
   :: ∀ xs form m
    . RL.RowToList (form (FormField m)) xs

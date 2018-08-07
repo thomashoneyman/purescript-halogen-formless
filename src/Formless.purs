@@ -50,8 +50,8 @@ import Data.Traversable (traverse, traverse_)
 import Data.Variant (Variant, inj)
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
-import Formless.Spec
-import Formless.Spec.Transform
+import Formless.Spec (ErrorType, FormField(..), FormFieldRow, FormProxy(..), InputField(..), InputType, OutputField(..), OutputType, Validator(..), _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched, _validator)
+import Formless.Spec.Transform (class MakeInputFieldsFromRow, class MakeSProxies, SProxies, makeSProxiesBuilder, mkInputFields, mkInputFieldsFromProxy, mkInputFieldsFromRowBuilder, mkSProxies, mkValidators, unwrapOutput)
 import Halogen as H
 import Halogen.Component.ChildPath (ChildPath, injQuery, injSlot)
 import Halogen.HTML as HH
@@ -185,7 +185,7 @@ type Message' form out m = Message (Const Void) form out m
 
 -- | The component itself
 component
-  :: ∀ pq cq cs form out m fieldxs output countxs count inputsxs vs
+  :: ∀ pq cq cs form out m fieldxs countxs count inputsxs
    . Ord cs
   => Monad m
   => RL.RowToList (form (FormField m)) fieldxs
@@ -196,13 +196,13 @@ component
   => Internal.FormFieldsToInputFields fieldxs (form (FormField m)) (form InputField)
   => Internal.TransformFormFields fieldxs (form (FormField m)) (form (FormField m)) m
   => Internal.TransformFormFieldsM fieldxs (form (FormField m)) (form (FormField m)) m
-  => Internal.FormFieldToMaybeOutput fieldxs (form (FormField m)) output
+  => Internal.FormFieldToMaybeOutput fieldxs (form (FormField m)) (form OutputField)
   => Internal.CountErrors fieldxs (form (FormField m)) count
   => Internal.AllTouched fieldxs (form (FormField m))
   => Internal.SumRecord countxs count (Additive Int)
   => Internal.UpdateInputVariantRL inputsxs (form InputField) (form (FormField m)) m
   => Internal.ReplaceFormFieldInputs (form InputField) fieldxs (form (FormField m)) (form (FormField m))
-  => Internal.ReplaceFormFieldValidators vs fieldxs (form (FormField m)) (form (FormField m))
+  => Internal.ReplaceFormFieldValidators (form (Validator m)) fieldxs (form (FormField m)) (form (FormField m))
   => Component pq cq cs form out m
 component =
   H.parentComponent
@@ -288,8 +288,8 @@ component =
           -- vs. current ones. This relies on input fields passed by the user having
           -- equality defined.
         , dirty = not $ (==)
-            (unwrap (Internal.formFieldsToInputFields st.form))
-            (unwrap (unwrap st.internal).initialInputs)
+            (Internal.formFieldsToInputFields st.form)
+            (unwrap st.internal).initialInputs
         }
 
       st <- getState
@@ -390,9 +390,9 @@ component =
   -- Use a form variant to update the value of a single form field in state
   modifyWithInputVariant
     :: Variant (form InputField) -> State form out m -> m (State form out m)
-  modifyWithInputVariant form state = do
-    form' <- updater (unwrap state.form)
-    pure $ state { form = wrap form' }
+  modifyWithInputVariant variant state = do
+    form <- updater state.form
+    pure $ state { form = form }
     where
       updater = Internal.updateInputVariant
         (\(InputField i) (FormField { validator }) -> pure $
@@ -403,15 +403,15 @@ component =
             , validator
             }
         )
-        (unwrap form)
+        variant
 
   -- Use a form variant to update the value of a single form field in state
   -- and also run its validation
   modifyValidateWithInputVariant
     :: Variant (form InputField) -> State form out m -> m (State form out m)
-  modifyValidateWithInputVariant form state = do
-    form' <- updater (unwrap state.form)
-    pure (state { form = wrap form' })
+  modifyValidateWithInputVariant variant state = do
+    form <- updater state.form
+    pure (state { form = form })
     where
       updater = Internal.updateInputVariant
         (\(InputField i) field@(FormField { validator }) -> do
@@ -426,14 +426,14 @@ component =
                 , validator
                 })
         )
-        (unwrap form)
+        variant
 
   -- Validate a field without modifying its input
   validateWithInputVariant
     :: Variant (form InputField) -> State form out m -> m (State form out m)
-  validateWithInputVariant form state = do
-    form' <- updater (unwrap state.form)
-    pure (state { form = wrap form' })
+  validateWithInputVariant variant state = do
+    form <- updater state.form
+    pure (state { form = form })
     where
       updater = Internal.updateInputVariant
         (\_ field@(FormField { input, validator }) -> do
@@ -449,16 +449,16 @@ component =
                 , validator
                 })
         )
-        (unwrap form)
+        variant
 
   -- Reset a field (and update state to ensure the form is not marked with
   -- all fields touched).
   resetWithInputVariant
     :: Variant (form InputField) -> State form out m -> m (State form out m)
-  resetWithInputVariant form state = do
-    form' <- updater (unwrap state.form)
+  resetWithInputVariant variant state = do
+    form <- updater state.form
     pure $ state
-      { form = wrap form'
+      { form = form
       , internal = over InternalState (_ { allTouched = false }) state.internal
       }
     where
@@ -473,7 +473,7 @@ component =
             , validator
             }
         )
-        (unwrap form)
+        variant
 
   -- Run submission without raising messages or replies
   runSubmit :: DSL pq cq cs form out m (Maybe out)
