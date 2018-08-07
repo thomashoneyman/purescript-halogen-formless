@@ -70,8 +70,8 @@ component =
     , HH.slot
         unit
         F.component
-        { formSpec
-        , validator: Nothing
+        { inputs
+        , validators
         , submitter: pure <<< F.unwrapOutput
         , render: renderFormless
         }
@@ -105,25 +105,15 @@ type FormRow f =
   , state :: f V.Errs String String
   )
 
--- Our form spec
-formSpec :: Form Record (F.FormSpec Aff)
-formSpec = Form
-  { name: F.FormSpec
-      { input: ""
-      , validator: toEither $ V.Name <$> (V.minLength 5 *> V.maxLength 10)
-      }
-  , email: F.FormSpec
-      { input: ""
-      , validator: toEither $ V.emailFormat >>> V.emailIsUsed
-      }
-  , city: F.FormSpec
-      { input: ""
-      , validator: toEither $ V.minLength 0
-      }
-  , state: F.FormSpec
-      { input: ""
-      , validator: toEither $ Validation.hoistFnV pure
-      }
+inputs :: Form Record F.InputField
+inputs = F.mkInputFieldsFromProxy _form
+
+validators :: ∀ t. t -> Form Record (F.Validator Aff)
+validators _ = F.mkValidators
+  { name: toEither $ V.Name <$> (V.minLength 5 *> V.maxLength 10)
+  , email: toEither $ V.emailFormat >>> V.emailIsUsed
+  , city: toEither $ V.minLength 0
+  , state: toEither $ Validation.hoistFnV pure
   }
 
 renderFormless :: F.State Form User Aff -> F.HTML' Form User Aff

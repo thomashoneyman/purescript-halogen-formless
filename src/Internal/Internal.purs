@@ -8,7 +8,7 @@ import Data.Monoid.Additive (Additive(..))
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Data.Variant (Variant, case_, on)
-import Formless.Spec (FormField(..), InputField(..), OutputField(..), Validator)
+import Formless.Spec (FormField(..), InputField(..), OutputField(..), Validator, FormFieldRow)
 import Prim.Row as Row
 import Prim.RowList as RL
 import Record as Record
@@ -62,18 +62,6 @@ wrapRecord
   => Record row
   -> Record row'
 wrapRecord = fromScratch <<< wrapRecordBuilder (RLProxy :: RLProxy xs)
-
--- | Sequences a record of applicatives. Useful when applying monadic field validation
--- | so you can recover the proper type for the Formless validation function. Does not
--- | operate on newtypes, so you'll want to unwrap / re-wrap your form type when using.
-sequenceRecord
-  :: ∀ row row' rl m
-   . RL.RowToList row rl
-  => Applicative m
-  => SequenceRecord rl row row' m
-  => Record row
-  -> m (Record row')
-sequenceRecord = map fromScratch <<< sequenceRecordImpl (RLProxy :: RLProxy rl)
 
 -- | A helper function that will count all errors in a record
 checkTouched
@@ -345,29 +333,6 @@ instance wrapRecordCons
       rest = wrapRecordBuilder (RLProxy :: RLProxy tail) r
       first = Builder.insert _name val
 
--- | The class to efficiently run the build with sequenceRecord on a record.
-class Applicative m <= SequenceRecord rl row to m | rl -> row to m where
-  sequenceRecordImpl :: RLProxy rl -> Record row -> m (FromScratch to)
-
-instance sequenceRecordNil :: Applicative m => SequenceRecord RL.Nil row () m where
-  sequenceRecordImpl _ _ = pure identity
-
-instance sequenceRecordCons ::
-  ( IsSymbol name
-  , Applicative m
-  , Row.Cons name (m ty) trash row
-  , SequenceRecord tail row from m
-  , Row1Cons name ty from to
-  ) => SequenceRecord (RL.Cons name (m ty) tail) row to m where
-  sequenceRecordImpl _ a  =
-    fn <$> valA <*> rest
-    where
-      namep = SProxy :: SProxy name
-      valA = Record.get namep a
-      tailp = RLProxy :: RLProxy tail
-      rest = sequenceRecordImpl tailp a
-      fn valA' rest' = Builder.insert namep valA' <<< rest'
-
 -- | A class to reduce the type variables required to use applyRecord
 class ApplyRecord (io :: # Type) (i :: # Type) (o :: # Type)
   | io -> i o
@@ -544,44 +509,45 @@ instance transformFormFieldsTouchedCons
 
 -- | Transform form fields, with monadic results.
 transformFormFieldsM
-  :: ∀ row xs form m
+  :: ∀ row xs form m row' form'
    . RL.RowToList row xs
   => Monad m
-  => SequenceRecord xs row row m
-  => TransformFormFieldsM xs row row m
+  => TransformFormFieldsM xs row row' m
   => Newtype (form Record (FormField m)) (Record row)
+  => Newtype (form' Record (FormField m)) (Record row')
   => (∀ e i o. FormField m e i o -> m (FormField m e i o))
   -> form Record (FormField m)
-  -> m (form Record (FormField m))
-transformFormFieldsM f r = map wrap $ sequenceRecord $ fromScratch builder
-  where builder = transformFormFieldsBuilderM f (RLProxy :: RLProxy xs) (unwrap r)
+  -> m (form' Record (FormField m))
+transformFormFieldsM f r = map wrap built
+  where
+    --  built :: { | row }
+    built = map fromScratch $ transformFormFieldsBuilderM f (RLProxy :: RLProxy xs) (unwrap r)
 
 class TransformFormFieldsM (xs :: RL.RowList) (row :: # Type) (to :: # Type) m | xs -> to where
-  transformFormFieldsBuilderM :: (∀ e i o. FormField m e i o -> m (FormField m e i o)) -> RLProxy xs -> Record row -> FromScratch to
+  transformFormFieldsBuilderM :: (∀ e i o. FormField m e i o -> m (FormField m e i o)) -> RLProxy xs -> Record row -> m (FromScratch to)
 
 instance transformFormFieldsTouchedNilM :: Monad m => TransformFormFieldsM RL.Nil row () m where
-  transformFormFieldsBuilderM _ _ _ = identity
+  transformFormFieldsBuilderM _ _ _ = pure identity
 
 instance transformFormFieldsTouchedConsM
   :: ( IsSymbol name
      , Monad m
      , Row.Cons name (FormField m e i o) trash row
-     , Row1Cons name (m (FormField m e i o)) from to
      , TransformFormFieldsM tail row from m
+     , Row1Cons name (FormField m e i o) from to
      )
   => TransformFormFieldsM (RL.Cons name (FormField m e i o) tail) row to m where
   transformFormFieldsBuilderM f _ r =
-    first <<< rest
+    fn <$> val <*> rest
     where
       _name = SProxy :: SProxy name
-      first = Builder.insert _name val
       rest = transformFormFieldsBuilderM f (RLProxy :: RLProxy tail) r
+      fn val' rest' = Builder.insert _name val' <<< rest'
 
       val :: m (FormField m e i o)
       val = do
         let (x :: FormField m e i o) = Record.get _name r
         f x
-
 
 ----------
 -- Replace form fields
@@ -608,7 +574,7 @@ instance replaceFormFieldInputsTouchedNil :: ReplaceFormFieldInputs inputs RL.Ni
 instance replaceFormFieldInputsTouchedCons
   :: ( IsSymbol name
      , Newtype (InputField e i o) i
-     , Newtype (FormField m e i o) { input :: i, result :: Maybe (Either e o), validator :: Maybe (i -> m (Either e o)), touched :: Boolean }
+     , Newtype (FormField m e i o) (Record (FormFieldRow m e i o))
      , Row.Cons name (InputField e i o) trash0 inputs
      , Row.Cons name (FormField m e i o) trash1 row
      , Row1Cons name (FormField m e i o) from to
@@ -624,7 +590,7 @@ instance replaceFormFieldInputsTouchedCons
       i = Record.get _name ir
 
       f = unwrap $ Record.get _name fr
-      first = Builder.insert _name (FormField $ f { input = unwrap i, result = Nothing })
+      first = Builder.insert _name (FormField $ f { input = unwrap i, touched = false, result = Nothing })
       rest = replaceFormFieldInputsBuilder ir (RLProxy :: RLProxy tail) fr
 
 
@@ -649,7 +615,7 @@ instance replaceFormFieldValidatorsTouchedNil :: ReplaceFormFieldValidators vs R
 instance replaceFormFieldValidatorsTouchedCons
   :: ( IsSymbol name
      , Newtype (Validator m e i o) (i -> m (Either e o))
-     , Newtype (FormField m e i o) { input :: i, result :: Maybe (Either e o), validator :: Maybe (i -> m (Either e o)), touched :: Boolean }
+     , Newtype (FormField m e i o) (Record (FormFieldRow m e i o))
      , Row.Cons name (Validator m e i o) trash0 vs
      , Row.Cons name (FormField m e i o) trash1 row
      , Row1Cons name (FormField m e i o) from to
@@ -665,6 +631,6 @@ instance replaceFormFieldValidatorsTouchedCons
       v = Record.get _name vr
 
       f = unwrap $ Record.get _name fr
-      first = Builder.insert _name (FormField $ f { validator = Just (unwrap v) })
+      first = Builder.insert _name (FormField $ f { result = Nothing, touched = false, validator = Just (unwrap v) })
       rest = replaceFormFieldValidatorsBuilder vr (RLProxy :: RLProxy tail) fr
 

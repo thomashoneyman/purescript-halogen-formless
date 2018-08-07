@@ -9,7 +9,7 @@ import Effect.Console as Console
 import Example.App.UI.Element as UI
 import Example.App.UI.Typeahead as TA
 import Example.ExternalComponents.RenderForm (formless)
-import Example.ExternalComponents.Spec (User, prx, formSpec, submitter)
+import Example.ExternalComponents.Spec (User, prx, inputs, validators, submitter)
 import Example.ExternalComponents.Types (ChildQuery, ChildSlot, Query(..), Slot(..), State)
 import Formless as F
 import Halogen as H
@@ -47,8 +47,8 @@ component =
     , HH.slot
         unit
         F.component
-        { formSpec
-        , validator: Nothing
+        { inputs
+        , validators
         , submitter
         , render: formless
         }

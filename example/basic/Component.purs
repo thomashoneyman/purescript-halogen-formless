@@ -42,8 +42,8 @@ component = H.parentComponent
         <> "consists of less than 20 lines of code."
     , HH.br_
     , HH.slot unit F.component
-        { formSpec -- F.mkFormSpec { name: "", text: "" }
-        , validator: Nothing
+        { inputs
+        , validators
         , submitter: pure <<< F.unwrapOutput
         , render: renderFormless
         }
@@ -71,16 +71,16 @@ type FormRow f =
   , text :: f Unit String String
   )
 
-formSpec :: Form Record (F.FormSpec Aff)
-formSpec = Form
-  { name: F.FormSpec
-      { input: ""
-      , validator: toEither $ V.minLength 5
-      }
-  , text: F.FormSpec
-      { input: ""
-      , validator: toEither V.notRequired
-      }
+inputs :: Form Record F.InputField
+inputs = F.mkInputFields
+  { name: ""
+  , text: ""
+  }
+
+validators :: F.PublicState Form Aff -> Form Record (F.Validator Aff)
+validators _ = F.mkValidators
+  { name: toEither $ V.minLength 5
+  , text: toEither $ V.notRequired
   }
 
 renderFormless :: F.State Form Contact Aff -> F.HTML' Form Contact Aff

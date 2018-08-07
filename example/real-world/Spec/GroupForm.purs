@@ -5,7 +5,7 @@ import Prelude
 import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
 import Example.App.Validation as V
-import Example.RealWorld.Data.Group (Group(..), GroupForm(..), GroupId(..))
+import Example.RealWorld.Data.Group (Group(..), GroupForm, GroupId(..), prx)
 import Formless as F
 import Formless.Validation.Semigroup (toEitherPure)
 import Record as Record
@@ -22,50 +22,18 @@ groupFormSubmit form = do
     <<< Record.insert (SProxy :: SProxy "options") Nothing
     $ F.unwrapOutput form
 
-groupFormSpec :: ∀ m. Monad m => GroupForm Record (F.FormSpec m)
-groupFormSpec = GroupForm
-  { name: F.FormSpec
-    { input: ""
-    , validator: toEitherPure V.validateNonEmpty
-    }
-  , secretKey1: F.FormSpec
-    { input: ""
-    , validator: toEitherPure V.validateNonEmpty
-    }
-  , secretKey2: F.FormSpec
-    { input: ""
-    , validator: toEitherPure V.validateNonEmpty
-    }
-  , admin: F.FormSpec
-    { input: Nothing
-    , validator: toEitherPure V.validateMaybe
-    }
-  , applications: F.FormSpec
-    { input: []
-    , validator: toEitherPure V.validateNonEmptyArray
-    }
-  , pixels: F.FormSpec
-    { input: []
-    , validator: toEitherPure V.validateNonEmptyArray
-    }
-  , whiskey: F.FormSpec
-    { input: Nothing
-    , validator: toEitherPure V.validateMaybe
-    }
-  }
+groupInputs :: GroupForm Record F.InputField
+groupInputs = F.mkInputFieldsFromProxy $ F.FormProxy :: F.FormProxy GroupForm
 
--- | We'll provide a fairly involved validation function to verify fields are correct
--- | TODO:
--- | Only fields that you want to validate are necessary. The others will not run.
---  groupFormValidate :: ∀ m. Monad m => GroupForm Record (F.FormField m) -> m (GroupForm Record (F.FormField m))
---  groupFormValidate form = pure $ GroupForm
---    { name: toEitherPure $ (\(i :: String) -> pure i) `onFormField` form'.name
---    , secretKey1: toEitherPure $ V.validateEqual (F.getInput prx.secretKey2 form) `onFormField` form'.secretKey1
---    , secretKey2: toEitherPure $ V.validateEqual (F.getInput prx.secretKey2 form) `onFormField` form'.secretKey2
---    , admin: toEitherPure $ pure `onFormField` form'.admin
---    , applications: toEitherPure $ pure `onFormField` form'.applications
---    , pixels: toEitherPure $ pure `onFormField` form'.pixels
---    , whiskey: toEitherPure $ pure `onFormField` form'.whiskey
---    }
---    where
---      form' = unwrap form
+groupValidators :: ∀ m. Monad m => F.PublicState GroupForm m -> GroupForm Record (F.Validator m)
+groupValidators { form } = F.mkValidators
+  { name: toEitherPure V.validateNonEmpty
+    -- Despite being a field-level validation, you can use other fields in the form because the
+    -- public state is provided as an argument.
+  , secretKey1: toEitherPure $ V.validateEqual (F.getInput prx.secretKey2 form)
+  , secretKey2: toEitherPure $ V.validateEqual (F.getInput prx.secretKey1 form)
+  , admin: toEitherPure V.validateMaybe
+  , applications: toEitherPure V.validateNonEmptyArray
+  , pixels: toEitherPure V.validateNonEmptyArray
+  , whiskey: toEitherPure V.validateMaybe
+  }

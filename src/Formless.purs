@@ -68,6 +68,7 @@ data Query pq cq cs form out m a
   | SubmitReply (Maybe out -> a)
   | Reply (PublicState form m -> a)
   | Send cs (cq Unit) a
+  | SyncFormData a
   | Raise (pq Unit) a
   | ReplaceInputs (form Record InputField) a
   | Receive (Input pq cq cs form out m) a
@@ -191,7 +192,6 @@ component
   => Internal.FormFieldsToInputFields fieldxs fields inputs
   => Internal.TransformFormFields fieldxs fields fields m
   => Internal.TransformFormFieldsM fieldxs fields fields m
-  => Internal.SequenceRecord fieldxs fields fields m
   => Internal.FormFieldToMaybeOutput fieldxs fields output
   => Internal.CountErrors fieldxs fields count
   => Internal.AllTouched fieldxs fields
@@ -243,40 +243,28 @@ component =
       st <- getState
       new <- H.lift $ modifyWithInputVariant variant st
       putState new
-      H.raise $ Changed $ getPublicState new
-      pure a
+      eval $ SyncFormData a
 
     Validate variant a -> do
       st <- getState
       new <- H.lift $ validateWithInputVariant variant st
       putState new
-      H.raise $ Changed $ getPublicState new
-      pure a
+      eval $ SyncFormData a
 
     ModifyValidate variant a -> do
       st <- getState
       new <- H.lift $ modifyValidateWithInputVariant variant st
       putState new
-      H.raise $ Changed $ getPublicState new
-      pure a
+      eval $ SyncFormData a
 
     Reset variant a -> do
       st <- getState
       new <- H.lift $ resetWithInputVariant variant st
       putState new
-      H.raise $ Changed $ getPublicState new
-      pure a
+      eval $ SyncFormData a
 
-    -- Doesn't trigger individual validation functions, but _does_ run the global validation
-    -- function. Perhaps should do both -- set all fields, validate, and then run global
-    -- validation on the result? (form Record OutputField -> m out)? Remove the need for a
-    -- submitter altogether.
     ValidateAll a -> do
-      init <- getState
-      let internal = unwrap init.internal
-
-          -- The function to run a form field validator on itself
-          runField :: (∀ e i o. FormField m e i o -> m (FormField m e i o))
+      let runField :: (∀ e i o. FormField m e i o -> m (FormField m e i o))
           runField (FormField field) = case field.validator of
             Nothing -> pure (FormField field) -- TODO: Exception?
             Just f -> do
@@ -288,32 +276,37 @@ component =
                 , validator: field.validator
                 })
 
-      form <- H.lift $ Internal.transformFormFieldsM runField init.form
-      let errors = Internal.countErrors form
+      st <- getState
+      form <- H.lift $ Internal.transformFormFieldsM runField st.form
+      modifyState_ _ { form = form }
+      eval $ SyncFormData a
 
-      -- At this point we can modify most of the state, except for the valid status
-      modifyState_ _
-        { form = form
-        , errors = errors
+    -- A query to sync the overall state of the form after an individual field change
+    -- or overall validation.
+    SyncFormData a -> do
+      modifyState_ \st -> st
+        { errors = Internal.countErrors st.form
           -- Dirty state is computed by checking equality of original input fields
           -- vs. current ones. This relies on input fields passed by the user having
           -- equality defined.
-        , dirty = not
-          $ unwrap (Internal.formFieldsToInputFields form) == unwrap internal.initialInputs
+        , dirty = not $ (==)
+            (unwrap (Internal.formFieldsToInputFields st.form))
+            (unwrap (unwrap st.internal).initialInputs)
         }
 
+      st <- getState
       -- Need to verify the validity status of the form.
-      new <- case internal.allTouched of
+      new <- case (unwrap st.internal).allTouched of
         true -> modifyState _
-          { validity = if not (errors == 0) then Invalid else Valid }
+          { validity = if not (st.errors == 0) then Invalid else Valid }
 
         -- If not all fields are touched, then we need to quickly sync the form state
         -- to verify this is actually the case.
-        _ -> case Internal.checkTouched form of
+        _ -> case Internal.checkTouched st.form of
 
           -- The sync revealed all fields really have been touched
-          true -> modifyState \st -> st
-            { validity = if not (errors == 0) then Invalid else Valid
+          true -> modifyState _
+            { validity = if not (st.errors == 0) then Invalid else Valid
             , internal = over InternalState (_ { allTouched = true }) st.internal
             }
 

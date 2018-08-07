@@ -14,8 +14,8 @@ import Example.RealWorld.Data.Group as G
 import Example.RealWorld.Data.Options as O
 import Example.RealWorld.Render.GroupForm as GroupForm
 import Example.RealWorld.Render.OptionsForm as OptionsForm
-import Example.RealWorld.Spec.GroupForm (groupFormSpec, groupFormSubmit)
-import Example.RealWorld.Spec.OptionsForm (defaultOptionsSpec, optionsFormSpec)
+import Example.RealWorld.Spec.GroupForm (groupInputs, groupValidators, groupFormSubmit)
+import Example.RealWorld.Spec.OptionsForm (optionsFormInputs, optionsFormValidators, defaultInputs)
 import Example.RealWorld.Types (ChildQuery, ChildSlot, GroupTASlot(..), Query(..), State, Tab(..))
 import Formless as F
 import Halogen as H
@@ -93,8 +93,8 @@ component =
           CP.cp1
           unit
           F.component
-          { formSpec: groupFormSpec
-          , validator: Nothing
+          { inputs: groupInputs
+          , validators: groupValidators
           , submitter: groupFormSubmit
           , render: GroupForm.render
           }
@@ -106,8 +106,8 @@ component =
           CP.cp2
           unit
           F.component
-          { formSpec: defaultOptionsSpec
-          , validator: Nothing
+          { inputs: defaultInputs
+          , validators: optionsFormValidators
           , submitter: pure <<< O.Options <<< F.unwrapOutput
           , render: OptionsForm.render
           }
@@ -198,14 +198,11 @@ component =
         when (st.optionsEnabled /= st'.optionsEnabled) do
           case st'.optionsEnabled of
             true -> do
-              let
-                spec' = O.OptionsForm
-                  $ (\s -> s { enable = over F.FormSpec (_ { input = true }) s.enable })
-                  $ unwrap optionsFormSpec
-              _ <- H.query' CP.cp2 unit $ H.action $ F.ReplaceSpec spec'
+              let spec' = O.OptionsForm $ _ { enable = F.InputField true } $ unwrap optionsFormInputs
+              _ <- H.query' CP.cp2 unit $ H.action $ F.ReplaceInputs spec'
               pure unit
             _ -> do
-              _ <- H.query' CP.cp2 unit $ H.action $ F.ReplaceSpec defaultOptionsSpec
+              _ <- H.query' CP.cp2 unit $ H.action $ F.ReplaceInputs defaultInputs
               pure unit
         pure a
 

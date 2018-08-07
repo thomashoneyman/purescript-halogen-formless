@@ -43,10 +43,10 @@ unwrapOutput = Internal.unwrapRecord <<< unwrap
 -- | ```
 
 mkValidators
-  :: ∀ row xs form m
+  :: ∀ row row' xs form m
    . RL.RowToList row xs
-  => Internal.WrapRecord xs row row
-  => Newtype (form Record (Validator m)) (Record row)
+  => Internal.WrapRecord xs row row'
+  => Newtype (form Record (Validator m)) (Record row')
   => Record row
   -> form Record (Validator m)
 mkValidators = wrap <<< Internal.wrapRecord
@@ -67,10 +67,10 @@ mkValidators = wrap <<< Internal.wrapRecord
 -- | ```
 
 mkInputFields
-  :: ∀ row xs form
+  :: ∀ row row' xs form
    . RL.RowToList row xs
-  => Internal.WrapRecord xs row row
-  => Newtype (form Record InputField) (Record row)
+  => Internal.WrapRecord xs row row'
+  => Newtype (form Record InputField) (Record row')
   => Record row
   -> form Record InputField
 mkInputFields = wrap <<< Internal.wrapRecord
