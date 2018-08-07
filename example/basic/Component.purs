@@ -44,7 +44,7 @@ component = H.parentComponent
     , HH.slot unit F.component
         { inputs
         , validators
-        , submitter: pure <<< F.unwrapOutput
+        , submitter: pure <<< F.unwrapRecord
         , render: renderFormless
         }
         (const Nothing)
@@ -63,22 +63,19 @@ type Contact =
   , text :: String
   }
 
-newtype Form r f = Form (r (FormRow f))
-derive instance newtypeForm :: Newtype (Form r f) _
-
-type FormRow f =
+type Form f =
   ( name :: f V.Errs String String
   , text :: f Unit String String
   )
 
-inputs :: Form Record F.InputField
+inputs :: Form F.InputField
 inputs = F.mkInputFields
   { name: ""
   , text: ""
   }
 
 validators :: F.PublicState Form Aff -> Form Record (F.Validator Aff)
-validators _ = F.mkValidators
+validators _ = F.wrapRecord
   { name: toEither $ V.minLength 5
   , text: toEither $ V.notRequired
   }

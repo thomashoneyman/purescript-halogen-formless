@@ -8,9 +8,7 @@ import Data.Array (head)
 import Data.Either (Either(..), either)
 import Data.Lens (preview)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
-import Data.Newtype (class Newtype, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
-import Data.Variant (Variant, inj)
 import Example.App.Validation (class ToText, toText)
 import Example.App.Validation (showError) as V
 import Formless as F
@@ -26,7 +24,6 @@ type Plain i p = Array (HH.HTML i p) -> HH.HTML i p
 
 css :: ∀ r t. String -> HH.IProp ( "class" :: String | r ) t
 css = HP.class_ <<< HH.ClassName
-
 
 ----------
 -- Typography
@@ -158,13 +155,11 @@ textarea config props =
 
 -- Already ready to work with Formless
 formlessField
-  :: ∀ form sym e o t0 t1 inputs fields m pq cq cs out r
+  :: ∀ form sym e o t0 t1 m pq cq cs out r
    . IsSymbol sym
   => ToText e
-  => Newtype (form Record (F.FormField m)) (Record fields)
-  => Newtype (form Variant F.InputField) (Variant inputs)
-  => Cons sym (F.FormField m (Array e) String o) t0 fields
-  => Cons sym (F.InputField (Array e) String o) t1 inputs
+  => Cons sym (F.FormField m (Array e) String o) t0 (form (F.FormField m))
+  => Cons sym (F.InputField (Array e) String o) t1 (form F.InputField)
   => ( FieldConfig'
      -> Array ( HH.IProp
                 ( value :: String, onBlur :: FocusEvent, onInput :: Event | r)
@@ -187,5 +182,5 @@ formlessField fieldType config state = fieldType (Builder.build config' config) 
 
     props =
       [ HP.value (F.getInput config.sym state.form)
-      , HE.onValueInput $ HE.input \str -> F.ModifyValidate (wrap (inj config.sym (wrap str)))
+      , HE.onValueInput $ HE.input $ F.modifyValidate config.sym
       ]
