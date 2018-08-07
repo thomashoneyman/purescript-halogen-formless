@@ -24,9 +24,13 @@ module Formless
   , module Formless.Class.Initial
   , send'
   , modify
+  , modify_
   , modifyValidate
+  , modifyValidate_
   , validate
+  , validate_
   , reset
+  , reset_
   )
   where
 
@@ -512,48 +516,75 @@ component =
     result <- modifyState \st -> st { submitting = false }
     pure (unwrap result.internal).formResult
 
-----------
--- Component Helper Functions for Variants
 
-modify
-  :: ∀ pq cq cs form out m sym inputs t0 e i o
-   . IsSymbol sym
-  => Newtype (form Variant InputField) (Variant inputs)
-  => Row.Cons sym (InputField e i o) t0 inputs
-  => SProxy sym
-  -> i
-  -> Query pq cq cs form out m Unit
-modify sym i = Modify (wrap (inj sym (wrap i))) unit
+----------
+-- Component helper functions for variants
+
+modify :: WithInput
+modify sym i = Modify (wrap (inj sym (wrap i)))
+
+modify_ :: WithInputAction
+modify_ sym i = Modify (wrap (inj sym (wrap i))) unit
+
+modifyValidate :: WithInput
+modifyValidate sym i = ModifyValidate (wrap (inj sym (wrap i)))
+
+modifyValidate_ :: WithInputAction
+modifyValidate_ sym i = ModifyValidate (wrap (inj sym (wrap i))) unit
+
+reset :: WithoutInput
+reset sym = Reset (wrap (inj sym (wrap initial)))
+
+reset_ :: WithoutInputAction
+reset_ sym = Reset (wrap (inj sym (wrap initial))) unit
 
 -- TODO: Shouldn't require an instance of Initial! Only there until
 -- I'm able to come up with a different class for accessing via variants.
-validate
-  :: ∀ pq cq cs form out m sym inputs t0 e i o
+validate :: WithoutInput
+validate sym = Validate (wrap (inj sym (wrap initial)))
+
+validate_ :: WithoutInputAction
+validate_ sym = Validate (wrap (inj sym (wrap initial))) unit
+
+
+----------
+-- Helper type synonyms
+
+type WithInput =
+  forall pq cq cs form out m a sym inputs t0 e i o
    . IsSymbol sym
-  => Initial i
   => Newtype (form Variant InputField) (Variant inputs)
   => Row.Cons sym (InputField e i o) t0 inputs
   => SProxy sym
-  -> Query pq cq cs form out m Unit
-validate sym = Validate (wrap (inj sym (wrap initial))) unit
+  -> i
+  -> a
+  -> Query pq cq cs form out m a
 
-modifyValidate
-  :: ∀ pq cq cs form out m sym inputs t0 e i o
+type WithInputAction =
+  forall pq cq cs form out m sym inputs t0 e i o
    . IsSymbol sym
   => Newtype (form Variant InputField) (Variant inputs)
   => Row.Cons sym (InputField e i o) t0 inputs
   => SProxy sym
   -> i
   -> Query pq cq cs form out m Unit
-modifyValidate sym i = ModifyValidate (wrap (inj sym (wrap i))) unit
 
-reset
-  :: ∀ pq cq cs form out m sym inputs t0 e i o
+type WithoutInput =
+  forall pq cq cs form out m sym a inputs t0 e i o
+   . IsSymbol sym
+  => Initial i
+  => Newtype (form Variant InputField) (Variant inputs)
+  => Row.Cons sym (InputField e i o) t0 inputs
+  => SProxy sym
+  -> a
+  -> Query pq cq cs form out m a
+
+type WithoutInputAction =
+  forall pq cq cs form out m sym inputs t0 e i o
    . IsSymbol sym
   => Initial i
   => Newtype (form Variant InputField) (Variant inputs)
   => Row.Cons sym (InputField e i o) t0 inputs
   => SProxy sym
   -> Query pq cq cs form out m Unit
-reset sym = Reset (wrap (inj sym (wrap initial))) unit
 

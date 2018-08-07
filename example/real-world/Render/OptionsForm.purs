@@ -76,7 +76,7 @@ renderEnabled state =
         [ css "checkbox"
         , HP.type_ InputCheckbox
         , HP.checked $ F.getInput prx.enable state.form
-        , HE.onChange \_ -> Just $ F.modify prx.enable (not $ F.getInput prx.enable state.form)
+        , HE.onChange $ HE.input_ $ F.modify prx.enable (not $ F.getInput prx.enable state.form)
         ]
       , HH.text " Enable extra options"
       ]
@@ -153,7 +153,7 @@ renderSpeed state =
         , css "radio"
         , HP.type_ InputRadio
         , HP.checked $ speed.input == Low
-        , HE.onClick $ HE.input_ \_ -> F.modify prx.speed Low
+        , HE.onClick $ HE.input_ $ F.modify prx.speed Low
         ]
       , HH.text $ " " <> show Low
       ]
@@ -164,7 +164,7 @@ renderSpeed state =
         , css "radio"
         , HP.type_ InputRadio
         , HP.checked $ speed.input == Medium
-        , HE.onClick $ HE.input_ \_ -> F.modify prx.speed Medium
+        , HE.onClick $ HE.input_ $ F.modify prx.speed Medium
         ]
       , HH.text $ " " <> show Medium
       ]
@@ -175,7 +175,7 @@ renderSpeed state =
         , css "radio"
         , HP.type_ InputRadio
         , HP.checked $ speed.input == Fast
-        , HE.onClick $ HE.input_ \_ -> F.modify prx.speed Fast
+        , HE.onClick $ HE.input_ $ F.modify prx.speed Fast
         ]
       , HH.text $ " " <> show Fast
       ]

@@ -72,13 +72,13 @@ component =
 
     Typeahead slot (TA.SelectionsChanged new) a -> case slot of
       Email -> a <$ do
-        H.query unit $ F.modifyValidate prx.email new
+        H.query unit $ F.modifyValidate_ prx.email new
 
       Whiskey -> a <$ do
-        _ <- H.query unit $ F.modifyValidate prx.whiskey new
+        _ <- H.query unit $ F.modifyValidate_ prx.whiskey new
         -- We'll clear the email field when a new whiskey is selected
-        _ <- H.query unit $ F.reset prx.email
+        _ <- H.query unit $ F.reset_ prx.email
         H.query unit $ H.action $ F.Send Email (H.action TA.Clear)
 
       Language -> a <$ do
-        H.query unit $ F.modifyValidate prx.language new
+        H.query unit $ F.modifyValidate_ prx.language new
