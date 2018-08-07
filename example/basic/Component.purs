@@ -4,7 +4,7 @@ import Prelude
 
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
-import Data.Newtype (class Newtype)
+import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Effect.Console (log)
@@ -44,7 +44,7 @@ component = H.parentComponent
     , HH.slot unit F.component
         { inputs
         , validators
-        , submitter: pure <<< F.unwrapRecord
+        , submitter: pure <<< F.unwrapRecord <<< unwrap
         , render: renderFormless
         }
         (const Nothing)
@@ -63,19 +63,20 @@ type Contact =
   , text :: String
   }
 
-type Form f =
+newtype Form r f = Form (r
   ( name :: f V.Errs String String
   , text :: f Unit String String
-  )
+  ))
+derive instance newtypeForm :: Newtype (Form r f) _
 
-inputs :: Form F.InputField
-inputs = F.mkInputFields
+inputs :: Form Record F.InputField
+inputs = wrap $ F.wrapRecord
   { name: ""
   , text: ""
   }
 
 validators :: F.PublicState Form Aff -> Form Record (F.Validator Aff)
-validators _ = F.wrapRecord
+validators _ = wrap $ F.wrapRecord
   { name: toEither $ V.minLength 5
   , text: toEither $ V.notRequired
   }

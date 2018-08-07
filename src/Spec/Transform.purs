@@ -62,8 +62,9 @@ instance mkInputFieldsFromRowCons
 -- | A type to collect constraints necessary to apply to prove that a record of
 -- | SProxies is compatible with your form type.
 type SProxies form =
-   ∀ form xs row
-    . RL.RowToList (form InputField) xs
+    ∀ xs row inputs
+    . RL.RowToList inputs xs
+   => Newtype (form Record InputField) (Record inputs)
    => MakeSProxies xs row
    => Record row
 
@@ -73,9 +74,9 @@ type SProxies form =
 -- | ```purescript
 -- | ```
 mkSProxies
-  :: ∀ form xs row
-   . RL.RowToList row xs
-  => Newtype (form Record InputField) (Record row)
+  :: ∀ form xs inputs row
+   . RL.RowToList inputs xs
+  => Newtype (form Record InputField) (Record inputs)
   => MakeSProxies xs row
   => FormProxy form
   -> Record row

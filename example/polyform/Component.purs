@@ -3,7 +3,7 @@ module Example.Polyform.Component where
 import Prelude
 
 import Data.Maybe (Maybe(..))
-import Data.Newtype (class Newtype)
+import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Effect.Console as Console
@@ -72,7 +72,7 @@ component =
         F.component
         { inputs
         , validators
-        , submitter: pure <<< F.unwrapOutput
+        , submitter: pure <<< F.unwrapRecord <<< unwrap
         , render: renderFormless
         }
         (HE.input HandleFormless)
@@ -106,10 +106,10 @@ type FormRow f =
   )
 
 inputs :: Form Record F.InputField
-inputs = F.mkInputFieldsFromProxy _form
+inputs = F.mkInputFields _form
 
 validators :: ∀ t. t -> Form Record (F.Validator Aff)
-validators _ = F.mkValidators
+validators _ = wrap $ F.wrapRecord
   { name: toEither $ V.Name <$> (V.minLength 5 *> V.maxLength 10)
   , email: toEither $ V.emailFormat >>> V.emailIsUsed
   , city: toEither $ V.minLength 0

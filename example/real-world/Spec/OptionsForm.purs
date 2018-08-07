@@ -4,14 +4,14 @@ import Prelude
 
 import Data.Int as Int
 import Data.Maybe (Maybe(..))
-import Data.Newtype (unwrap)
+import Data.Newtype (unwrap, wrap)
 import Example.App.Validation as V
 import Example.RealWorld.Data.Options (Dollars(..), Metric(..), OptionsForm(..), prx)
 import Formless as F
 import Formless.Validation.Semigroup (toEitherPure)
 
 optionsFormInputs :: OptionsForm Record F.InputField
-optionsFormInputs = F.mkInputFieldsFromProxy $ F.FormProxy :: F.FormProxy OptionsForm
+optionsFormInputs = F.mkInputFields $ F.FormProxy :: F.FormProxy OptionsForm
 
 -- In the case the user has not toggled the options on, we'll provide them with
 -- valid default values.
@@ -27,7 +27,7 @@ defaultInputs = OptionsForm $ inputs
 
 
 optionsFormValidators :: ∀ m. Monad m => F.PublicState OptionsForm m -> OptionsForm Record (F.Validator m)
-optionsFormValidators { form } = F.mkValidators
+optionsFormValidators { form } = wrap $ F.wrapRecord
   { enable: toEitherPure pure
   , metric: toEitherPure V.validateMaybe
   , viewCost: toEitherPure $ validateMetric ViewCost

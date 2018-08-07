@@ -8,7 +8,9 @@ import Data.Array (head)
 import Data.Either (Either(..), either)
 import Data.Lens (preview)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Newtype (class Newtype)
 import Data.Symbol (class IsSymbol, SProxy(..))
+import Data.Variant (Variant)
 import Example.App.Validation (class ToText, toText)
 import Example.App.Validation (showError) as V
 import Formless as F
@@ -155,11 +157,13 @@ textarea config props =
 
 -- Already ready to work with Formless
 formlessField
-  :: ∀ form sym e o t0 t1 m pq cq cs out r
+  :: ∀ form sym e o t0 t1 m pq cq cs out r fields inputs
    . IsSymbol sym
   => ToText e
-  => Cons sym (F.FormField m (Array e) String o) t0 (form (F.FormField m))
-  => Cons sym (F.InputField (Array e) String o) t1 (form F.InputField)
+  => Newtype (form Record (F.FormField m)) (Record fields)
+  => Newtype (form Variant F.InputField) (Variant inputs)
+  => Cons sym (F.FormField m (Array e) String o) t0 fields
+  => Cons sym (F.InputField (Array e) String o) t1 inputs
   => ( FieldConfig'
      -> Array ( HH.IProp
                 ( value :: String, onBlur :: FocusEvent, onInput :: Event | r)

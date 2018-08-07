@@ -3,7 +3,7 @@ module Example.ExternalComponents.Spec where
 import Prelude
 
 import Data.Maybe (Maybe, fromMaybe)
-import Data.Newtype (class Newtype)
+import Data.Newtype (class Newtype, unwrap, wrap)
 import Example.App.Validation as V
 import Formless as F
 import Formless.Validation.Semigroup (toEitherPure)
@@ -25,10 +25,10 @@ prx :: F.SProxies Form
 prx = F.mkSProxies $ F.FormProxy :: F.FormProxy Form
 
 inputs :: Form Record F.InputField
-inputs = F.mkInputFieldsFromProxy $ F.FormProxy :: F.FormProxy Form
+inputs = F.mkInputFields $ F.FormProxy :: F.FormProxy Form
 
 validators :: ∀ m. Monad m => F.PublicState Form m -> Form Record (F.Validator m)
-validators _ = F.mkValidators
+validators _ = wrap $ F.wrapRecord
   { name: toEitherPure $ flip V.validateMinimumLength 7
   , email: toEitherPure $ V.validateEmailRegex <<< fromMaybe ""
   , whiskey: toEitherPure V.validateMaybe
@@ -36,4 +36,4 @@ validators _ = F.mkValidators
   }
 
 submitter :: ∀ m. Monad m => Form Record F.OutputField -> m User
-submitter = pure <<< F.unwrapOutput
+submitter = pure <<< F.unwrapRecord <<< unwrap
