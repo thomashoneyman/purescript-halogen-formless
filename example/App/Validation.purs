@@ -67,23 +67,23 @@ emailFormat = hoistFnE $ \str ->
     else Left InvalidEmail
 
 emailIsUsed :: ∀ m. MonadEffect m => Validation m FieldError Email Email
-emailIsUsed = Validation \e -> do
+emailIsUsed = Validation \e@(Email e') -> do
   -- Perhaps we hit the server to  if the email is in use
-  n <- liftEffect random
-  pure $ if n > 0.5
+  _ <- liftEffect random
+  pure $ if (contains (Pattern "t") e')
     then pure e
     else Left EmailInUse
 
 minLength :: ∀ m. Monad m => Int -> Validation m FieldError String String
 minLength n = hoistFnE $ \str ->
   let n' = length str
-   in if n' < n then Left (TooShort n') else Right str
+   in if n' < n then Left (TooShort n) else Right str
 
 -- | The opposite of minLength.
 maxLength :: ∀ m. Monad m => Int -> Validation m FieldError String String
 maxLength n = hoistFnE \str ->
   let n' = length str
-   in if n' > n then Left (TooLong n') else Right str
+   in if n' > n then Left (TooLong n) else Right str
 
 exists :: ∀ m a. Monad m => Validation m FieldError (Maybe a) a
 exists = hoistFnE $ maybe (Left EmptyField) Right
