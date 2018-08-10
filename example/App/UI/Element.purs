@@ -4,15 +4,14 @@ import Prelude
 
 import DOM.HTML.Indexed (HTMLa, HTMLbutton, HTMLinput, HTMLtextarea)
 import DOM.HTML.Indexed.InputType (InputType(..))
-import Data.Array (head)
 import Data.Either (Either(..), either)
 import Data.Lens (preview)
-import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Maybe (Maybe, maybe)
 import Data.Newtype (class Newtype)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Data.Variant (Variant)
 import Example.App.Validation (class ToText, toText)
-import Example.App.Validation (showError) as V
+import Example.App.Validation as V
 import Formless as F
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -113,7 +112,7 @@ field config contents =
 -- Formless
 
 -- Render a result as help text
-resultToHelp :: ∀ t e. ToText e => String -> Maybe (Either (Array e) t) -> Either String String
+resultToHelp :: ∀ t e. ToText e => String -> Maybe (Either e t) -> Either String String
 resultToHelp str = maybe (Right str) Left <<< V.showError
 
 -- Provide your own label, error or help text, and placeholder
@@ -162,8 +161,8 @@ formlessField
   => ToText e
   => Newtype (form Record (F.FormField m)) (Record fields)
   => Newtype (form Variant F.InputField) (Variant inputs)
-  => Cons sym (F.FormField m (Array e) String o) t0 fields
-  => Cons sym (F.InputField (Array e) String o) t1 inputs
+  => Cons sym (F.FormField m e String o) t0 fields
+  => Cons sym (F.InputField e String o) t1 inputs
   => ( FieldConfig'
      -> Array ( HH.IProp
                 ( value :: String, onBlur :: FocusEvent, onInput :: Event | r)
@@ -180,9 +179,7 @@ formlessField fieldType config state = fieldType (Builder.build config' config) 
       Builder.delete (SProxy :: SProxy "sym")
       <<< Builder.modify (SProxy :: SProxy "help") (const help')
 
-    help' = case (preview (F._Error config.sym) state.form) of
-      Nothing -> Right config.help
-      Just v -> Left $ fromMaybe "" $ toText <$> head v
+    help' = maybe (Right config.help) (Left <<< toText) (preview (F._Error config.sym) state.form)
 
     props =
       [ HP.value (F.getInput config.sym state.form)

@@ -8,7 +8,6 @@ import Data.Symbol (SProxy(..))
 import Example.App.Validation as V
 import Example.RealWorld.Data.Group (Group(..), GroupForm(..), GroupId(..), prx)
 import Formless as F
-import Formless.Validation.Semigroup (toValidator)
 import Record as Record
 
 groupFormSubmit :: ∀ m. Monad m => GroupForm Record F.OutputField -> m Group
@@ -27,15 +26,15 @@ groupFormSubmit form = do
 groupInputs :: GroupForm Record F.InputField
 groupInputs = F.mkInputFields $ F.FormProxy :: F.FormProxy GroupForm
 
-groupValidators :: ∀ m. Monad m => F.PublicState GroupForm m -> GroupForm Record (F.Validator m)
+groupValidators :: ∀ m. Monad m => F.PublicState GroupForm m -> GroupForm Record (F.Validation m)
 groupValidators { form } = GroupForm
-  { name: toValidator V.validateNonEmpty
+  { name: V.nonEmptyStr
     -- Despite being a field-level validation, you can use other fields in the form because the
     -- public state is provided as an argument.
-  , secretKey1: toValidator $ V.validateEqual (F.getInput prx.secretKey2 form)
-  , secretKey2: toValidator $ V.validateEqual (F.getInput prx.secretKey1 form)
-  , admin: toValidator V.validateMaybe
-  , applications: toValidator V.validateNonEmptyArray
-  , pixels: toValidator V.validateNonEmptyArray
-  , whiskey: toValidator V.validateMaybe
+  , secretKey1: V.strIsEqual (F.getInput prx.secretKey2 form)
+  , secretKey2: V.strIsEqual (F.getInput prx.secretKey1 form)
+  , admin: V.exists
+  , applications: V.nonEmptyArray
+  , pixels: V.nonEmptyArray
+  , whiskey: V.exists
   }

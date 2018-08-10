@@ -13,6 +13,7 @@ module Formless
   , State(..)
   , PublicState(..)
   , Input(..)
+  , Input'(..)
   , Message(..)
   , Message'(..)
   , StateRow(..)
@@ -22,6 +23,7 @@ module Formless
   , module Formless.Spec
   , module Formless.Spec.Transform
   , module Formless.Class.Initial
+  , module Formless.Validation
   , send'
   , modify
   , modify_
@@ -50,8 +52,9 @@ import Data.Traversable (traverse, traverse_)
 import Data.Variant (Variant, inj)
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
-import Formless.Spec (ErrorType, FormField(..), FormFieldGet, FormFieldLens, FormFieldRow, FormProxy(..), InputField(..), InputType, OutputField(..), OutputType, Validator(..), _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched, _validator, getField, getInput, getResult, hoistFn, hoistFnE)
-import Formless.Spec.Transform (class MakeInputFieldsFromRow, class MakeSProxies, class UnwrapRecord, class WrapRecord, SProxies, makeSProxiesBuilder, mkInputFields, mkInputFieldsFromRowBuilder, mkSProxies, unwrapOutputFields, unwrapRecord, unwrapRecordBuilder, wrapInputFields, wrapRecord, wrapRecordBuilder)
+import Formless.Spec (ErrorType, FormField(..), FormFieldGet, FormFieldLens, FormFieldRow, FormProxy(..), InputField(..), InputType, OutputField(..), OutputType, _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched, _validator, getField, getInput, getResult)
+import Formless.Spec.Transform (class MakeInputFieldsFromRow, class MakeSProxies, class UnwrapRecord, class WrapRecord, SProxies, makeSProxiesBuilder, mkInputFields, mkInputFieldsFromRowBuilder, mkSProxies, unwrapOutputFields, unwrapRecord, unwrapRecordBuilder, wrapInputFields, wrapRecord, wrapRecordBuilder, wrapValidators)
+import Formless.Validation (Validation(..), hoistFn, hoistFnE)
 import Halogen as H
 import Halogen.Component.ChildPath (ChildPath, injQuery, injSlot)
 import Halogen.HTML as HH
@@ -148,7 +151,7 @@ instance showValidStatus :: Show ValidStatus where
 type Input pq cq cs form out m =
   { submitter :: form Record OutputField -> m out
   , inputs :: form Record InputField
-  , validators :: PublicState form m -> form Record (Validator m)
+  , validators :: PublicState form m -> form Record (Validation m)
   , render :: State form out m -> HTML pq cq cs form out m
   }
 
@@ -182,6 +185,9 @@ type HTML' form out m = H.ParentHTML (Query' form out m) (Const Void) Void m
 -- | A simple Message type when the component does not need embedding
 type Message' form out m = Message (Const Void) form out m
 
+-- | A simple Input type when the component does not need embedding
+type Input' form out m = Input (Const Void) (Const Void) Void form out m
+
 
 -- | The component itself
 component
@@ -206,8 +212,8 @@ component
   => Newtype (form Record InputField) (Record inputs)
   => Newtype (form Variant InputField) (Variant inputs)
   => Newtype (form Record (FormField m)) (Record fields)
-  => Newtype (form Record (Validator m)) (Record vs)
-  => Newtype (form Variant (Validator m)) (Variant vs)
+  => Newtype (form Record (Validation m)) (Record vs)
+  => Newtype (form Variant (Validation m)) (Variant vs)
   => Newtype (form Record OutputField) (Record outputs)
   => Component pq cq cs form out m
 component =

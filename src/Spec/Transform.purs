@@ -7,6 +7,7 @@ import Data.Symbol (class IsSymbol, SProxy(..))
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
 import Formless.Spec (FormProxy, InputField(..), OutputField)
+import Formless.Validation (Validation)
 import Prim.Row as Row
 import Prim.RowList as RL
 import Record as Record
@@ -21,6 +22,15 @@ wrapInputFields
   => Record inputs
   -> form Record InputField
 wrapInputFields = wrap <<< wrapRecord
+
+wrapValidators
+  :: ∀ xs form vs vs' m
+   . RL.RowToList vs xs
+  => Newtype (form Record (Validation m)) (Record vs')
+  => WrapRecord xs vs vs'
+  => Record vs
+  -> form Record (Validation m)
+wrapValidators = wrap <<< wrapRecord
 
 unwrapOutputFields
   :: ∀ xs form outputs outputs'

@@ -8,7 +8,6 @@ import Data.Newtype (unwrap)
 import Example.App.Validation as V
 import Example.RealWorld.Data.Options (Dollars(..), Metric(..), OptionsForm(..), prx)
 import Formless as F
-import Formless.Validation.Semigroup (toValidator)
 
 optionsFormInputs :: OptionsForm Record F.InputField
 optionsFormInputs = F.mkInputFields $ F.FormProxy :: F.FormProxy OptionsForm
@@ -17,7 +16,7 @@ optionsFormInputs = F.mkInputFields $ F.FormProxy :: F.FormProxy OptionsForm
 -- valid default values.
 defaultInputs :: OptionsForm Record F.InputField
 defaultInputs = OptionsForm $ inputs
-  { metric = F.InputField (Just ViewCost)
+  { metric = F.InputField $ Just ViewCost
   , viewCost = F.InputField "1"
   , size = F.InputField "21"
   , dimensions = F.InputField "3005"
@@ -26,21 +25,22 @@ defaultInputs = OptionsForm $ inputs
     inputs = unwrap optionsFormInputs
 
 
-optionsFormValidators :: ∀ m. Monad m => F.PublicState OptionsForm m -> OptionsForm Record (F.Validator m)
+optionsFormValidators :: ∀ m. Monad m => F.PublicState OptionsForm m -> OptionsForm Record (F.Validation m)
 optionsFormValidators { form } = OptionsForm
-  { enable: toValidator pure
-  , metric: toValidator V.validateMaybe
-  , viewCost: toValidator $ validateMetric ViewCost
-  , clickCost: toValidator $ validateMetric ClickCost
-  , installCost: toValidator $ validateMetric InstallCost
-  , size: toValidator validateInt
-  , dimensions: toValidator validateInt
-  , speed: toValidator pure
+  { enable: F.hoistFn identity
+  , metric: V.exists
+  , viewCost: validateMetric ViewCost
+  , clickCost: validateMetric ClickCost
+  , installCost: validateMetric InstallCost
+  , size: Int.toNumber <$> V.strIsInt
+  , dimensions: Int.toNumber <$> V.strIsInt
+  , speed: F.hoistFn identity
   }
   where
     metric = F.getInput prx.metric form
-    validateInt str = Int.toNumber <$> V.validateInt str
-    validateMetric m str
-      | metric == Just m = pure <<< Dollars <$> V.validateInt str
-      | otherwise = pure Nothing
+
+    validateMetric m =
+      if metric == Just m
+        then pure <<< Dollars <$> V.strIsInt
+        else F.hoistFn (const Nothing)
 

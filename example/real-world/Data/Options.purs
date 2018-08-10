@@ -10,7 +10,7 @@ import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype)
-import Example.App.Validation (class ToText, Errs)
+import Example.App.Validation (class ToText, FieldError)
 import Formless as F
 
 -----
@@ -67,14 +67,14 @@ instance initialSpeed :: F.Initial Speed where
 -- | closed row. In the case of the 'enable' option, we know there's no validation
 -- | for it, so we'll use `Void` as the error type.
 type OptionsRow f =
-  ( enable       :: f Unit Boolean        Boolean
-  , metric       :: f Errs (Maybe Metric) Metric
-  , viewCost     :: f Errs String         (Maybe Dollars)
-  , clickCost    :: f Errs String         (Maybe Dollars)
-  , installCost  :: f Errs String         (Maybe Dollars)
-  , size         :: f Errs String         Number
-  , dimensions   :: f Errs String         Number
-  , speed        :: f Unit Speed          Speed
+  ( enable       :: f Void       Boolean        Boolean
+  , metric       :: f FieldError (Maybe Metric) Metric
+  , viewCost     :: f FieldError String         (Maybe Dollars)
+  , clickCost    :: f FieldError String         (Maybe Dollars)
+  , installCost  :: f FieldError String         (Maybe Dollars)
+  , size         :: f FieldError String         Number
+  , dimensions   :: f FieldError String         Number
+  , speed        :: f Void       Speed          Speed
   )
 
 prx :: F.SProxies OptionsForm

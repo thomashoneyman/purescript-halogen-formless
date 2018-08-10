@@ -8,7 +8,8 @@ import Data.Monoid.Additive (Additive(..))
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Data.Variant (Variant, case_, on)
-import Formless.Spec (FormField(..), InputField(..), OutputField(..), Validator, FormFieldRow)
+import Formless.Spec (FormField(..), InputField(..), OutputField(..), FormFieldRow)
+import Formless.Validation (Validation)
 import Prim.Row as Row
 import Prim.RowList as RL
 import Record as Record
@@ -427,9 +428,9 @@ replaceFormFieldValidators
   :: ∀ xs form m fields vs
    . RL.RowToList fields xs
   => ReplaceFormFieldValidators vs xs fields fields
-  => Newtype (form Record (Validator m)) (Record vs)
+  => Newtype (form Record (Validation m)) (Record vs)
   => Newtype (form Record (FormField m)) (Record fields)
-  => form Record (Validator m)
+  => form Record (Validation m)
   -> form Record (FormField m)
   -> form Record (FormField m)
 replaceFormFieldValidators vs fields = wrap $ fromScratch builder
@@ -443,9 +444,9 @@ instance replaceFormFieldValidatorsTouchedNil :: ReplaceFormFieldValidators vs R
 
 instance replaceFormFieldValidatorsTouchedCons
   :: ( IsSymbol name
-     , Newtype (Validator m e i o) (i -> m (Either e o))
+     , Newtype (Validation m e i o) (i -> m (Either e o))
      , Newtype (FormField m e i o) (Record (FormFieldRow m e i o))
-     , Row.Cons name (Validator m e i o) trash0 vs
+     , Row.Cons name (Validation m e i o) trash0 vs
      , Row.Cons name (FormField m e i o) trash1 row
      , Row1Cons name (FormField m e i o) from to
      , ReplaceFormFieldValidators vs tail row from
@@ -456,7 +457,7 @@ instance replaceFormFieldValidatorsTouchedCons
     where
       _name = SProxy :: SProxy name
 
-      v :: Validator m e i o
+      v :: Validation m e i o
       v = Record.get _name vr
 
       f = unwrap $ Record.get _name fr

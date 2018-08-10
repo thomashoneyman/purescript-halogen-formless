@@ -63,8 +63,8 @@ type Contact =
   }
 
 newtype Form r f = Form (r
-  ( name :: f V.Errs String String
-  , text :: f Unit String String
+  ( name :: f V.FieldError String String
+  , text :: f Void String String
   ))
 derive instance newtypeForm :: Newtype (Form r f) _
 
@@ -74,10 +74,10 @@ inputs = F.wrapInputFields
   , text: ""
   }
 
-validators :: F.PublicState Form Aff -> Form Record (F.Validator Aff)
+validators :: F.PublicState Form Aff -> Form Record (F.Validation Aff)
 validators _ = Form
-  { name: V.checkMinLength 5
-  , text: V.checkNotRequired
+  { name: V.minLength 5
+  , text: F.hoistFn (\i -> i)
   }
 
 renderFormless :: F.State Form Contact Aff -> F.HTML' Form Contact Aff
