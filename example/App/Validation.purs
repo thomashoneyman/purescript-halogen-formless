@@ -3,7 +3,7 @@ module Example.App.Validation where
 import Prelude
 
 import Data.Array (head, singleton)
-import Data.Either (Either, either, fromRight)
+import Data.Either (Either(..), either, fromRight)
 import Data.Foldable (length) as Foldable
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
@@ -17,6 +17,7 @@ import Data.String.Regex.Flags (noFlags)
 import Data.Validation.Semigroup (V, invalid)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Random (random)
+import Formless as F
 import Partial.Unsafe (unsafePartial)
 import Polyform.Validation (Validation(..))
 import Polyform.Validation as Validation
@@ -68,6 +69,61 @@ class ToText item where
 
 instance toTextString :: ToText String where
   toText = identity
+
+--------------------
+-- Formless Validation
+--------------------
+
+checkNotRequired
+  :: ∀ m e i
+   . Monad m
+  => Semigroup e
+  => F.Validator m e i i
+checkNotRequired = F.hoistFnE pure
+
+checkEmailFormat
+  :: ∀ m
+   . Monad m
+  => F.Validator m Errs String Email
+checkEmailFormat = F.hoistFnE \i ->
+  if contains (Pattern "@") i
+    then pure (Email i)
+    else Left $ singleton InvalidEmail
+
+checkEmailIsUsed
+  :: ∀ m
+   . MonadEffect m
+  => F.Validator m Errs Email Email
+checkEmailIsUsed = F.Validator \(Email e) -> do
+  -- Perhaps we hit the server to check if the email is in use
+  n <- liftEffect random
+  pure $ if n > 0.5
+    then Left $ singleton EmailInUse
+    else pure (Email e)
+
+checkMinLength
+  :: ∀ m
+   . Monad m
+  => Int
+  -> F.Validator m Errs String String
+checkMinLength n = F.hoistFnE \p ->
+  let p' = length p
+  in if p' < n
+       then Left $ singleton $ TooShort n
+       else pure p
+
+-- | The opposite of minLength.
+checkMaxLength
+  :: ∀ m
+   . Monad m
+  => Int
+  -> F.Validator m Errs String String
+checkMaxLength n = F.hoistFnE \p ->
+  let p' = length p
+   in if length p > n
+        then Left $ singleton $ TooLong n
+        else pure p
+
 
 --------------------
 -- Polyform Validation
@@ -122,6 +178,7 @@ maxLength n = Validation.hoistFnV \p ->
    in if length p > n
         then Validation.Invalid $ singleton $ TooLong n
         else pure p
+
 
 --------------------
 -- Semigroup Validation

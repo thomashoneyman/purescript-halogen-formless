@@ -50,8 +50,8 @@ import Data.Traversable (traverse, traverse_)
 import Data.Variant (Variant, inj)
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
-import Formless.Spec (ErrorType, FormField(..), FormFieldGet, FormFieldLens, FormFieldRow, FormProxy(..), InputField(..), InputType, OutputField(..), OutputType, Validator(..), _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched, _validator, getField, getInput, getResult)
-import Formless.Spec.Transform (class MakeInputFieldsFromRow, class MakeSProxies, class UnwrapRecord, class WrapRecord, SProxies, makeSProxiesBuilder, mkInputFields, mkInputFieldsFromRowBuilder, mkSProxies, unwrapRecord, unwrapRecordBuilder, wrapRecord, wrapRecordBuilder)
+import Formless.Spec (ErrorType, FormField(..), FormFieldGet, FormFieldLens, FormFieldRow, FormProxy(..), InputField(..), InputType, OutputField(..), OutputType, Validator(..), _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched, _validator, getField, getInput, getResult, hoistFn, hoistFnE)
+import Formless.Spec.Transform (class MakeInputFieldsFromRow, class MakeSProxies, class UnwrapRecord, class WrapRecord, SProxies, makeSProxiesBuilder, mkInputFields, mkInputFieldsFromRowBuilder, mkSProxies, unwrapOutputFields, unwrapRecord, unwrapRecordBuilder, wrapInputFields, wrapRecord, wrapRecordBuilder)
 import Halogen as H
 import Halogen.Component.ChildPath (ChildPath, injQuery, injSlot)
 import Halogen.HTML as HH

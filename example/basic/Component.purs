@@ -4,14 +4,13 @@ import Prelude
 
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
-import Data.Newtype (class Newtype, unwrap, wrap)
+import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Effect.Console (log)
 import Example.App.UI.Element as UI
 import Example.App.Validation as V
 import Formless as F
-import Formless.Validation.Polyform (toEither)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -44,7 +43,7 @@ component = H.parentComponent
     , HH.slot unit F.component
         { inputs
         , validators
-        , submitter: pure <<< F.unwrapRecord <<< unwrap
+        , submitter: pure <<< F.unwrapOutputFields
         , render: renderFormless
         }
         (const Nothing)
@@ -70,15 +69,15 @@ newtype Form r f = Form (r
 derive instance newtypeForm :: Newtype (Form r f) _
 
 inputs :: Form Record F.InputField
-inputs = wrap $ F.wrapRecord
+inputs = F.wrapInputFields
   { name: ""
   , text: ""
   }
 
 validators :: F.PublicState Form Aff -> Form Record (F.Validator Aff)
-validators _ = wrap $ F.wrapRecord
-  { name: toEither $ V.minLength 5
-  , text: toEither $ V.notRequired
+validators _ = Form
+  { name: V.checkMinLength 5
+  , text: V.checkNotRequired
   }
 
 renderFormless :: F.State Form Contact Aff -> F.HTML' Form Contact Aff

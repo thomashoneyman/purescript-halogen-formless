@@ -4,11 +4,11 @@ import Prelude
 
 import Data.Int as Int
 import Data.Maybe (Maybe(..))
-import Data.Newtype (unwrap, wrap)
+import Data.Newtype (unwrap)
 import Example.App.Validation as V
 import Example.RealWorld.Data.Options (Dollars(..), Metric(..), OptionsForm(..), prx)
 import Formless as F
-import Formless.Validation.Semigroup (toEitherPure)
+import Formless.Validation.Semigroup (toValidator)
 
 optionsFormInputs :: OptionsForm Record F.InputField
 optionsFormInputs = F.mkInputFields $ F.FormProxy :: F.FormProxy OptionsForm
@@ -27,15 +27,15 @@ defaultInputs = OptionsForm $ inputs
 
 
 optionsFormValidators :: ∀ m. Monad m => F.PublicState OptionsForm m -> OptionsForm Record (F.Validator m)
-optionsFormValidators { form } = wrap $ F.wrapRecord
-  { enable: toEitherPure pure
-  , metric: toEitherPure V.validateMaybe
-  , viewCost: toEitherPure $ validateMetric ViewCost
-  , clickCost: toEitherPure $ validateMetric ClickCost
-  , installCost: toEitherPure $ validateMetric InstallCost
-  , size: toEitherPure validateInt
-  , dimensions: toEitherPure validateInt
-  , speed: toEitherPure pure
+optionsFormValidators { form } = OptionsForm
+  { enable: toValidator pure
+  , metric: toValidator V.validateMaybe
+  , viewCost: toValidator $ validateMetric ViewCost
+  , clickCost: toValidator $ validateMetric ClickCost
+  , installCost: toValidator $ validateMetric InstallCost
+  , size: toValidator validateInt
+  , dimensions: toValidator validateInt
+  , speed: toValidator pure
   }
   where
     metric = F.getInput prx.metric form

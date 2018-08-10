@@ -3,14 +3,14 @@ module Example.Polyform.Component where
 import Prelude
 
 import Data.Maybe (Maybe(..))
-import Data.Newtype (class Newtype, unwrap, wrap)
+import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Effect.Console as Console
 import Example.App.UI.Element as UI
 import Example.App.Validation as V
 import Formless as F
-import Formless.Validation.Polyform (toEither)
+import Formless.Validation.Polyform (toValidator)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -72,7 +72,7 @@ component =
         F.component
         { inputs
         , validators
-        , submitter: pure <<< F.unwrapRecord <<< unwrap
+        , submitter: pure <<< F.unwrapOutputFields
         , render: renderFormless
         }
         (HE.input HandleFormless)
@@ -109,11 +109,11 @@ inputs :: Form Record F.InputField
 inputs = F.mkInputFields _form
 
 validators :: ∀ t. t -> Form Record (F.Validator Aff)
-validators _ = wrap $ F.wrapRecord
-  { name: toEither $ V.Name <$> (V.minLength 5 *> V.maxLength 10)
-  , email: toEither $ V.emailFormat >>> V.emailIsUsed
-  , city: toEither $ V.minLength 0
-  , state: toEither $ Validation.hoistFnV pure
+validators _ = Form
+  { name: toValidator $ V.Name <$> (V.minLength 5 *> V.maxLength 10)
+  , email: toValidator $ V.emailFormat >>> V.emailIsUsed
+  , city: toValidator $ V.minLength 0
+  , state: toValidator $ Validation.hoistFnV pure
   }
 
 renderFormless :: F.State Form User Aff -> F.HTML' Form User Aff

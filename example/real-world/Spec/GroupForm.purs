@@ -3,12 +3,12 @@ module Example.RealWorld.Spec.GroupForm where
 import Prelude
 
 import Data.Maybe (Maybe(..))
-import Data.Newtype (unwrap, wrap)
+import Data.Newtype (unwrap)
 import Data.Symbol (SProxy(..))
 import Example.App.Validation as V
-import Example.RealWorld.Data.Group (Group(..), GroupForm, GroupId(..), prx)
+import Example.RealWorld.Data.Group (Group(..), GroupForm(..), GroupId(..), prx)
 import Formless as F
-import Formless.Validation.Semigroup (toEitherPure)
+import Formless.Validation.Semigroup (toValidator)
 import Record as Record
 
 groupFormSubmit :: ∀ m. Monad m => GroupForm Record F.OutputField -> m Group
@@ -28,14 +28,14 @@ groupInputs :: GroupForm Record F.InputField
 groupInputs = F.mkInputFields $ F.FormProxy :: F.FormProxy GroupForm
 
 groupValidators :: ∀ m. Monad m => F.PublicState GroupForm m -> GroupForm Record (F.Validator m)
-groupValidators { form } = wrap $ F.wrapRecord
-  { name: toEitherPure V.validateNonEmpty
+groupValidators { form } = GroupForm
+  { name: toValidator V.validateNonEmpty
     -- Despite being a field-level validation, you can use other fields in the form because the
     -- public state is provided as an argument.
-  , secretKey1: toEitherPure $ V.validateEqual (F.getInput prx.secretKey2 form)
-  , secretKey2: toEitherPure $ V.validateEqual (F.getInput prx.secretKey1 form)
-  , admin: toEitherPure V.validateMaybe
-  , applications: toEitherPure V.validateNonEmptyArray
-  , pixels: toEitherPure V.validateNonEmptyArray
-  , whiskey: toEitherPure V.validateMaybe
+  , secretKey1: toValidator $ V.validateEqual (F.getInput prx.secretKey2 form)
+  , secretKey2: toValidator $ V.validateEqual (F.getInput prx.secretKey1 form)
+  , admin: toValidator V.validateMaybe
+  , applications: toValidator V.validateNonEmptyArray
+  , pixels: toValidator V.validateNonEmptyArray
+  , whiskey: toValidator V.validateMaybe
   }

@@ -6,12 +6,30 @@ import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
-import Formless.Spec (FormProxy, InputField(..))
+import Formless.Spec (FormProxy, InputField(..), OutputField)
 import Prim.Row as Row
 import Prim.RowList as RL
 import Record as Record
 import Record.Builder as Builder
 import Type.Row (RLProxy(..), RProxy(..))
+
+wrapInputFields
+  :: ∀ xs form inputs inputs'
+   . RL.RowToList inputs xs
+  => Newtype (form Record InputField) (Record inputs')
+  => WrapRecord xs inputs inputs'
+  => Record inputs
+  -> form Record InputField
+wrapInputFields = wrap <<< wrapRecord
+
+unwrapOutputFields
+  :: ∀ xs form outputs outputs'
+   . RL.RowToList outputs xs
+  => Newtype (form Record OutputField) (Record outputs)
+  => UnwrapRecord xs outputs outputs'
+  => form Record OutputField
+  -> Record outputs'
+unwrapOutputFields = unwrapRecord <<< unwrap
 
 -- | A function to transform a row of labels into a InputFields. This allows you
 -- | to go directly from a custom form newtype to a spec without having to
