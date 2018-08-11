@@ -84,7 +84,13 @@ data ValidationError
 
 ## Component Inputs
 
-Now that we have a form type and an output type we can produce the various inputs that the Formless component requires:
+Now that we have a form type and an output type we can produce the `Input` type that the Formless component requires. While we'll take a closer look at each of these types in the next few sections, here's a quick primer on what these types are:
+
+- `inputs`: Your `Form` newtype around a record, where each field contains its initial, starting value
+- `validators`: Your `Form` newtype around a record, where each field contains a validation function which will process its input value
+- `submitter`: A function that accepts as an argument your `Form` newtype around a record, where each label is from your `Form` row and each field is an `OutputField` containing the output of successful validation, and produces the output value of your choice (in our case, a `User`).
+- `render`: The render function the component will use, which is the standard `State -> HTML` type in Halogen
+
 
 ```purescript
 import Formless as F
