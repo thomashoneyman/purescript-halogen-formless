@@ -108,7 +108,7 @@ component =
           F.component
           { inputs: defaultInputs
           , validators: optionsFormValidators
-          , submitter: pure <<< O.Options <<< F.unwrapRecord <<< unwrap
+          , submitter: pure <<< O.Options <<< F.unwrapOutputFields
           , render: OptionsForm.render
           }
           (HE.input OptionsForm)

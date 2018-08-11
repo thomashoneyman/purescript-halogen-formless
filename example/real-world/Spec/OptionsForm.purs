@@ -25,8 +25,8 @@ defaultInputs = OptionsForm $ inputs
     inputs = unwrap optionsFormInputs
 
 
-optionsFormValidators :: ∀ m. Monad m => F.PublicState OptionsForm m -> OptionsForm Record (F.Validation m)
-optionsFormValidators { form } = OptionsForm
+optionsFormValidators :: ∀ m. Monad m => OptionsForm Record (F.Validation (F.PublicState OptionsForm) m)
+optionsFormValidators = OptionsForm
   { enable: F.hoistFn identity
   , metric: V.exists
   , viewCost: validateMetric ViewCost
@@ -37,10 +37,8 @@ optionsFormValidators { form } = OptionsForm
   , speed: F.hoistFn identity
   }
   where
-    metric = F.getInput prx.metric form
-
-    validateMetric m =
-      if metric == Just m
-        then pure <<< Dollars <$> V.strIsInt
-        else F.hoistFn (const Nothing)
+    validateMetric metric = F.Validation \st i ->
+      if (F.getInput prx.metric st.form) == Just metric
+        then (map (Just <<< Dollars)) <$> F.runValidation V.strIsInt st i
+        else pure (pure Nothing)
 

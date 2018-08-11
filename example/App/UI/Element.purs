@@ -159,9 +159,9 @@ formlessField
   :: ∀ form sym e o t0 t1 m pq cq cs out r fields inputs
    . IsSymbol sym
   => ToText e
-  => Newtype (form Record (F.FormField m)) (Record fields)
+  => Newtype (form Record F.FormField) (Record fields)
   => Newtype (form Variant F.InputField) (Variant inputs)
-  => Cons sym (F.FormField m e String o) t0 fields
+  => Cons sym (F.FormField e String o) t0 fields
   => Cons sym (F.InputField e String o) t1 inputs
   => ( FieldConfig'
      -> Array ( HH.IProp

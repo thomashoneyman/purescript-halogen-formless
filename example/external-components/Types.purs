@@ -12,7 +12,7 @@ import Formless as F
 -- Component
 
 data Query a
-  = Formless (F.Message Query Form User Aff) a
+  = Formless (F.Message Query Form User) a
   | Typeahead Slot (TA.Message Maybe String) a
   | Reset a
 

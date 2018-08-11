@@ -2,6 +2,7 @@ module Example.RealWorld.Spec.GroupForm where
 
 import Prelude
 
+import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.Symbol (SProxy(..))
@@ -26,15 +27,30 @@ groupFormSubmit form = do
 groupInputs :: GroupForm Record F.InputField
 groupInputs = F.mkInputFields $ F.FormProxy :: F.FormProxy GroupForm
 
-groupValidators :: ∀ m. Monad m => F.PublicState GroupForm m -> GroupForm Record (F.Validation m)
-groupValidators { form } = GroupForm
+groupValidators :: ∀ m. Monad m => GroupForm Record (F.Validation (F.PublicState GroupForm) m)
+groupValidators = GroupForm
   { name: V.nonEmptyStr
     -- Despite being a field-level validation, you can use other fields in the form because the
     -- public state is provided as an argument.
-  , secretKey1: V.strIsEqual (F.getInput prx.secretKey2 form)
-  , secretKey2: V.strIsEqual (F.getInput prx.secretKey1 form)
+  , secretKey1: V.nonEmptyStr >>> V.minLength 5 >>> equalsSK2
+  , secretKey2: V.nonEmptyStr >>> V.minLength 5 >>> equalsSK1
   , admin: V.exists
   , applications: V.nonEmptyArray
   , pixels: V.nonEmptyArray
   , whiskey: V.exists
   }
+  where
+    -- A custom validator relying on the form state
+    equalsSK1 :: F.Validation (F.PublicState GroupForm) m V.FieldError String String
+    equalsSK1 = F.Validation \st str1 -> pure
+      let str0 = F.getInput prx.secretKey1 st.form
+       in if str0 == str1
+            then Right str1
+            else Left $ V.NotEqual str0 str1
+
+    equalsSK2 :: F.Validation (F.PublicState GroupForm) m V.FieldError String String
+    equalsSK2 = F.Validation \st str1 -> pure
+      let str0 = F.getInput prx.secretKey2 st.form
+       in if str0 == str1
+            then Right str1
+            else Left $ V.NotEqual str0 str1

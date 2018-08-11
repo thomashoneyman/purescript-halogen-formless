@@ -16,7 +16,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 
-data Query a = HandleFormless (F.Message' Form Contact Aff) a
+data Query a = HandleFormless (F.Message' Form Contact) a
 
 type ChildQuery = F.Query' Form Contact Aff
 type ChildSlot = Unit
@@ -74,8 +74,8 @@ inputs = F.wrapInputFields
   , text: ""
   }
 
-validators :: F.PublicState Form Aff -> Form Record (F.Validation Aff)
-validators _ = Form
+validators :: Form Record (F.Validation (F.PublicState Form) Aff)
+validators = Form
   { name: V.minLength 5
   , text: F.hoistFn (\i -> i)
   }
@@ -89,7 +89,8 @@ renderFormless state =
      , placeholder: "Dale"
      }
      [ HP.value $ F.getInput _name state.form
-     , HE.onValueInput $ HE.input $ F.modifyValidate _name
+     , HE.onValueInput $ HE.input $ F.modify _name
+     , HE.onBlur $ HE.input_ $ F.validate _name
      ]
  , UI.textarea
      { label: "Message"
@@ -98,6 +99,7 @@ renderFormless state =
      }
      [ HP.value $ F.getInput _text state.form
      , HE.onValueInput $ HE.input $ F.modify _text
+     , HE.onBlur $ HE.input_ $ F.validate _text
      ]
    , UI.buttonPrimary
      [ HE.onClick $ HE.input_ F.Submit ]
