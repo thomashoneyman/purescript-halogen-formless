@@ -40,6 +40,7 @@ We'll start with the data type we want our form to result in: a `User`.
 type User =
   { id :: Int
   , name :: String
+  , email :: Email
   }
 ```
 
