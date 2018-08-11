@@ -27,7 +27,7 @@ prx = F.mkSProxies $ F.FormProxy :: F.FormProxy Form
 inputs :: Form Record F.InputField
 inputs = F.mkInputFields $ F.FormProxy :: F.FormProxy Form
 
-validators :: ∀ m. MonadEffect m => Form Record (F.Validation (F.PublicState Form) m)
+validators :: ∀ m. MonadEffect m => Form Record (F.Validation Form m)
 validators = Form
   { name: V.minLength 7
     -- Unpacks the Maybe value, then checks the email format, then verifies it is not in use

@@ -135,7 +135,7 @@ newtype InternalState form out m = InternalState
   , formResult :: Maybe out
   , allTouched :: Boolean
   , submitter :: form Record OutputField -> m out
-  , validators :: form Record (Validation (PublicState form) m)
+  , validators :: form Record (Validation form m)
   }
 derive instance newtypeInternalState :: Newtype (InternalState form out m) _
 
@@ -154,9 +154,10 @@ instance showValidStatus :: Show ValidStatus where
 type Input pq cq cs form out m =
   { submitter :: form Record OutputField -> m out
   , inputs :: form Record InputField
-  , validators :: form Record (Validation (PublicState form) m)
+  , validators :: form Record (Validation form m)
   , render :: State form out m -> HTML pq cq cs form out m
   }
+
 
 -- | The component tries to require as few messages to be handled as possible. You
 -- | can always use the *Reply variants of queries to perform actions and receive
@@ -210,14 +211,14 @@ component
   => Internal.AllTouched fieldxs fields
   => Internal.SumRecord countxs count (Additive Int)
   => Internal.ReplaceFormFieldInputs inputs fieldxs fields fields
-  => Internal.ApplyValidation (PublicState form) vs fieldxs fields fields m
+  => Internal.ApplyValidation vs fieldxs fields fields m
   => Internal.SetInputVariantRL inputsxs inputs fields
   => Internal.ValidateVariantRL uxs us fields m
   => Newtype (form Record InputField) (Record inputs)
   => Newtype (form Variant InputField) (Variant inputs)
   => Newtype (form Record FormField) (Record fields)
-  => Newtype (form Record (Validation (PublicState form) m)) (Record vs)
-  => Newtype (form Variant (Validation (PublicState form) m)) (Variant vs)
+  => Newtype (form Record (Validation form m)) (Record vs)
+  => Newtype (form Variant (Validation form m)) (Variant vs)
   => Newtype (form Record OutputField) (Record outputs)
   => Newtype (form Variant Internal.U) (Variant us)
   => Component pq cq cs form out m
@@ -267,7 +268,7 @@ component =
 
     ValidateAll a -> do
       st <- getState
-      form <- H.lift $ Internal.applyValidation (getPublicState st) (unwrap st.internal).validators st.form
+      form <- H.lift $ Internal.applyValidation (unwrap st.internal).validators st.form
       modifyState_ _ { form = form }
       eval $ SyncFormData a
 
@@ -398,14 +399,14 @@ component =
       variantRep :: ∀ i. VariantRep i
       variantRep = unsafeCoerce variant
 
-      validator :: ∀ e i o. State form out m -> VariantRep i -> Validation (PublicState form) m e i o
+      validator :: ∀ e i o. State form out m -> VariantRep i -> Validation form m e i o
       validator state (VariantRep { type: t }) = unsafeGet t (unwrap (unwrap state.internal).validators)
 
       updater state = Internal.validateVariant
         (\ff@(FormField { input, touched }) ->
           if touched
             then do
-              res <- (unwrap (validator state variantRep)) (getPublicState state) input
+              res <- (unwrap (validator state variantRep)) (_.form $ getPublicState state) input
               pure $ FormField { input, touched, result: Just res }
             else
               pure ff
@@ -424,14 +425,14 @@ component =
       variantRep :: ∀ i. VariantRep i
       variantRep = unsafeCoerce variant
 
-      validator :: ∀ e i o. State form out m -> VariantRep i -> Validation (PublicState form) m e i o
+      validator :: ∀ e i o. State form out m -> VariantRep i -> Validation form m e i o
       validator state (VariantRep { type: t }) = unsafeGet t (unwrap (unwrap state.internal).validators)
 
       validateUpdater state = Internal.validateVariant
         (\ff@(FormField { input, touched }) ->
           if touched
             then do
-              res <- (unwrap (validator state variantRep)) (getPublicState state) input
+              res <- (unwrap (validator state variantRep)) (_.form $ getPublicState state) input
               pure $ FormField { input, touched, result: Just res }
             else
               pure ff

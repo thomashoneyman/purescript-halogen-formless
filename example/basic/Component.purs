@@ -74,7 +74,7 @@ inputs = F.wrapInputFields
   , text: ""
   }
 
-validators :: Form Record (F.Validation (F.PublicState Form) Aff)
+validators :: Form Record (F.Validation Form Aff)
 validators = Form
   { name: V.minLength 5
   , text: F.hoistFn (\i -> i)

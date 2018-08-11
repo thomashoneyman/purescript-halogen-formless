@@ -132,19 +132,18 @@ replaceFormFieldInputs inputs fields = wrap $ fromScratch builder
   where builder = replaceFormFieldInputsBuilder (unwrap inputs) (RLProxy :: RLProxy xs) (unwrap fields)
 
 applyValidation
-  :: ∀ st vs xs form fields m
+  :: ∀ vs xs form fields m
    . RL.RowToList fields xs
   => Monad m
-  => ApplyValidation st vs xs fields fields m
-  => Newtype (form Record (Validation st m)) (Record vs)
+  => ApplyValidation vs xs fields fields m
+  => Newtype (form Record (Validation form m)) (Record vs)
   => Newtype (form Record FormField) (Record fields)
-  => st
-  -> form Record (Validation st m)
+  => form Record (Validation form m)
   -> form Record FormField
   -> m (form Record FormField)
-applyValidation st vs fs = map wrap $ fromScratch <$> builder
+applyValidation vs fs = map wrap $ fromScratch <$> builder
   where
-    builder = applyValidationBuilder st (unwrap vs) (RLProxy :: RLProxy xs) (unwrap fs)
+    builder = applyValidationBuilder (unwrap vs) (RLProxy :: RLProxy xs) (unwrap fs)
 
 -----
 -- Classes (Internal)
@@ -405,34 +404,35 @@ instance transformFormFieldsTouchedCons
       rest = transformFormFieldsBuilder f (RLProxy :: RLProxy tail) r
 
 -- | A class that applies the current state to the unwrapped version of every validator
-class ApplyValidation st (vs :: # Type) (xs :: RL.RowList) (row :: # Type) (to :: # Type) m | xs -> to where
-  applyValidationBuilder :: st -> Record vs -> RLProxy xs -> Record row -> m (FromScratch to)
+class ApplyValidation (vs :: # Type) (xs :: RL.RowList) (row :: # Type) (to :: # Type) m | xs -> to where
+  applyValidationBuilder :: Record vs -> RLProxy xs -> Record row -> m (FromScratch to)
 
-instance applyToValidationNil :: Monad m => ApplyValidation st vs RL.Nil row () m where
-  applyValidationBuilder _ _ _ _ = pure identity
+instance applyToValidationNil :: Monad m => ApplyValidation vs RL.Nil row () m where
+  applyValidationBuilder _ _ _ = pure identity
 
 instance applyToValidationCons
   :: ( IsSymbol name
      , Monad m
      , Row.Cons name (FormField e i o) t0 row
-     , Row.Cons name (Validation st m e i o) t1 vs
+     , Newtype (form Record FormField) (Record row)
+     , Row.Cons name (Validation form m e i o) t1 vs
      , Row1Cons name (FormField e i o) from to
-     , ApplyValidation st vs tail row from m
+     , ApplyValidation vs tail row from m
      )
-  => ApplyValidation st vs (RL.Cons name (FormField e i o) tail) row to m where
-  applyValidationBuilder st vs _ r =
+  => ApplyValidation vs (RL.Cons name (FormField e i o) tail) row to m where
+  applyValidationBuilder vs _ r =
     fn <$> val <*> rest
     where
       _name = SProxy :: SProxy name
 
       fn val' rest' = Builder.insert _name val' <<< rest'
 
-      rest = applyValidationBuilder st vs (RLProxy :: RLProxy tail) r
+      rest = applyValidationBuilder vs (RLProxy :: RLProxy tail) r
 
       val = do
         let validator = unwrap $ Record.get _name vs
             formField = unwrap $ Record.get _name r
-        res <- validator st formField.input
+        res <- validator (wrap r) formField.input
         pure $ wrap $ formField { result = Just res }
 
 

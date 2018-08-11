@@ -60,13 +60,13 @@ instance toTextString :: ToText String where
 -- Formless Validation
 --------------------
 
-emailFormat :: ∀ st m. Monad m => Validation st m FieldError String Email
+emailFormat :: ∀ form m. Monad m => Validation form m FieldError String Email
 emailFormat = hoistFnE $ \str ->
   if contains (Pattern "@") str
     then pure $ Email str
     else Left InvalidEmail
 
-emailIsUsed :: ∀ st m. MonadEffect m => Validation st m FieldError Email Email
+emailIsUsed :: ∀ form m. MonadEffect m => Validation form m FieldError Email Email
 emailIsUsed = Validation \_ e@(Email e') -> do
   -- Perhaps we hit the server to  if the email is in use
   _ <- liftEffect random
@@ -74,37 +74,31 @@ emailIsUsed = Validation \_ e@(Email e') -> do
     then pure e
     else Left EmailInUse
 
-minLength :: ∀ st m. Monad m => Int -> Validation st m FieldError String String
+minLength :: ∀ form m. Monad m => Int -> Validation form m FieldError String String
 minLength n = hoistFnE $ \str ->
   let n' = length str
    in if n' < n then Left (TooShort n) else Right str
 
 -- | The opposite of minLength.
-maxLength :: ∀ st m. Monad m => Int -> Validation st m FieldError String String
+maxLength :: ∀ form m. Monad m => Int -> Validation form m FieldError String String
 maxLength n = hoistFnE \str ->
   let n' = length str
    in if n' > n then Left (TooLong n) else Right str
 
-exists :: ∀ st m a. Monad m => Validation st m FieldError (Maybe a) a
+exists :: ∀ form m a. Monad m => Validation form m FieldError (Maybe a) a
 exists = hoistFnE $ maybe (Left EmptyField) Right
 
-strIsEqual :: ∀ st m. Monad m => String -> Validation st m FieldError String String
-strIsEqual a = hoistFnE \b ->
-  if a == b
-    then Right b
-    else Left $ NotEqual a b
-
-strIsInt :: ∀ st m. Monad m => Validation st m FieldError String Int
+strIsInt :: ∀ form m. Monad m => Validation form m FieldError String Int
 strIsInt = hoistFnE $ \str -> maybe (Left $ InvalidInt str) Right (Int.fromString str)
 
-nonEmptyArray :: ∀ st m a. Monad m => Validation st m FieldError (Array a) (Array a)
+nonEmptyArray :: ∀ form m a. Monad m => Validation form m FieldError (Array a) (Array a)
 nonEmptyArray = hoistFnE \arr ->
   if Foldable.length arr > 0
     then Right arr
     else Left EmptyField
 
 -- | Validate that an input string is not empty
-nonEmptyStr :: ∀ st m. Monad m => Validation st m FieldError String String
+nonEmptyStr :: ∀ form m. Monad m => Validation form m FieldError String String
 nonEmptyStr = hoistFnE $ \str ->
   if null str
     then Left EmptyField
