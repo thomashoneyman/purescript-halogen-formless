@@ -13,6 +13,8 @@ import Record as Record
 import Record.Builder as Builder
 import Type.Row (RLProxy(..), RProxy(..))
 
+-- | Given a record where all labels match up with your `Form` type, wrap
+-- | all fields in `InputField` and the resulting record in `Form`.
 wrapInputFields
   :: ∀ xs form inputs inputs'
    . RL.RowToList inputs xs
@@ -22,6 +24,8 @@ wrapInputFields
   -> form Record InputField
 wrapInputFields = wrap <<< wrapRecord
 
+-- | Given a record where all labels match up with your `Form` type, unwrap
+-- | all fields from `OutputField` and the record from `Form`.
 unwrapOutputFields
   :: ∀ xs form outputs outputs'
    . RL.RowToList outputs xs
@@ -32,13 +36,10 @@ unwrapOutputFields
 unwrapOutputFields = unwrapRecord <<< unwrap
 
 -- | A function to transform a row of labels into a InputFields. This allows you
--- | to go directly from a custom form newtype to a spec without having to
+-- | to go directly from a custom form newtype to an inputs record without having to
 -- | fill in any values. Requires that all members have an instance of the
 -- | `Initial` type class (all monoidal values do by default, along with some
 -- | other primitives).
--- |
--- | ```purescript
--- | ```
 mkInputFields
   :: ∀ xs form inputs
    . RL.RowToList inputs xs
@@ -88,9 +89,6 @@ type SProxies form =
 
 -- | A helper function to produce a record of SProxies given a form spec, to save
 -- | you the boilerplate of writing them all out.
--- |
--- | ```purescript
--- | ```
 mkSProxies
   :: ∀ form xs inputs row
    . RL.RowToList inputs xs

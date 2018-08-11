@@ -13,7 +13,7 @@ import Data.String (contains, length, null)
 import Data.String.Pattern (Pattern(..))
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Random (random)
-import Formless.Validation (Validation(..), hoistFnE)
+import Formless.Validation (Validation(..), hoistFnE_)
 
 data FieldError
   = EmptyField
@@ -61,7 +61,7 @@ instance toTextString :: ToText String where
 --------------------
 
 emailFormat :: ∀ form m. Monad m => Validation form m FieldError String Email
-emailFormat = hoistFnE $ \str ->
+emailFormat = hoistFnE_ $ \str ->
   if contains (Pattern "@") str
     then pure $ Email str
     else Left InvalidEmail
@@ -75,31 +75,31 @@ emailIsUsed = Validation \_ e@(Email e') -> do
     else Left EmailInUse
 
 minLength :: ∀ form m. Monad m => Int -> Validation form m FieldError String String
-minLength n = hoistFnE $ \str ->
+minLength n = hoistFnE_ $ \str ->
   let n' = length str
    in if n' < n then Left (TooShort n) else Right str
 
 -- | The opposite of minLength.
 maxLength :: ∀ form m. Monad m => Int -> Validation form m FieldError String String
-maxLength n = hoistFnE \str ->
+maxLength n = hoistFnE_ \str ->
   let n' = length str
    in if n' > n then Left (TooLong n) else Right str
 
 exists :: ∀ form m a. Monad m => Validation form m FieldError (Maybe a) a
-exists = hoistFnE $ maybe (Left EmptyField) Right
+exists = hoistFnE_ $ maybe (Left EmptyField) Right
 
 strIsInt :: ∀ form m. Monad m => Validation form m FieldError String Int
-strIsInt = hoistFnE $ \str -> maybe (Left $ InvalidInt str) Right (Int.fromString str)
+strIsInt = hoistFnE_ $ \str -> maybe (Left $ InvalidInt str) Right (Int.fromString str)
 
 nonEmptyArray :: ∀ form m a. Monad m => Validation form m FieldError (Array a) (Array a)
-nonEmptyArray = hoistFnE \arr ->
+nonEmptyArray = hoistFnE_ \arr ->
   if Foldable.length arr > 0
     then Right arr
     else Left EmptyField
 
 -- | Validate that an input string is not empty
 nonEmptyStr :: ∀ form m. Monad m => Validation form m FieldError String String
-nonEmptyStr = hoistFnE $ \str ->
+nonEmptyStr = hoistFnE_ $ \str ->
   if null str
     then Left EmptyField
     else Right str

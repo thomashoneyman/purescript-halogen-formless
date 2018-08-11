@@ -178,37 +178,37 @@ Let's see some examples of validators written in this style:
 
 -- This helper function lets you take any function from `input` to `output` and turns it into
 -- the Validation type from Formless.
-hoistFn :: ∀ form m e i o. Monad m => (i -> o) -> Validation form m e i o
-hoistFn f = Validation $ const $ pure <<< pure <<< f
+hoistFn_ :: ∀ form m e i o. Monad m => (i -> o) -> Validation form m e i o
+hoistFn_ f = Validation $ const $ pure <<< pure <<< f
 
--- For example, this validator simply transforms the input `Int` into a `String` using `hoistFn`
+-- For example, this validator simply transforms the input `Int` into a `String` using `hoistFn_`
 -- output.
 myStringValidator :: ∀ form m. Monad m => Validation form m Void Int String
-myStringValidator = hoistFn show
+myStringValidator = hoistFn_ show
 
 -- This helper function lets you take any function from `input` to `Either error output` and turns
 -- it into the Validation type from Formless.
-hoistFnE :: ∀ form m e i o. Monad m => (i -> Either e o) -> Validation form m e i o
-hoistFnE f = Validation $ const $ pure <<< f
+hoistFnE_ :: ∀ form m e i o. Monad m => (i -> Either e o) -> Validation form m e i o
+hoistFnE_ f = Validation $ const $ pure <<< f
 
 -- For example, this validator makes sure that the string is not empty
 isNonEmpty :: ∀ form m. Monad m => Validation form m ValidationError String String
-isNonEmpty = hoistFnE $ \str ->
+isNonEmpty = hoistFnE_ $ \str ->
   if null str
      then Left Required
      else Right str
 
 -- This validator transforms the input into an `Email` type if successful.
 validEmail :: ∀ form m. Monad m => Validation form m ValidationError String Email
-validEmail = hoistFnE $ \str ->
+validEmail = hoistFnE_ $ \str ->
   if contains (Pattern "@") str
      then Right (Email str)
      else Left EmailInvalid
 
 -- Continuing the trend, this helper takes a function from `input` to a monad `m (Either error output)` and
 -- turns it into the Validation type from Formless.
-hoistFnME :: ∀ form m e i o. Monad m => (i -> m (Either e o)) -> Validation form m e i o
-hoistFnME f = Validation $ const f
+hoistFnME_ :: ∀ form m e i o. Monad m => (i -> m (Either e o)) -> Validation form m e i o
+hoistFnME_ f = Validation $ const f
 
 -- For example, this validator makes sure that an email address is not in use. Notice how it relies
 -- on the input value already being an `Email` -- we'll see how to chain validators together so this
@@ -223,13 +223,19 @@ emailNotUsed = hoistFnME $ \email -> do
 
 -- Now, let's do something a little more complex. Let's validate that two passwords are equal to one another.
 
+-- This time, we want to rely on our existing `Form` as an argument for our validation, so instead of using
+-- `hoistFnE_` we'll reach for `hoistFn`, which doen't throw away the form argument.
+-- it into the Validation type from Formless.
+hoistFnE :: ∀ form m e i o. Monad m => (form Record FormField -> i -> Either e o) -> Validation form m e i o
+hoistFnE f = Validation $ \form i -> pure $ f form i
+
 -- We'll use `getInput` from Formless to retrieve the input value of the field "password1" from the form, and then
 -- we'll validate that the current field is equal to it. Formless can prove that a "password1" field exists using
 -- your form row, so you'll never access a value you don't have.
 equalsPassword1 :: ∀ m. Monad m => Validation Form m ValidationError String String
-equalsPassword1 = F.Validation $ \form str ->
+equalsPassword1 = hoistFnE $ \form str ->
   let p1 = F.getInput (SProxy :: SProxy "password1") form
-   in pure $ if str == p1
+   in if str == p1
         then Right str
         else Left $ NotEqual str p1
 ```
@@ -240,8 +246,8 @@ These validators are building blocks that you can compose together to validate a
 validator :: Form Record (F.Validation Form Aff)
 validator = Form
   { name: isNonEmpty
-  , password1: isNonEmpty >>> hoistFn Encrypted
-  , password2: isNonEmpty >>> equalsPassword1 >>> hoistFn Encrypted
+  , password1: isNonEmpty >>> hoistFn_ Encrypted
+  , password2: isNonEmpty >>> equalsPassword1 >>> hoistFn_ Encrypted
   , email: validEmail >>> emailIsUsed
   }
 ```

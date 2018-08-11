@@ -3,7 +3,7 @@ module Formless.Spec where
 import Prelude
 
 import Data.Either (Either)
-import Data.Lens (Lens', view)
+import Data.Lens (Lens', preview, view)
 import Data.Lens.Iso.Newtype (_Newtype)
 import Data.Lens.Prism.Either (_Left, _Right)
 import Data.Lens.Prism.Maybe (_Just)
@@ -14,23 +14,22 @@ import Data.Newtype (class Newtype)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Prim.Row as Row
 
--- | @monoidmusician
+-- | Create a proxy for your form type, for use with functions that generate records from
+-- | form proxies.
 data FormProxy (form :: (# Type -> Type) -> (Type -> Type -> Type -> Type) -> Type) = FormProxy
 
--- | A wrapper to represent only the input type.
+-- | A wrapper to represent only the input type. Requires that `eq` is defined for the input
+-- | type in order to track dirty states.
 newtype InputField error input output = InputField input
 derive instance newtypeInputField :: Newtype (InputField e i o) _
 derive newtype instance eqInputField :: Eq i => Eq (InputField e i o)
-derive newtype instance ordInputField :: Ord i => Ord (InputField e i o)
 
 -- | A wrapper to represent only the output type. Used to represent
 -- | form results at the end of validation.
 newtype OutputField error input output = OutputField output
 derive instance newtypeOutputField :: Newtype (OutputField e i o) _
 
--- | The type that we need to record state across the form, but
--- | we don't need this from the user -- we can fill in 'touched'
--- | and 'result' on their behalf.
+-- | The type that we need to record state across the form
 newtype FormField e i o = FormField (Record (FormFieldRow e i o))
 derive instance newtypeFormField :: Newtype (FormField e i o) _
 
@@ -66,9 +65,21 @@ getField sym = view (_Field sym)
 getInput :: ∀ e i o. FormFieldGet e i o i
 getInput sym = view (_Input sym)
 
+-- | Given a form, get the touched field at the specified symbol
+getTouched :: ∀ e i o. FormFieldGet e i o Boolean
+getTouched sym = view (_Touched sym)
+
 -- | Given a form, get the result at the specified symbol
 getResult :: ∀ e i o. FormFieldGet e i o (Maybe (Either e o))
 getResult sym = view (_Result sym)
+
+-- | Given a form, get the error (if it exists) at the specified symbol
+getError :: ∀ e i o. FormFieldGet e i o (Maybe e)
+getError sym = preview (_Error sym)
+
+-- | Given a form, get the output (if it exists) at the specified symbol
+getOutput :: ∀ e i o. FormFieldGet e i o (Maybe o)
+getOutput sym = preview (_Output sym)
 
 
 ----------
@@ -121,7 +132,7 @@ _Output
 _Output sym = _Result sym <<< _Just <<< _Right
 
 ----------
--- Helper types
+-- Helpers
 
 -- | A type synonym that lets you pick out just the error type from
 -- | your form row.

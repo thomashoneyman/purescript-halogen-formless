@@ -14,15 +14,29 @@ import Formless.Spec (FormField)
 runValidation :: ∀ form m e i o. Monad m => Validation form m e i o -> form Record FormField -> i -> m (Either e o)
 runValidation = unwrap
 
--- | Used to take a pure i -> o function and turn it into a correct Validation
-hoistFn :: ∀ form m e i o. Monad m => (i -> o) -> Validation form m e i o
-hoistFn f = Validation $ const $ pure <<< pure <<< f
+-- | Turn a function from (form Record FormField -> i -> o) into a proper Validation
+hoistFn :: ∀ form m e i o. Monad m => (form Record FormField -> i -> o) -> Validation form m e i o
+hoistFn f = Validation $ \form -> pure <<< pure <<< f form
 
-hoistFnE :: ∀ form m e i o. Monad m => (i -> Either e o) -> Validation form m e i o
-hoistFnE f = Validation $ const $ pure <<< f
+-- | Turn a function from (i -> o) into a proper Validation
+hoistFn_ :: ∀ form m e i o. Monad m => (i -> o) -> Validation form m e i o
+hoistFn_ f = Validation $ const $ pure <<< pure <<< f
 
-hoistFnME :: ∀ form m e i o. Monad m => (i -> m (Either e o)) -> Validation form m e i o
-hoistFnME = Validation <<< const
+-- | Turn a function from (form Record FormField -> i -> Either e o) into a proper Validation
+hoistFnE :: ∀ form m e i o. Monad m => (form Record FormField -> i -> Either e o) -> Validation form m e i o
+hoistFnE f = Validation $ \form -> pure <<< f form
+
+-- | Turn a function from (i -> Either e o) into a proper Validation
+hoistFnE_ :: ∀ form m e i o. Monad m => (i -> Either e o) -> Validation form m e i o
+hoistFnE_ f = Validation $ const $ pure <<< f
+
+-- | Turn a function from (form Record FormField -> i -> m (Either e o)) into a proper Validation
+hoistFnME :: ∀ form m e i o. Monad m => (form Record FormField -> i -> m (Either e o)) -> Validation form m e i o
+hoistFnME = Validation
+
+-- | Turn a function from (i -> m (Either e o)) into a proper Validation
+hoistFnME_ :: ∀ form m e i o. Monad m => (i -> m (Either e o)) -> Validation form m e i o
+hoistFnME_ = Validation <<< const
 
 ----------
 -- Core type

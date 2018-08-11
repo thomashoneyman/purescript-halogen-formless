@@ -26,14 +26,14 @@ defaultInputs = OptionsForm $ inputs
 
 optionsFormValidators :: ∀ m. Monad m => OptionsForm Record (F.Validation OptionsForm m)
 optionsFormValidators = OptionsForm
-  { enable: F.hoistFn identity
+  { enable: F.hoistFn_ identity
   , metric: V.exists
   , viewCost: validateMetric ViewCost
   , clickCost: validateMetric ClickCost
   , installCost: validateMetric InstallCost
   , size: Int.toNumber <$> V.strIsInt
   , dimensions: Int.toNumber <$> V.strIsInt
-  , speed: F.hoistFn identity
+  , speed: F.hoistFn_ identity
   }
   where
     validateMetric metric = F.Validation \form i ->

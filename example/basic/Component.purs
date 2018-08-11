@@ -77,7 +77,7 @@ inputs = F.wrapInputFields
 validators :: Form Record (F.Validation Form Aff)
 validators = Form
   { name: V.minLength 5
-  , text: F.hoistFn (\i -> i)
+  , text: F.hoistFn_ identity
   }
 
 renderFormless :: F.State Form Contact Aff -> F.HTML' Form Contact Aff
@@ -98,7 +98,6 @@ renderFormless state =
      }
      [ HP.value $ F.getInput _text state.form
      , HE.onValueInput $ HE.input $ F.modify _text
-     , HE.onBlur $ HE.input_ $ F.validate _text
      ]
    , UI.buttonPrimary
      [ HE.onClick $ HE.input_ F.Submit ]

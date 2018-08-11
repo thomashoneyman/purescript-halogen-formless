@@ -42,14 +42,14 @@ groupValidators = GroupForm
   where
     -- A custom validator relying on the form state
     equalsSK1 :: F.Validation GroupForm m V.FieldError String String
-    equalsSK1 = F.Validation \form str1 -> pure
+    equalsSK1 = F.hoistFnE \form str1 ->
       let str0 = F.getInput prx.secretKey1 form
        in if str0 == str1
             then Right str1
             else Left $ V.NotEqual str0 str1
 
     equalsSK2 :: F.Validation GroupForm m V.FieldError String String
-    equalsSK2 = F.Validation \form str1 -> pure
+    equalsSK2 = F.hoistFnE \form str1 ->
       let str0 = F.getInput prx.secretKey2 form
        in if str0 == str1
             then Right str1

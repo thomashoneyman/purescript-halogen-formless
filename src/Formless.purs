@@ -53,9 +53,9 @@ import Data.Variant (Variant, inj)
 import Data.Variant.Internal (VariantRep(..), unsafeGet)
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
-import Formless.Spec (ErrorType, FormField(..), FormFieldGet, FormFieldLens, FormFieldRow, FormProxy(..), InputField(..), InputType, OutputField(..), OutputType, _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched, getField, getInput, getResult)
-import Formless.Spec.Transform (class MakeInputFieldsFromRow, class MakeSProxies, class UnwrapRecord, class WrapRecord, SProxies, makeSProxiesBuilder, mkInputFields, mkInputFieldsFromRowBuilder, mkSProxies, unwrapOutputFields, unwrapRecord, unwrapRecordBuilder, wrapInputFields, wrapRecord, wrapRecordBuilder, wrapValidators)
-import Formless.Validation (Validation(..), hoistFn, hoistFnE, runValidation)
+import Formless.Spec (ErrorType, FormField(..), FormFieldGet, FormFieldLens, FormFieldRow, FormProxy(..), InputField(..), InputType, OutputField(..), OutputType, _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched, getError, getField, getInput, getOutput, getResult, getTouched)
+import Formless.Spec.Transform (class MakeInputFieldsFromRow, class MakeSProxies, class UnwrapRecord, class WrapRecord, SProxies, makeSProxiesBuilder, mkInputFields, mkInputFieldsFromRowBuilder, mkSProxies, unwrapOutputFields, unwrapRecord, unwrapRecordBuilder, wrapInputFields, wrapRecord, wrapRecordBuilder)
+import Formless.Validation (Validation(..), hoistFn, hoistFnE, hoistFnE_, hoistFnME, hoistFnME_, hoistFn_, runValidation)
 import Halogen as H
 import Halogen.Component.ChildPath (ChildPath, injQuery, injSlot)
 import Halogen.HTML as HH
@@ -157,7 +157,6 @@ type Input pq cq cs form out m =
   , validators :: form Record (Validation form m)
   , render :: State form out m -> HTML pq cq cs form out m
   }
-
 
 -- | The component tries to require as few messages to be handled as possible. You
 -- | can always use the *Reply variants of queries to perform actions and receive
@@ -494,6 +493,8 @@ component =
 ----------
 -- Component helper functions for variants
 
+-- | A helper to create the correct `Modify` query for Formless given a label and
+-- | an input value
 modify
   :: ∀ pq cq cs form inputs out m sym t0 e i o a
    . IsSymbol sym
@@ -505,6 +506,8 @@ modify
   -> Query pq cq cs form out m a
 modify sym i = Modify (wrap (inj sym (wrap i)))
 
+-- | A helper to create the correct `Modify` query for Formless given a label and
+-- | an input value, as an action
 modify_
   :: ∀ pq cq cs form inputs out m sym t0 e i o
    . IsSymbol sym
@@ -515,6 +518,8 @@ modify_
   -> Query pq cq cs form out m Unit
 modify_ sym i = Modify (wrap (inj sym (wrap i))) unit
 
+-- | A helper to create the correct `ModifyValidate` query for Formless given a
+-- | label and an input value
 modifyValidate
   :: ∀ pq cq cs form inputs out m sym t0 e i o a
    . IsSymbol sym
@@ -526,6 +531,8 @@ modifyValidate
   -> Query pq cq cs form out m a
 modifyValidate sym i = ModifyValidate (wrap (inj sym (wrap i)))
 
+-- | A helper to create the correct `ModifyValidate` query for Formless given a
+-- | label and an input value, as an action
 modifyValidate_
   :: ∀ pq cq cs form inputs out m sym t0 e i o
    . IsSymbol sym
@@ -536,6 +543,7 @@ modifyValidate_
   -> Query pq cq cs form out m Unit
 modifyValidate_ sym i = ModifyValidate (wrap (inj sym (wrap i))) unit
 
+-- | A helper to create the correct `Reset` query for Formless given a label
 reset
   :: ∀ pq cq cs form inputs out m sym a t0 e i o
    . IsSymbol sym
@@ -547,6 +555,8 @@ reset
   -> Query pq cq cs form out m a
 reset sym = Reset (wrap (inj sym (wrap initial)))
 
+-- | A helper to create the correct `Reset` query for Formless given a label,
+-- | as an action.
 reset_
   :: ∀ pq cq cs form inputs out m sym t0 e i o
    . IsSymbol sym
@@ -557,6 +567,8 @@ reset_
   -> Query pq cq cs form out m Unit
 reset_ sym = Reset (wrap (inj sym (wrap initial))) unit
 
+-- | A helper to create the correct `Validate` query for Formless, given
+-- | a label
 validate
   :: ∀ pq cq cs form us out m sym a t0 e i o
    . IsSymbol sym
@@ -567,6 +579,8 @@ validate
   -> Query pq cq cs form out m a
 validate sym = Validate (wrap (inj sym Internal.U))
 
+-- | A helper to create the correct `Validate` query for Formless given
+-- | a label, as an action
 validate_
   :: ∀ pq cq cs form us out m sym t0 e i o
    . IsSymbol sym
