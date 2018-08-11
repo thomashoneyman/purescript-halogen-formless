@@ -210,9 +210,9 @@ component
   => Internal.AllTouched fieldxs fields
   => Internal.SumRecord countxs count (Additive Int)
   => Internal.ReplaceFormFieldInputs inputs fieldxs fields fields
-  --  => Internal.ApplyValidation (PublicState form) vs fieldxs fields fields m
+  => Internal.ApplyValidation (PublicState form) vs fieldxs fields fields m
   => Internal.SetInputVariantRL inputsxs inputs fields
-  --  => Internal.ValidateVariantRL uxs us fields m
+  => Internal.ValidateVariantRL uxs us fields m
   => Newtype (form Record InputField) (Record inputs)
   => Newtype (form Variant InputField) (Variant inputs)
   => Newtype (form Record FormField) (Record fields)
@@ -254,11 +254,11 @@ component =
       eval $ SyncFormData a
 
     Validate variant a -> do
-      --  validateWithUVariant variant
+      validateWithUVariant variant
       eval $ SyncFormData a
 
     ModifyValidate variant a -> do
-      --  modifyValidateWithInputVariant variant
+      modifyValidateWithInputVariant variant
       eval $ SyncFormData a
 
     Reset variant a -> do
@@ -267,9 +267,8 @@ component =
 
     ValidateAll a -> do
       st <- getState
-      --  TODO
-      --  form <- H.lift $ Internal.applyValidation (getPublicState st) (unwrap st.internal).validators st.form
-      --  modifyState_ _ { form = form }
+      form <- H.lift $ Internal.applyValidation (getPublicState st) (unwrap st.internal).validators st.form
+      modifyState_ _ { form = form }
       eval $ SyncFormData a
 
     -- A query to sync the overall state of the form after an individual field change
@@ -390,52 +389,53 @@ component =
 
   -- Use a form variant to update the value of a single form field in state
   -- and also run its validation
-  --  validateWithUVariant :: form Variant Internal.U -> DSL pq cq cs form out m Unit
-  --  validateWithUVariant variant = do
-  --    st <- getState
-  --    form <- H.lift $ updater st
-  --    modifyState_ _ { form = wrap form }
-  --    where
-  --      variantRep :: ∀ i. VariantRep i
-  --      variantRep = unsafeCoerce variant
-  --
-  --      validator :: ∀ e i o. State form out m -> VariantRep i -> Validation (PublicState form) m e i o
-  --      validator state (VariantRep { type: t }) = unsafeGet t (unwrap (unwrap state.internal).validators)
-  --
-  --      updater state = Internal.validateVariant
-  --        (\(FormField { input }) -> do
-  --          res <- (unwrap (validator state variantRep)) (getPublicState state) input
-  --          pure $ FormField { input, touched: true, result: Just res }
-  --        )
-  --        (unwrap variant)
-  --        (unwrap state.form)
+  validateWithUVariant :: form Variant Internal.U -> DSL pq cq cs form out m Unit
+  validateWithUVariant variant = do
+    st <- getState
+    form <- H.lift $ updater st
+    modifyState_ _ { form = wrap form }
+    where
+      variantRep :: ∀ i. VariantRep i
+      variantRep = unsafeCoerce variant
+
+      validator :: ∀ e i o. State form out m -> VariantRep i -> Validation (PublicState form) m e i o
+      validator state (VariantRep { type: t }) = unsafeGet t (unwrap (unwrap state.internal).validators)
+
+      updater state = Internal.validateVariant
+        (\(FormField { input }) -> do
+          res <- (unwrap (validator state variantRep)) (getPublicState state) input
+          pure $ FormField { input, touched: true, result: Just res }
+        )
+        (unwrap variant)
+        (unwrap state.form)
 
   -- Validate a field without modifying its input
-  --  modifyValidateWithInputVariant :: form Variant InputField -> DSL pq cq cs form out m Unit
-  --  modifyValidateWithInputVariant variant = do
-  --    st <- modifyState \st -> st { form = wrap $ inputUpdater $ unwrap st.form }
-  --    form <- H.lift $ validateUpdater st
-  --    modifyState_ _ { form = wrap form }
-  --    where
-  --      variantRep :: ∀ i. VariantRep i
-  --      variantRep = unsafeCoerce variant
-  --
-  --      validator :: ∀ e i o. State form out m -> VariantRep i -> Validation (PublicState form) m e i o
-  --      validator state (VariantRep { type: t }) = unsafeGet t (unwrap (unwrap state.internal).validators)
-  --
-  --      validateUpdater state = Internal.validateVariant
-  --        (\(FormField { input }) -> do
-  --          res <- (unwrap (validator state variantRep)) (getPublicState state) input
-  --          pure $ FormField { input, touched: true, result: Just res }
-  --        )
-  --        -- NOTE: This should be safe because the value of the variant is never used,
-  --        -- but keep an eye out.
-  --        (unwrap (unsafeCoerce variant :: form Variant Internal.U))
-  --        (unwrap state.form)
-  --
-  --      inputUpdater = Internal.setInputVariant
-  --        (\(InputField i) -> FormField { input: i, touched: true, result: Nothing })
-  --        (unwrap variant)
+  modifyValidateWithInputVariant :: form Variant InputField -> DSL pq cq cs form out m Unit
+  modifyValidateWithInputVariant variant = do
+    st <- modifyState \st -> st { form = wrap $ inputUpdater $ unwrap st.form }
+    form <- H.lift $ validateUpdater st
+    modifyState_ _ { form = wrap form }
+    pure unit
+    where
+      variantRep :: ∀ i. VariantRep i
+      variantRep = unsafeCoerce variant
+
+      validator :: ∀ e i o. State form out m -> VariantRep i -> Validation (PublicState form) m e i o
+      validator state (VariantRep { type: t }) = unsafeGet t (unwrap (unwrap state.internal).validators)
+
+      validateUpdater state = Internal.validateVariant
+        (\(FormField { input }) -> do
+          res <- (unwrap (validator state variantRep)) (getPublicState state) input
+          pure $ FormField { input, touched: true, result: Just res }
+        )
+        -- NOTE: This should be safe because the value of the variant is never used,
+        -- but keep an eye out.
+        (unwrap $ unsafeCoerce variant :: form Variant Internal.U)
+        (unwrap state.form)
+
+      inputUpdater = Internal.setInputVariant
+        (\(InputField i) -> FormField { input: i, touched: true, result: Nothing })
+        (unwrap variant)
 
   -- Reset a field (and update state to ensure the form is not marked with
   -- all fields touched).
@@ -485,16 +485,46 @@ component =
 ----------
 -- Component helper functions for variants
 
-modify :: WithInput
+modify
+  :: ∀ pq cq cs form inputs out m sym t0 e i o a
+   . IsSymbol sym
+  => Newtype (form Variant InputField) (Variant inputs)
+  => Row.Cons sym (InputField e i o) t0 inputs
+  => SProxy sym
+  -> i
+  -> a
+  -> Query pq cq cs form out m a
 modify sym i = Modify (wrap (inj sym (wrap i)))
 
-modify_ :: WithInputAction
+modify_
+  :: ∀ pq cq cs form inputs out m sym t0 e i o
+   . IsSymbol sym
+  => Newtype (form Variant InputField) (Variant inputs)
+  => Row.Cons sym (InputField e i o) t0 inputs
+  => SProxy sym
+  -> i
+  -> Query pq cq cs form out m Unit
 modify_ sym i = Modify (wrap (inj sym (wrap i))) unit
 
-modifyValidate :: WithInput
+modifyValidate
+  :: ∀ pq cq cs form inputs out m sym t0 e i o a
+   . IsSymbol sym
+  => Newtype (form Variant InputField) (Variant inputs)
+  => Row.Cons sym (InputField e i o) t0 inputs
+  => SProxy sym
+  -> i
+  -> a
+  -> Query pq cq cs form out m a
 modifyValidate sym i = ModifyValidate (wrap (inj sym (wrap i)))
 
-modifyValidate_ :: WithInputAction
+modifyValidate_
+  :: ∀ pq cq cs form inputs out m sym t0 e i o
+   . IsSymbol sym
+  => Newtype (form Variant InputField) (Variant inputs)
+  => Row.Cons sym (InputField e i o) t0 inputs
+  => SProxy sym
+  -> i
+  -> Query pq cq cs form out m Unit
 modifyValidate_ sym i = ModifyValidate (wrap (inj sym (wrap i))) unit
 
 reset
@@ -536,25 +566,3 @@ validate_
   => SProxy sym
   -> Query pq cq cs form out m Unit
 validate_ sym = Validate (wrap (inj sym Internal.U)) unit
-
-----------
--- Helper type synonyms
-
-type WithInput =
-  forall pq cq cs form inputs out m a sym t0 e i o
-   . IsSymbol sym
-  => Newtype (form Variant InputField) (Variant inputs)
-  => Row.Cons sym (InputField e i o) t0 inputs
-  => SProxy sym
-  -> i
-  -> a
-  -> Query pq cq cs form out m a
-
-type WithInputAction =
-  forall pq cq cs form inputs out m sym t0 e i o
-   . IsSymbol sym
-  => Newtype (form Variant InputField) (Variant inputs)
-  => Row.Cons sym (InputField e i o) t0 inputs
-  => SProxy sym
-  -> i
-  -> Query pq cq cs form out m Unit

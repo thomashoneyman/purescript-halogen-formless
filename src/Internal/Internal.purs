@@ -367,7 +367,7 @@ instance validateVariantCons ::
   , ValidateVariantRL rl v to m
   , Row.Cons s (FormField e i o) t0 to
   , Row.Cons s (U e i o) v v'
-  ) => ValidateVariantRL (RL.Cons s (FormField e i o) rl) v' to m where
+  ) => ValidateVariantRL (RL.Cons s (U e i o) rl) v' to m where
     validateVariantRL f _ =
       on s f' (validateVariantRL f (RLProxy :: RLProxy rl))
       where
