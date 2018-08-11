@@ -402,9 +402,13 @@ component =
       validator state (VariantRep { type: t }) = unsafeGet t (unwrap (unwrap state.internal).validators)
 
       updater state = Internal.validateVariant
-        (\(FormField { input }) -> do
-          res <- (unwrap (validator state variantRep)) (getPublicState state) input
-          pure $ FormField { input, touched: true, result: Just res }
+        (\ff@(FormField { input, touched }) ->
+          if touched
+            then do
+              res <- (unwrap (validator state variantRep)) (getPublicState state) input
+              pure $ FormField { input, touched, result: Just res }
+            else
+              pure ff
         )
         (unwrap variant)
         (unwrap state.form)
@@ -424,9 +428,13 @@ component =
       validator state (VariantRep { type: t }) = unsafeGet t (unwrap (unwrap state.internal).validators)
 
       validateUpdater state = Internal.validateVariant
-        (\(FormField { input }) -> do
-          res <- (unwrap (validator state variantRep)) (getPublicState state) input
-          pure $ FormField { input, touched: true, result: Just res }
+        (\ff@(FormField { input, touched }) ->
+          if touched
+            then do
+              res <- (unwrap (validator state variantRep)) (getPublicState state) input
+              pure $ FormField { input, touched, result: Just res }
+            else
+              pure ff
         )
         -- NOTE: This should be safe because the value of the variant is never used,
         -- but keep an eye out.
