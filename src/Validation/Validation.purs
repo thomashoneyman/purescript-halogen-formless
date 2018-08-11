@@ -16,11 +16,13 @@ runValidation = unwrap
 
 -- | Used to take a pure i -> o function and turn it into a correct Validation
 hoistFn :: ∀ form m e i o. Monad m => (i -> o) -> Validation form m e i o
-hoistFn f = Validation $ \_ -> f >>> pure >>> pure
+hoistFn f = Validation $ const $ pure <<< pure <<< f
 
--- | Used to take a pure i -> V e o function and turn it into a correct Validation
 hoistFnE :: ∀ form m e i o. Monad m => (i -> Either e o) -> Validation form m e i o
-hoistFnE f = Validation $ \_ -> f >>> pure
+hoistFnE f = Validation $ const $ pure <<< f
+
+hoistFnME :: ∀ form m e i o. Monad m => (i -> m (Either e o)) -> Validation form m e i o
+hoistFnME = Validation <<< const
 
 ----------
 -- Core type
