@@ -89,8 +89,7 @@ renderFormless state =
      , placeholder: "Dale"
      }
      [ HP.value $ F.getInput _name state.form
-     , HE.onValueInput $ HE.input $ F.modify _name
-     , HE.onBlur $ HE.input_ $ F.validate _name
+     , HE.onValueInput $ HE.input $ F.modifyValidate _name
      ]
  , UI.textarea
      { label: "Message"

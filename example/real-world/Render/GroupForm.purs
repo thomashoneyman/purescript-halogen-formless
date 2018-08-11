@@ -15,6 +15,7 @@ import Halogen as H
 import Halogen.Component.ChildPath as CP
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
+import Halogen.HTML.Properties (value) as HP
 
 -- | A convenience synonym for the group Formless state
 type FormlessState
@@ -50,22 +51,34 @@ renderName =
   }
 
 renderSecretKey1 :: FormlessState -> FormlessHTML
-renderSecretKey1 =
-  UI.formlessField UI.input
-  { label: "Secret Key 1"
-  , help: "Provide a secret identifier for the group."
-  , placeholder: "iasncat3ihba/0"
-  , sym: prx.secretKey1
-  }
+renderSecretKey1 st =
+ UI.input
+   { label: "Secret Key 1"
+   , help: UI.resultToHelp
+             "Provide a secret identifier for the group"
+             (F.getResult prx.secretKey1 st.form)
+   , placeholder: "ia30<>Psncdi3b#$<0423"
+   }
+   [ HP.value $ F.getInput prx.secretKey1 st.form
+   , HE.onValueInput $ HE.input \str -> F.AndThen
+       (F.modifyValidate_ prx.secretKey1 str)
+       (F.validate_ prx.secretKey2)
+   ]
 
 renderSecretKey2 :: FormlessState -> FormlessHTML
-renderSecretKey2 =
-  UI.formlessField UI.input
-  { label: "Secret Key 2"
-  , help: "Confirm the secret identifier for the group."
-  , placeholder: "iasncat3ihba/0"
-  , sym: prx.secretKey2
-  }
+renderSecretKey2 st =
+ UI.input
+   { label: "Secret Key 1"
+   , help: UI.resultToHelp
+             "Confirm the secret identifier for the group"
+             (F.getResult prx.secretKey2 st.form)
+   , placeholder: "ia30<>Psncdi3b#$<0423"
+   }
+   [ HP.value $ F.getInput prx.secretKey2 st.form
+   , HE.onValueInput $ HE.input \str -> F.AndThen
+       (F.modifyValidate_ prx.secretKey2 str)
+       (F.validate_ prx.secretKey1)
+   ]
 
 renderAdmin :: FormlessState -> FormlessHTML
 renderAdmin state =
