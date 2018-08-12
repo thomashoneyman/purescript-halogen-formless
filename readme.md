@@ -141,7 +141,7 @@ In fact, you don't even have to do this: if your input types belong to the `Form
 proxy :: F.FormProxy Form
 proxy = F.FormProxy
 
-inputs :: Form Record F.FormSpec
+inputs :: Form Record F.InputField
 inputs = F.mkInputFields proxy
 ```
 
