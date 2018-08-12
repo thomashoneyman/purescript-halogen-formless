@@ -11,7 +11,6 @@ import Effect.Console (log)
 import Example.App.UI.Element as UI
 import Example.App.Validation as V
 import Formless as F
-import Formless.Validation.Polyform (applyOnInputFields)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -42,9 +41,9 @@ component = H.parentComponent
         <> "consists of less than 20 lines of code."
     , HH.br_
     , HH.slot unit F.component
-        { formSpec: F.mkFormSpec { name: "", text: "" }
-        , validator
-        , submitter: pure <<< F.unwrapOutput
+        { inputs
+        , validators
+        , submitter: pure <<< F.unwrapOutputFields
         , render: renderFormless
         }
         (const Nothing)
@@ -63,17 +62,22 @@ type Contact =
   , text :: String
   }
 
-newtype Form f = Form
-  { name :: f V.Errs String String
-  -- Use `Unit` to represent no errors in Polyform
-  , text :: f Unit String String
-  }
-derive instance newtypeForm :: Newtype (Form f) _
+newtype Form r f = Form (r
+  ( name :: f V.FieldError String String
+  , text :: f Void String String
+  ))
+derive instance newtypeForm :: Newtype (Form r f) _
 
-validator :: ∀ m. Monad m => Form F.InputField -> m (Form F.InputField)
-validator = applyOnInputFields $ identity
+inputs :: Form Record F.InputField
+inputs = F.wrapInputFields
+  { name: ""
+  , text: ""
+  }
+
+validators :: Form Record (F.Validation Form Aff)
+validators = Form
   { name: V.minLength 5
-  , text: V.notRequired
+  , text: F.hoistFn_ identity
   }
 
 renderFormless :: F.State Form Contact Aff -> F.HTML' Form Contact Aff
@@ -85,7 +89,7 @@ renderFormless state =
      , placeholder: "Dale"
      }
      [ HP.value $ F.getInput _name state.form
-     , HE.onValueInput $ HE.input $ F.ModifyValidate <<< F.setInput _name
+     , HE.onValueInput $ HE.input $ F.modifyValidate _name
      ]
  , UI.textarea
      { label: "Message"
@@ -93,7 +97,7 @@ renderFormless state =
      , placeholder: "We prefer nice messages, but have at it."
      }
      [ HP.value $ F.getInput _text state.form
-     , HE.onValueInput $ HE.input $ F.Modify <<< F.setInput _text
+     , HE.onValueInput $ HE.input $ F.modify _text
      ]
    , UI.buttonPrimary
      [ HE.onClick $ HE.input_ F.Submit ]

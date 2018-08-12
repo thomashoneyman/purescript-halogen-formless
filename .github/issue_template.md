@@ -9,9 +9,8 @@
 
 ## Environment
 
-* PureScript **[version]**
-* Pulp **[version]**
-* `purescript-halogen-formless` **[version]**
+* `purescript-halogen` **version**
+* `purescript-halogen-formless` **version**
 
 ## Current behavior
 

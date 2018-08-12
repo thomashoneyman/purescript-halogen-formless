@@ -9,7 +9,7 @@ import Effect.Console as Console
 import Example.App.UI.Element as UI
 import Example.App.UI.Typeahead as TA
 import Example.ExternalComponents.RenderForm (formless)
-import Example.ExternalComponents.Spec (User, proxies, formSpec, submitter, validator)
+import Example.ExternalComponents.Spec (User, prx, inputs, validators, submitter)
 import Example.ExternalComponents.Types (ChildQuery, ChildSlot, Query(..), Slot(..), State)
 import Formless as F
 import Halogen as H
@@ -47,8 +47,8 @@ component =
     , HH.slot
         unit
         F.component
-        { formSpec
-        , validator: pure <$> validator
+        { inputs
+        , validators
         , submitter
         , render: formless
         }
@@ -72,13 +72,13 @@ component =
 
     Typeahead slot (TA.SelectionsChanged new) a -> case slot of
       Email -> a <$ do
-        H.query unit $ H.action $ F.ModifyValidate (F.setInput proxies.email new)
+        H.query unit $ F.modifyValidate_ prx.email new
 
       Whiskey -> a <$ do
-        _ <- H.query unit $ H.action $ F.ModifyValidate (F.setInput proxies.whiskey new)
+        _ <- H.query unit $ F.modifyValidate_ prx.whiskey new
         -- We'll clear the email field when a new whiskey is selected
-        _ <- H.query unit $ H.action $ F.Reset (F.resetField proxies.email)
+        _ <- H.query unit $ F.reset_ prx.email
         H.query unit $ H.action $ F.Send Email (H.action TA.Clear)
 
       Language -> a <$ do
-        H.query unit $ H.action $ F.ModifyValidate (F.setInput proxies.language new)
+        H.query unit $ F.modifyValidate_ prx.language new

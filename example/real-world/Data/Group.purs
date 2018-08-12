@@ -5,7 +5,7 @@ import Prelude
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
-import Example.App.Validation (class ToText, Errs)
+import Example.App.Validation (class ToText, FieldError)
 import Example.RealWorld.Data.Options (Options)
 import Formless as F
 
@@ -33,11 +33,11 @@ instance toTextAdmin :: ToText Admin where
 -----
 -- Our primary data type
 type GroupRow f r =
-  ( name         :: f Errs String         String
-  , admin        :: f Errs (Maybe Admin)  Admin
-  , applications :: f Errs (Array String) (Array String)
-  , pixels       :: f Errs (Array String) (Array String)
-  , whiskey      :: f Errs (Maybe String) String
+  ( name         :: f FieldError String         String
+  , admin        :: f FieldError (Maybe Admin)  Admin
+  , applications :: f FieldError (Array String) (Array String)
+  , pixels       :: f FieldError (Array String) (Array String)
+  , whiskey      :: f FieldError (Maybe String) String
   | r
   )
 
@@ -61,15 +61,15 @@ _secretKey = SProxy :: SProxy "secretKey"
 _options = SProxy :: SProxy "options"
 
 -- | Here's the Form type we'll use to run with Formless.
-newtype GroupForm f = GroupForm (Record (GroupFormRow f))
-derive instance newtypeGroupForm :: Newtype (GroupForm f) _
+newtype GroupForm r f = GroupForm (r (GroupFormRow f))
+derive instance newtypeGroupForm :: Newtype (GroupForm r f) _
 
-proxies :: F.SProxies GroupForm
-proxies = F.mkSProxies $ F.FormProxy :: F.FormProxy GroupForm
+prx :: F.SProxies GroupForm
+prx = F.mkSProxies $ F.FormProxy :: F.FormProxy GroupForm
 
 -- | In order to generate our fields automatically using mkFormSpecFromRow, we'll make
 -- | sure to have the new row as a new type.
 type GroupFormRow f = GroupRow f
-  ( secretKey1 :: f Errs String String
-  , secretKey2 :: f Errs String String
+  ( secretKey1 :: f FieldError String String
+  , secretKey2 :: f FieldError String String
   )

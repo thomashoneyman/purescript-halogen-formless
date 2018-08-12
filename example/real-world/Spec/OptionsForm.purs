@@ -4,46 +4,40 @@ import Prelude
 
 import Data.Int as Int
 import Data.Maybe (Maybe(..))
+import Data.Newtype (unwrap)
 import Example.App.Validation as V
-import Example.RealWorld.Data.Options (Dollars(..), Metric(..), OptionsForm(..), Speed(..), proxies)
+import Example.RealWorld.Data.Options (Dollars(..), Metric(..), OptionsForm(..), prx)
 import Formless as F
-import Formless.Validation.Semigroup (onInputField)
 
-optionsFormSpec :: OptionsForm F.FormSpec
-optionsFormSpec = F.mkFormSpecFromProxy $ F.FormProxy :: F.FormProxy OptionsForm
+optionsFormInputs :: OptionsForm Record F.InputField
+optionsFormInputs = F.mkInputFields $ F.FormProxy :: F.FormProxy OptionsForm
 
 -- In the case the user has not toggled the options on, we'll provide them with
--- valid default values
-defaultOptionsSpec :: OptionsForm F.FormSpec
-defaultOptionsSpec = F.mkFormSpec
-  { enable: false
-  , metric: Just ViewCost
-  , viewCost: "1"
-  , clickCost: ""
-  , installCost: ""
-  , size: "1"
-  , dimensions: "1"
-  , speed: Medium
-  }
-
-optionsFormValidate
-  :: OptionsForm F.InputField
-  -> OptionsForm F.InputField
-optionsFormValidate (OptionsForm form) = OptionsForm
-  { enable: pure `onInputField` form.enable
-  , metric: V.validateMaybe `onInputField` form.metric
-  , viewCost: (validateMetric ViewCost) `onInputField` form.viewCost
-  , clickCost: (validateMetric ClickCost) `onInputField` form.clickCost
-  , installCost: (validateMetric InstallCost) `onInputField` form.installCost
-  , size: validateInt `onInputField` form.size
-  , dimensions: validateInt `onInputField` form.dimensions
-  , speed: pure `onInputField` form.speed
+-- valid default values.
+defaultInputs :: OptionsForm Record F.InputField
+defaultInputs = OptionsForm $ inputs
+  { metric = F.InputField $ Just ViewCost
+  , viewCost = F.InputField "1"
+  , size = F.InputField "21"
+  , dimensions = F.InputField "3005"
   }
   where
-    metric = F.getInput proxies.metric (OptionsForm form)
+    inputs = unwrap optionsFormInputs
 
-    validateMetric m str
-      | metric == Just m = pure <<< Dollars <$> V.validateInt str
-      | otherwise = pure Nothing
+optionsFormValidators :: ∀ m. Monad m => OptionsForm Record (F.Validation OptionsForm m)
+optionsFormValidators = OptionsForm
+  { enable: F.hoistFn_ identity
+  , metric: V.exists
+  , viewCost: validateMetric ViewCost
+  , clickCost: validateMetric ClickCost
+  , installCost: validateMetric InstallCost
+  , size: Int.toNumber <$> V.strIsInt
+  , dimensions: Int.toNumber <$> V.strIsInt
+  , speed: F.hoistFn_ identity
+  }
+  where
+    validateMetric metric = F.Validation \form i ->
+      if (F.getInput prx.metric form) == Just metric
+        then (map (Just <<< Dollars)) <$> F.runValidation V.strIsInt form i
+        else pure (pure Nothing)
 
-    validateInt str = Int.toNumber <$> V.validateInt str
