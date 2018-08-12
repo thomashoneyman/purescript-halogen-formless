@@ -158,6 +158,7 @@ This type represents a function which takes your entire form, the input for this
 
 - This function can be monadic, so you can do things like confirm with a server that an email is not already in use.
 - This function takes your entire form as an argument, so you can use the values of other fields during validation. For example, you could verify that two password fields are equal to one another.
+- If you are using `purescript-validation` and already have a composed validation function that results in `V`, then you can convert it into a Formless validator with `hoistFnE_ <<< Data.Validation.Semigroup.toEither` (or the `Semiring` module).
 
 The `FormField` newtype represents the state of every field in the form:
 
