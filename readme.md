@@ -46,11 +46,17 @@ type User =
 
 This is the data type we'll use throughout our application, but our form will have different fields altogether: we want them to provide two passwords we'll send to the server, and we don't have an ID for them until the form has been submitted.
 
-Formless requires a specific shape from your `Form` data type. You are expected to write a newtype that takes an argument, `f`. This argument will be one of many types Formless uses internally to manage your form. `f` itself expects three type arguments:
+Formless requires a specific shape from your `Form` data type. You are expected to write a newtype that takes two arguments, `r` and `f` below, and a row containing the fields in your form.
+
+The first argument is `(# Type -> Type)` and turns a row of types into a concrete type. For example, you can fill in `Record` to get a record; `Record (name :: String)` is the same as `{ name :: String }`.
+
+The second argument is `(Type -> Type -> Type -> Type)` and will be filled in with one of many types Formless uses internally to manage your form. The three type arguments that `f` expects are:
 
 - an `error` type, which represents possible validation errors for the field
 - an `input` type, which represents the value the user will provide when interacting with the field
 - an `output` type, which represents the type you'd like to result from successful validation
+
+You don't need to manage or worry about these two arguments much; they're mostly filled in by Formless on your behalf. Your biggest focus will be on defining the fields in your form with their input, error, and output types. 
 
 Here's what our form type looks like:
 
