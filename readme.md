@@ -102,7 +102,7 @@ Now that we have a form type and an output type we can produce the `Input` type 
 import Formless as F
 
 type FormlessInput m =
-  { inputs :: Form Record F.InputFields
+  { inputs :: Form Record F.InputField
   , validators :: Form Record (F.Validation Form m)
   , submitter :: Form Record F.OutputField -> m User
   , render :: F.State Form User m -> F.HTML' Form User m
@@ -220,8 +220,8 @@ hoistFnME_ f = Validation $ const f
 -- For example, this validator makes sure that an email address is not in use. Notice how it relies
 -- on the input value already being an `Email` -- we'll see how to chain validators together so this
 -- can be used with `validEmail` in a moment.
-emailNotUsed :: ∀ form m. Validation form Aff ValidationError Email Email
-emailNotUsed = hoistFnME $ \email -> do
+emailNotUsed :: ∀ form. Validation form Aff ValidationError Email Email
+emailNotUsed = hoistFnME_ $ \email -> do
   isUsed <- checkEmailIsUsed :: Email -> Aff Boolean
   pure $
     if isUsed
@@ -231,7 +231,7 @@ emailNotUsed = hoistFnME $ \email -> do
 -- Now, let's do something a little more complex. Let's validate that two passwords are equal to one another.
 
 -- This time, we want to rely on our existing `Form` as an argument for our validation, so instead of using
--- `hoistFnE_` we'll reach for `hoistFn`, which doen't throw away the form argument.
+-- `hoistFnE_` we'll reach for `hoistFnE`, which doesn't throw away the form argument.
 -- it into the Validation type from Formless.
 hoistFnE :: ∀ form m e i o. Monad m => (form Record FormField -> i -> Either e o) -> Validation form m e i o
 hoistFnE f = Validation $ \form i -> pure $ f form i
@@ -250,8 +250,8 @@ equalsPassword1 = hoistFnE $ \form str ->
 These validators are building blocks that you can compose together to validate any particular field. Now that we've got some validation functions we can provide our `validators` record to Formless:
 
 ```purescript
-validator :: Form Record (F.Validation Form Aff)
-validator = Form
+validators :: Form Record (F.Validation Form Aff)
+validators = Form
   { name: isNonEmpty
   , password1: isNonEmpty >>> hoistFn_ Encrypted
   , password2: isNonEmpty >>> equalsPassword1 >>> hoistFn_ Encrypted
