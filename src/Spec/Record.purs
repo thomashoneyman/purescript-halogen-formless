@@ -30,6 +30,17 @@ type FormFieldGetFields sym =
   => form Record FormField 
   -> { | rout }
 
--- | Given a form, get a record containing all the inputs
+fromForm_ :: forall sym. GetProp sym -> FormFieldGetFields sym
+fromForm_ g = hmap g <<< unwrapRecord <<< unwrap
+
+-- | Given a form, get a record of all the fields with their input values 
 getInputs :: FormFieldGetFields "input"
-getInputs = hmap (GetProp (SProxy :: SProxy "input")) <<< unwrapRecord <<< unwrap
+getInputs = fromForm_ (GetProp (SProxy :: SProxy "input"))
+
+-- | Given a form, get a record of all the fields with their touched status
+getToucheds :: FormFieldGetFields "touched"
+getToucheds = fromForm_ (GetProp (SProxy :: SProxy "touched"))
+
+-- | Given a form, get a record of all the fields with their result values
+getResults :: FormFieldGetFields "result"
+getResults = fromForm_ (GetProp (SProxy :: SProxy "result"))
