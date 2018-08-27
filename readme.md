@@ -21,7 +21,7 @@ bower i --save purescript-halogen-formless
 
 ### Status
 
-Formless is already used in production at [@citizennet](https://github.com/citizennet) and is going through final updates for a v1 release. Do you have any comments about the library or any ideas to improve it for your use case? Please file an issue, send me an email, or reach out on the [PureScript user group](https://purescript-users.ml).
+Formless is already used in production at [@citizennet](https://github.com/citizennet) and is going through final updates for a v1 release. Do you have any comments about the library or any ideas to improve it for your use case? Please file an issue, send me an email, or reach out on the [PureScript user group](https://discourse.purescript.org).
 
 
 # Overview
