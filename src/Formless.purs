@@ -21,6 +21,7 @@ module Formless
   , ValidStatus(..)
   , component
   , module Formless.Spec
+  , module Formless.Spec.Record
   , module Formless.Spec.Transform
   , module Formless.Class.Initial
   , module Formless.Validation
@@ -54,6 +55,7 @@ import Data.Variant.Internal (VariantRep(..), unsafeGet)
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Internal as Internal
 import Formless.Spec (ErrorType, FormField(..), FormFieldGet, FormFieldLens, FormFieldRow, FormProxy(..), InputField(..), InputType, OutputField(..), OutputType, _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched, getError, getField, getInput, getOutput, getResult, getTouched)
+import Formless.Spec.Record (getInputs)
 import Formless.Spec.Transform (class MakeInputFieldsFromRow, class MakeSProxies, class UnwrapRecord, class WrapRecord, SProxies, makeSProxiesBuilder, mkInputFields, mkInputFieldsFromRowBuilder, mkSProxies, unwrapOutputFields, unwrapRecord, unwrapRecordBuilder, wrapInputFields, wrapRecord, wrapRecordBuilder)
 import Formless.Validation (Validation(..), hoistFn, hoistFnE, hoistFnE_, hoistFnME, hoistFnME_, hoistFn_, runValidation)
 import Halogen as H

@@ -1,4 +1,4 @@
-module Formless.SpecRecord where
+module Formless.Spec.Record where
 
 import Prelude
 
