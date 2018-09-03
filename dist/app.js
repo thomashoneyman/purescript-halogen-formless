@@ -15109,7 +15109,7 @@ var PS = {};
   var Effect_Console = PS["Effect.Console"];
   var Example_App_UI_Element = PS["Example.App.UI.Element"];
   var Example_App_Validation = PS["Example.App.Validation"];
-  var Formless = PS["Formless"];
+  var Formless_1 = PS["Formless"];
   var Formless_Internal = PS["Formless.Internal"];
   var Formless_Spec = PS["Formless.Spec"];
   var Formless_Spec_Transform = PS["Formless.Spec.Transform"];
@@ -15125,7 +15125,19 @@ var PS = {};
   var Prelude = PS["Prelude"];                 
   var Form = function (x) {
       return x;
-  };   
+  };
+  var Formless = (function () {
+      function Formless(value0, value1) {
+          this.value0 = value0;
+          this.value1 = value1;
+      };
+      Formless.create = function (value0) {
+          return function (value1) {
+              return new Formless(value0, value1);
+          };
+      };
+      return Formless;
+  })();
   var validators = {
       name: Example_App_Validation.minLength(Effect_Aff.monadAff)(5),
       text: Formless_Validation.hoistFn_(Effect_Aff.monadAff)(Control_Category.identity(Control_Category.categoryFn))
@@ -15142,7 +15154,7 @@ var PS = {};
           placeholder: "Dale"
       })([ Halogen_HTML_Properties.value(Formless_Spec.getInput(new Data_Symbol.IsSymbol(function () {
           return "name";
-      }))(newtypeForm)()(Data_Symbol.SProxy.value)(state.form)), Halogen_HTML_Events.onValueInput(Halogen_HTML_Events.input(Formless.modifyValidate(new Data_Symbol.IsSymbol(function () {
+      }))(newtypeForm)()(Data_Symbol.SProxy.value)(state.form)), Halogen_HTML_Events.onValueInput(Halogen_HTML_Events.input(Formless_1.modifyValidate(new Data_Symbol.IsSymbol(function () {
           return "name";
       }))(newtypeForm)()(Data_Symbol.SProxy.value))) ]), Example_App_UI_Element.textarea({
           label: "Message",
@@ -15150,9 +15162,9 @@ var PS = {};
           placeholder: "We prefer nice messages, but have at it."
       })([ Halogen_HTML_Properties.value(Formless_Spec.getInput(new Data_Symbol.IsSymbol(function () {
           return "text";
-      }))(newtypeForm)()(Data_Symbol.SProxy.value)(state.form)), Halogen_HTML_Events.onValueInput(Halogen_HTML_Events.input(Formless.modify(new Data_Symbol.IsSymbol(function () {
+      }))(newtypeForm)()(Data_Symbol.SProxy.value)(state.form)), Halogen_HTML_Events.onValueInput(Halogen_HTML_Events.input(Formless_1.modify(new Data_Symbol.IsSymbol(function () {
           return "text";
-      }))(newtypeForm)()(Data_Symbol.SProxy.value))) ]), Example_App_UI_Element.buttonPrimary([ Halogen_HTML_Events.onClick(Halogen_HTML_Events.input_(Formless.Submit.create)) ])([ Halogen_HTML_Core.text("Submit") ]) ]);
+      }))(newtypeForm)()(Data_Symbol.SProxy.value))) ]), Example_App_UI_Element.buttonPrimary([ Halogen_HTML_Events.onClick(Halogen_HTML_Events.input_(Formless_1.Submit.create)) ])([ Halogen_HTML_Core.text("Submit") ]) ]);
   };
   var inputs = Formless_Spec_Transform.wrapInputFields()(newtypeForm)(Formless_Spec_Transform.wrapRecordCons(new Data_Symbol.IsSymbol(function () {
       return "name";
@@ -15164,7 +15176,7 @@ var PS = {};
   });
   var component = (function () {
       var render = function (st) {
-          return Example_App_UI_Element.section_([ Example_App_UI_Element.h1_([ Halogen_HTML_Core.text("Formless") ]), Example_App_UI_Element.h2_([ Halogen_HTML_Core.text("A basic contact form.") ]), Example_App_UI_Element.p_("You can create a full Halogen contact form like this in less than 100 lines of code with " + ("Formless, most of which is simply Halogen boilerplate. The actual form spec and wiring " + "consists of less than 20 lines of code.")), Halogen_HTML_Elements.br_, Halogen_HTML.slot(Data_Unit.unit)(Formless.component(Data_Ord.ordVoid)(Effect_Aff.monadAff)()()()()(Data_Eq.eqRowCons(Data_Eq.eqRowCons(Data_Eq.eqRowNil)()(new Data_Symbol.IsSymbol(function () {
+          return Example_App_UI_Element.section_([ Example_App_UI_Element.h1_([ Halogen_HTML_Core.text("Formless") ]), Example_App_UI_Element.h2_([ Halogen_HTML_Core.text("A basic contact form.") ]), Example_App_UI_Element.p_("You can create a full Halogen contact form like this in less than 100 lines of code with " + ("Formless, most of which is simply Halogen boilerplate. The actual form spec and wiring " + "consists of less than 20 lines of code.")), Halogen_HTML_Elements.br_, Halogen_HTML.slot(Data_Unit.unit)(Formless_1.component(Data_Ord.ordVoid)(Effect_Aff.monadAff)()()()()(Data_Eq.eqRowCons(Data_Eq.eqRowCons(Data_Eq.eqRowNil)()(new Data_Symbol.IsSymbol(function () {
               return "text";
           }))(Formless_Spec.eqInputField(Data_Eq.eqString)))()(new Data_Symbol.IsSymbol(function () {
               return "name";
@@ -15223,10 +15235,10 @@ var PS = {};
                   }))()(Formless_Spec.newtypeOutputField)(Formless_Spec_Transform.unwrapRecordNil)(Formless_Internal.row1Cons()()))(Formless_Internal.row1Cons()()))($10));
               },
               render: renderFormless
-          })(Data_Function["const"](Data_Maybe.Nothing.value)) ]);
+          })(Halogen_HTML_Events.input(Formless.create)) ]);
       };
       var $$eval = function (v) {
-          if (v.value0 instanceof Formless.Submitted) {
+          if (v.value0 instanceof Formless_1.Submitted) {
               return Data_Functor.voidRight(Halogen_Query_HalogenM.functorHalogenM)(v.value1)(Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(Effect_Aff.monadEffectAff))(Effect_Console.log(Data_Show.show(Data_Show.showRecord()(Data_Show.showRecordFieldsCons(new Data_Symbol.IsSymbol(function () {
                   return "name";
               }))(Data_Show.showRecordFieldsCons(new Data_Symbol.IsSymbol(function () {
@@ -15242,6 +15254,7 @@ var PS = {};
           receiver: Data_Function["const"](Data_Maybe.Nothing.value)
       });
   })();
+  exports["Formless"] = Formless;
   exports["component"] = component;
   exports["Form"] = Form;
   exports["inputs"] = inputs;
