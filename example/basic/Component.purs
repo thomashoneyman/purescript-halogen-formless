@@ -16,7 +16,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 
-data Query a = HandleFormless (F.Message' Form Contact) a
+data Query a = Formless (F.Message' Form Contact) a
 
 type ChildQuery = F.Query' Form Contact Aff
 type ChildSlot = Unit
@@ -46,13 +46,13 @@ component = H.parentComponent
         , submitter: pure <<< F.unwrapOutputFields
         , render: renderFormless
         }
-        (const Nothing)
+        (HE.input Formless)
     ]
 
   eval :: Query ~> H.ParentDSL Unit Query ChildQuery ChildSlot Void Aff
-  eval (HandleFormless (F.Submitted contact) a) = a <$ do
+  eval (Formless (F.Submitted contact) a) = a <$ do
     H.liftEffect $ log $ show (contact :: Contact)
-  eval (HandleFormless _ a) = pure a
+  eval (Formless _ a) = pure a
 
 -----
 -- Formless
