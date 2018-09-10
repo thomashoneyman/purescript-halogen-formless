@@ -5,7 +5,7 @@ import Prelude
 import Effect.Aff (Aff)
 import Example.App.UI.Element as UI
 import Example.App.UI.Typeahead as TA
-import Example.ExternalComponents.Spec (Form, User, prx)
+import Example.ExternalComponents.Spec (Form, prx)
 import Example.ExternalComponents.Types (Query(..), Slot(..))
 import Formless as F
 import Halogen as H
@@ -13,7 +13,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 
-formless :: F.State Form User Aff -> F.HTML Query (TA.Query String) Slot Form User Aff
+formless :: F.State Form Aff -> F.HTML Query (TA.Query String) Slot Form Aff
 formless state =
   UI.formContent_
     [ UI.formlessField
@@ -51,7 +51,7 @@ formless state =
 ----------
 -- Helpers
 
-email :: F.State Form User Aff -> F.HTML Query (TA.Query String) Slot Form User Aff
+email :: F.State Form Aff -> F.HTML Query (TA.Query String) Slot Form Aff
 email state =
   UI.field
   { label: "Email"
@@ -70,7 +70,7 @@ email state =
     ( HE.input $ F.Raise <<< H.action <<< Typeahead Email )
   ]
 
-whiskey :: F.State Form User Aff -> F.HTML Query (TA.Query String) Slot Form User Aff
+whiskey :: F.State Form Aff -> F.HTML Query (TA.Query String) Slot Form Aff
 whiskey state =
   UI.field
   { label: "Whiskey"
@@ -88,7 +88,7 @@ whiskey state =
       ( HE.input $ F.Raise <<< H.action <<< Typeahead Whiskey )
   ]
 
-language :: F.State Form User Aff -> F.HTML Query (TA.Query String) Slot Form User Aff
+language :: F.State Form Aff -> F.HTML Query (TA.Query String) Slot Form Aff
 language state =
   UI.field
   { label: "Language"

@@ -9,7 +9,7 @@ import Effect.Console as Console
 import Example.App.UI.Element as UI
 import Example.App.UI.Typeahead as TA
 import Example.ExternalComponents.RenderForm (formless)
-import Example.ExternalComponents.Spec (User, prx, inputs, validators, submitter)
+import Example.ExternalComponents.Spec (User, prx, initialInputs, validators)
 import Example.ExternalComponents.Types (ChildQuery, ChildSlot, Query(..), Slot(..), State)
 import Formless as F
 import Halogen as H
@@ -44,23 +44,17 @@ component =
         <> "show you your errors. If you submit a valid form, you'll see Formless just returns the "
         <> "valid outputs for you to work with."
     , HH.br_
-    , HH.slot
-        unit
-        F.component
-        { inputs
-        , validators
-        , submitter
-        , render: formless
-        }
-        (HE.input Formless)
+    , HH.slot unit F.component { initialInputs, validators, render: formless } (HE.input Formless)
     ]
 
   eval :: Query ~> H.ParentDSL State Query ChildQuery ChildSlot Void Aff
   eval = case _ of
     Formless m a -> a <$ case m of
       F.Emit q -> eval q
-      F.Submitted user -> do
-        H.liftEffect $ Console.log $ show (user :: User)
+      F.Submitted formOutputs -> do
+        let user :: User
+            user = F.unwrapOutputFields formOutputs
+        H.liftEffect $ Console.logShow user
       F.Changed fstate -> do
         H.liftEffect $ Console.log $ show $ delete (SProxy :: SProxy "form") fstate
 

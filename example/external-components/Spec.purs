@@ -8,6 +8,8 @@ import Effect.Class (class MonadEffect)
 import Example.App.Validation as V
 import Formless as F
 
+-- We can easily reclaim our ideal User type by picking the
+-- parsed outputs from the FormRow like this:
 type User = Record (FormRow F.OutputType)
 
 newtype Form r f = Form (r (FormRow f))
@@ -24,8 +26,9 @@ type FormRow f =
 prx :: F.SProxies Form
 prx = F.mkSProxies $ F.FormProxy :: F.FormProxy Form
 
-inputs :: Form Record F.InputField
-inputs = F.mkInputFields $ F.FormProxy :: F.FormProxy Form
+-- | You can generate your initial inputs
+initialInputs :: Form Record F.InputField
+initialInputs = F.mkInputFields $ F.FormProxy :: F.FormProxy Form
 
 validators :: ∀ m. MonadEffect m => Form Record (F.Validation Form m)
 validators = Form
@@ -36,6 +39,3 @@ validators = Form
   , whiskey: V.exists
   , language: V.exists
   }
-
-submitter :: ∀ m. Monad m => Form Record F.OutputField -> m User
-submitter = pure <<< F.unwrapOutputFields

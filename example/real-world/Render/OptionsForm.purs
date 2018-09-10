@@ -12,7 +12,7 @@ import Example.App.UI.Element (css)
 import Example.App.UI.Element as UI
 import Example.RealWorld.Data.Options (Metric(..), Speed(..), prx)
 import Example.RealWorld.Data.Options as OP
-import Example.RealWorld.Types (OptionsCQ, OptionsCS, Query(..))
+import Example.RealWorld.Types (Query(..))
 import Formless as F
 import Halogen as H
 import Halogen.HTML as HH
@@ -20,12 +20,10 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 
 -- | A convenience synonym for the group Formless state
-type FormlessState
-  = F.State OP.OptionsForm OP.Options Aff
+type FormlessState = F.State OP.OptionsForm Aff
 
 -- | A convenience synonym for the group Formless HTML type
-type FormlessHTML
-  = F.HTML Query OptionsCQ OptionsCS OP.OptionsForm OP.Options Aff
+type FormlessHTML = F.HTML Query (Dropdown.Query Metric) Unit OP.OptionsForm Aff
 
 -- | The form, grouped by sections.
 render :: FormlessState -> FormlessHTML
@@ -34,9 +32,7 @@ render state =
     [ renderEnabled state
     , HH.div
       [ if F.getInput prx.enable state.form then css "" else css "is-hidden" ]
-      ( renderMetrics state
-      <> renderOthers state
-      )
+      ( renderMetrics state <> renderOthers state )
     ]
 
 -----

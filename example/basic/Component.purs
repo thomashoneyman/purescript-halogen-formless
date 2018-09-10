@@ -7,7 +7,7 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
-import Effect.Console (log)
+import Effect.Console (logShow)
 import Example.App.UI.Element as UI
 import Example.App.Validation as V
 import Formless as F
@@ -16,9 +16,9 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 
-data Query a = Formless (F.Message' Form Contact) a
+data Query a = Formless (F.Message' Form) a
 
-type ChildQuery = F.Query' Form Contact Aff
+type ChildQuery = F.Query' Form Aff
 type ChildSlot = Unit
 
 component :: H.Component HH.HTML Query Unit Void Aff
@@ -40,27 +40,25 @@ component = H.parentComponent
         <> "Formless, most of which is simply Halogen boilerplate. The actual form spec and wiring "
         <> "consists of less than 20 lines of code."
     , HH.br_
-    , HH.slot unit F.component
-        { inputs
-        , validators
-        , submitter: pure <<< F.unwrapOutputFields
-        , render: renderFormless
-        }
-        (HE.input Formless)
+    , HH.slot unit F.component { initialInputs, validators, render: renderFormless } (HE.input Formless)
     ]
 
   eval :: Query ~> H.ParentDSL Unit Query ChildQuery ChildSlot Void Aff
-  eval (Formless (F.Submitted contact) a) = a <$ do
-    H.liftEffect $ log $ show (contact :: Contact)
+  eval (Formless (F.Submitted formOutputs) a) = a <$ do
+    -- To unwrap the OutputField newtypes on each field and the overall Form newtype,
+    -- use the unwrapOutputFields helper.
+    let contact :: Contact
+        contact = F.unwrapOutputFields formOutputs
+    H.liftEffect $ logShow contact
+
+  -- In this example we can ignore other outputs, but see the other examples for more
+  -- in-depth usage.
   eval (Formless _ a) = pure a
 
 -----
 -- Formless
 
-type Contact =
-  { name :: String
-  , text :: String
-  }
+type Contact = { name :: String, text :: String }
 
 newtype Form r f = Form (r
   ( name :: f V.FieldError String String
@@ -68,19 +66,13 @@ newtype Form r f = Form (r
   ))
 derive instance newtypeForm :: Newtype (Form r f) _
 
-inputs :: Form Record F.InputField
-inputs = F.wrapInputFields
-  { name: ""
-  , text: ""
-  }
+initialInputs :: Form Record F.InputField
+initialInputs = F.wrapInputFields { name: "", text: "" }
 
 validators :: Form Record (F.Validation Form Aff)
-validators = Form
-  { name: V.minLength 5
-  , text: F.hoistFn_ identity
-  }
+validators = Form { name: V.minLength 5, text: F.hoistFn_ identity }
 
-renderFormless :: F.State Form Contact Aff -> F.HTML' Form Contact Aff
+renderFormless :: F.State Form Aff -> F.HTML' Form Aff
 renderFormless state =
  UI.formContent_
  [ UI.input
