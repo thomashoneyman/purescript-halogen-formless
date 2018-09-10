@@ -16,9 +16,9 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 
-data Query a = Formless (F.Message' Form) a
+data Query a = Formless (F.Message' ContactForm) a
 
-type ChildQuery = F.Query' Form Aff
+type ChildQuery = F.Query' ContactForm Aff
 type ChildSlot = Unit
 
 component :: H.Component HH.HTML Query Unit Void Aff
@@ -45,7 +45,7 @@ component = H.parentComponent
 
   eval :: Query ~> H.ParentDSL Unit Query ChildQuery ChildSlot Void Aff
   eval (Formless (F.Submitted formOutputs) a) = a <$ do
-    -- To unwrap the OutputField newtypes on each field and the overall Form newtype,
+    -- To unwrap the OutputField newtypes on each field and the overall ContactForm newtype,
     -- use the unwrapOutputFields helper.
     let contact :: Contact
         contact = F.unwrapOutputFields formOutputs
@@ -60,19 +60,19 @@ component = H.parentComponent
 
 type Contact = { name :: String, text :: String }
 
-newtype Form r f = Form (r
+newtype ContactForm r f = ContactForm (r
   ( name :: f V.FieldError String String
   , text :: f Void String String
   ))
-derive instance newtypeForm :: Newtype (Form r f) _
+derive instance newtypeContactForm :: Newtype (ContactForm r f) _
 
-initialInputs :: Form Record F.InputField
+initialInputs :: ContactForm Record F.InputField
 initialInputs = F.wrapInputFields { name: "", text: "" }
 
-validators :: Form Record (F.Validation Form Aff)
-validators = Form { name: V.minLength 5, text: F.hoistFn_ identity }
+validators :: ContactForm Record (F.Validation ContactForm Aff)
+validators = ContactForm { name: V.minLength 5, text: F.hoistFn_ identity }
 
-renderFormless :: F.State Form Aff -> F.HTML' Form Aff
+renderFormless :: F.State ContactForm Aff -> F.HTML' ContactForm Aff
 renderFormless state =
  UI.formContent_
  [ UI.input
