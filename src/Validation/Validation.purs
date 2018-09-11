@@ -4,11 +4,30 @@ import Prelude
 
 import Control.Alt (class Alt, (<|>))
 import Data.Either (Either(..), either)
-import Data.Newtype (class Newtype, unwrap)
-import Formless.Spec (FormField)
+import Data.Newtype (class Newtype, unwrap, wrap)
+import Formless.Spec (FormField, InputField)
+import Heterogeneous.Mapping (class MapRecordWithIndex, class Mapping, ConstMapping, hmap)
+import Prim.RowList (class RowToList)
 
 ----------
 -- Helpers
+
+-- A way to create a record of hoistFn_ identity for a data type when no validation is needed.
+data EmptyValidators = EmptyValidators
+
+instance emptyValidators :: Monad m => Mapping EmptyValidators a (Validation form m e i i) where
+  mapping EmptyValidators = const (hoistFn_ identity)
+
+noValidation
+  :: ∀ form fields m vs xs
+   . Monad m
+  => RowToList fields xs
+  => Newtype (form Record (Validation form m)) { | vs }
+  => Newtype (form Record InputField) { | fields }
+  => MapRecordWithIndex xs (ConstMapping EmptyValidators) fields vs
+  => form Record InputField
+  -> form Record (Validation form m)
+noValidation = wrap <<< hmap EmptyValidators <<< unwrap
 
 -- | A more verbose but clearer function for running a validation function on its inputs
 runValidation :: ∀ form m e i o. Monad m => Validation form m e i o -> form Record FormField -> i -> m (Either e o)
