@@ -8,12 +8,14 @@ import Effect.Class (class MonadEffect)
 import Example.App.Validation as V
 import Formless as F
 
-type User = Record (FormRow F.OutputType)
+-- We can easily reclaim our ideal User type by picking the
+-- parsed outputs from the FormRow like this:
+type User = Record (UserFormRow F.OutputType)
 
-newtype Form r f = Form (r (FormRow f))
-derive instance newtypeForm' :: Newtype (Form r f) _
+newtype UserForm r f = UserForm (r (UserFormRow f))
+derive instance newtypeUserForm' :: Newtype (UserForm r f) _
 
-type FormRow f =
+type UserFormRow f =
   ( name     :: f V.FieldError String         String
   , email    :: f V.FieldError (Maybe String) V.Email
   , whiskey  :: f V.FieldError (Maybe String) String
@@ -21,14 +23,15 @@ type FormRow f =
   )
 
 -- | You'll usually want symbol proxies for convenience
-prx :: F.SProxies Form
-prx = F.mkSProxies $ F.FormProxy :: F.FormProxy Form
+prx :: F.SProxies UserForm
+prx = F.mkSProxies $ F.FormProxy :: F.FormProxy UserForm
 
-inputs :: Form Record F.InputField
-inputs = F.mkInputFields $ F.FormProxy :: F.FormProxy Form
+-- | You can generate your initial inputs
+initialInputs :: UserForm Record F.InputField
+initialInputs = F.mkInputFields $ F.FormProxy :: F.FormProxy UserForm
 
-validators :: ∀ m. MonadEffect m => Form Record (F.Validation Form m)
-validators = Form
+validators :: ∀ m. MonadEffect m => UserForm Record (F.Validation UserForm m)
+validators = UserForm
   { name: V.minLength 7
     -- Unpacks the Maybe value, then checks the email format, then verifies it is not in use
     -- monadically.
@@ -36,6 +39,3 @@ validators = Form
   , whiskey: V.exists
   , language: V.exists
   }
-
-submitter :: ∀ m. Monad m => Form Record F.OutputField -> m User
-submitter = pure <<< F.unwrapOutputFields

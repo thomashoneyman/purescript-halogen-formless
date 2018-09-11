@@ -18,12 +18,10 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties (value) as HP
 
 -- | A convenience synonym for the group Formless state
-type FormlessState
-  = F.State G.GroupForm G.Group Aff
+type FormlessState = F.State G.GroupForm Aff
 
 -- | A convenience synonym for the group Formless HTML type
-type FormlessHTML
-  = F.HTML Query GroupCQ GroupCS G.GroupForm G.Group Aff
+type FormlessHTML = F.HTML Query GroupCQ GroupCS G.GroupForm Aff
 
 -- | The form, grouped by sections.
 render :: FormlessState -> FormlessHTML

@@ -96,7 +96,7 @@ inputFieldsToFormFields r = wrap $ fromScratch builder
   where builder = inputFieldsToFormFieldsBuilder (RLProxy :: RLProxy xs) (unwrap r)
 
 -- | An intermediate function that transforms a record of FormField into a record
-inputFieldToMaybeOutput
+formFieldsToMaybeOutput
   :: ∀ xs form fields outputs
    . RL.RowToList fields xs
   => Newtype (form Record FormField) (Record fields)
@@ -104,8 +104,8 @@ inputFieldToMaybeOutput
   => FormFieldToMaybeOutput xs fields outputs
   => form Record FormField
   -> Maybe (form Record OutputField)
-inputFieldToMaybeOutput r = map wrap $ fromScratch <$> builder
-  where builder = inputFieldToMaybeOutputBuilder (RLProxy :: RLProxy xs) (unwrap r)
+formFieldsToMaybeOutput r = map wrap $ fromScratch <$> builder
+  where builder = formFieldsToMaybeOutputBuilder (RLProxy :: RLProxy xs) (unwrap r)
 
 -- | Transform form fields, with pure results
 transformFormFields
@@ -204,19 +204,19 @@ instance inputFieldsToFormFieldsCons
 -- | of MaybeOutput to a record of OutputField, but only if all fields were successfully
 -- | validated.
 class FormFieldToMaybeOutput (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
-  inputFieldToMaybeOutputBuilder :: RLProxy xs -> Record row -> Maybe (FromScratch to)
+  formFieldsToMaybeOutputBuilder :: RLProxy xs -> Record row -> Maybe (FromScratch to)
 
-instance inputFieldToMaybeOutputNil :: FormFieldToMaybeOutput RL.Nil row () where
-  inputFieldToMaybeOutputBuilder _ _ = Just identity
+instance formFieldsToMaybeOutputNil :: FormFieldToMaybeOutput RL.Nil row () where
+  formFieldsToMaybeOutputBuilder _ _ = Just identity
 
-instance inputFieldToMaybeOutputCons
+instance formFieldsToMaybeOutputCons
   :: ( IsSymbol name
      , Row.Cons name (FormField e i o) trash row
      , FormFieldToMaybeOutput tail row from
      , Row1Cons name (OutputField e i o) from to
      )
   => FormFieldToMaybeOutput (RL.Cons name (FormField e i o) tail) row to where
-  inputFieldToMaybeOutputBuilder _ r =
+  formFieldsToMaybeOutputBuilder _ r =
     transform <$> val <*> rest
     where
       _name = SProxy :: SProxy name
@@ -225,7 +225,7 @@ instance inputFieldToMaybeOutputCons
       val = map OutputField $ join $ map hush (unwrap $ Record.get _name r).result
 
       rest :: Maybe (FromScratch from)
-      rest = inputFieldToMaybeOutputBuilder (RLProxy :: RLProxy tail) r
+      rest = formFieldsToMaybeOutputBuilder (RLProxy :: RLProxy tail) r
 
       transform :: OutputField e i o -> FromScratch from -> FromScratch to
       transform v builder' = Builder.insert _name v <<< builder'

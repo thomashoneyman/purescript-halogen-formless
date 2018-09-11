@@ -4,6 +4,7 @@ import Prelude
 
 import Data.Maybe (Maybe(..))
 import Data.Newtype (over, unwrap)
+import Data.Traversable (traverse)
 import Effect.Aff (Aff)
 import Effect.Console as Console
 import Example.App.UI.Dropdown as DD
@@ -89,29 +90,20 @@ component =
       ]
     , HH.div
       [ if st.focus == GroupTab then css "" else css "is-hidden" ]
-      [ HH.slot'
-          CP.cp1
-          unit
-          F.component
-          { inputs: groupInputs
+      [ HH.slot' CP.cp1 unit F.component
+          { initialInputs: groupInputs
           , validators: groupValidators
-          , submitter: groupFormSubmit
           , render: GroupForm.render
-          }
-          (HE.input GroupForm)
+          } (HE.input GroupForm)
       ]
     , HH.div
       [ if st.focus == OptionsTab then css "" else css "is-hidden" ]
-      [ HH.slot'
-          CP.cp2
-          unit
-          F.component
-          { inputs: defaultInputs
+      [ HH.slot' CP.cp2 unit F.component
+          { initialInputs: defaultInputs
           , validators: optionsFormValidators
-          , submitter: pure <<< O.Options <<< F.unwrapOutputFields
+          --  , submitter: pure <<< O.Options <<< F.unwrapOutputFields
           , render: OptionsForm.render
-          }
-          (HE.input OptionsForm)
+          } (HE.input OptionsForm)
       ]
     ]
 
@@ -141,8 +133,13 @@ component =
       mbOptionsForm <- H.query' CP.cp2 unit $ H.request F.SubmitReply
       -- Here, we'll construct our new group from the two form outputs.
       case mbGroupForm, mbOptionsForm of
-         Just g, Just v -> do
-           H.modify_ _ { group = map (over G.Group (_ { options = v })) g }
+         Just g, Just o -> do
+           -- We can run our monadic submission function here
+           group :: Maybe G.Group <- traverse groupFormSubmit g
+           -- We can unwrap our options purely
+           let options :: Maybe O.Options
+               options = O.Options <<< F.unwrapOutputFields <$> o
+           H.modify_ _ { group = map (over G.Group (_ { options = options })) group }
          _, _ -> H.liftEffect (Console.error "Forms did not validate.")
       st <- H.get
       H.liftEffect $ Console.log $ show st.group
@@ -155,10 +152,7 @@ component =
       F.Emit q -> eval q $> a
       F.Submitted _ -> pure a
       F.Changed fstate -> do
-        H.modify_ \st -> st
-          { groupFormErrors = fstate.errors
-          , groupFormDirty = fstate.dirty
-          }
+        H.modify_ \st -> st { groupFormErrors = fstate.errors, groupFormDirty = fstate.dirty }
         pure a
 
     TASingle (TA.SelectionsChanged new) a -> a <$ do
@@ -199,11 +193,9 @@ component =
           case st'.optionsEnabled of
             true -> do
               let spec' = O.OptionsForm $ _ { enable = F.InputField true } $ unwrap optionsFormInputs
-              _ <- H.query' CP.cp2 unit $ H.action $ F.ReplaceInputs spec'
-              pure unit
+              void $ H.query' CP.cp2 unit $ H.action $ F.ReplaceInputs spec'
             _ -> do
-              _ <- H.query' CP.cp2 unit $ H.action $ F.ReplaceInputs defaultInputs
-              pure unit
+              void $ H.query' CP.cp2 unit $ H.action $ F.ReplaceInputs defaultInputs
         pure a
 
     MetricDropdown m a -> a <$ case m of

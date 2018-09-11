@@ -156,7 +156,7 @@ textarea config props =
 
 -- Already ready to work with Formless
 formlessField
-  :: ∀ form sym e o t0 t1 m pq cq cs out r fields inputs
+  :: ∀ form sym e o t0 t1 m pq cq cs r fields inputs
    . IsSymbol sym
   => ToText e
   => Newtype (form Record F.FormField) (Record fields)
@@ -166,13 +166,13 @@ formlessField
   => ( FieldConfig'
      -> Array ( HH.IProp
                 ( value :: String, onBlur :: FocusEvent, onInput :: Event | r)
-                ( F.Query pq cq cs form out m Unit )
+                ( F.Query pq cq cs form m Unit )
               )
-     -> F.HTML pq cq cs form out m
+     -> F.HTML pq cq cs form m
      )
   -> FieldConfig sym
-  -> F.State form out m
-  -> F.HTML pq cq cs form out m
+  -> F.State form m
+  -> F.HTML pq cq cs form m
 formlessField fieldType config state = fieldType (Builder.build config' config) props
   where
     config' =
