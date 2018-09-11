@@ -18,6 +18,7 @@ import Select.Utils.Setters as Setters
 
 data Query item a
   = HandleSelect (Select.Message (Query item) item) a
+  | GetItems (Array item -> a)
   | Remove item a
   | Clear a
 
@@ -160,6 +161,10 @@ component' select' remove' filter' render' =
       _ <- H.query unit $ Select.replaceItems $ filter' st.items st.selected
       H.raise (SelectionsChanged st.selected)
       pure next
+
+    GetItems f -> do
+      st <- H.get
+      pure $ f st.items
 
     HandleSelect message next -> case message of
       Select.Emit q -> eval q $> next

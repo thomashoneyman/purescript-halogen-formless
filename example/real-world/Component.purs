@@ -115,12 +115,12 @@ component =
 
     Reset a -> do
       -- To send a query through to a child component when Formless has multiple, use send'
-      _ <- H.query' CP.cp1 unit $ H.action $ F.send' CP.cp1 Applications (H.action TA.Clear)
-      _ <- H.query' CP.cp1 unit $ H.action $ F.send' CP.cp1 Pixels (H.action TA.Clear)
-      _ <- H.query' CP.cp1 unit $ H.action $ F.send' CP.cp2 unit (H.action TA.Clear)
-      _ <- H.query' CP.cp1 unit $ H.action $ F.send' CP.cp3 unit (H.action DD.Clear)
+      _ <- H.query' CP.cp1 unit $ F.send' CP.cp1 Applications (H.action TA.Clear)
+      _ <- H.query' CP.cp1 unit $ F.send' CP.cp1 Pixels (H.action TA.Clear)
+      _ <- H.query' CP.cp1 unit $ F.send' CP.cp2 unit (H.action TA.Clear)
+      _ <- H.query' CP.cp1 unit $ F.send' CP.cp3 unit (H.action DD.Clear)
       -- If there is only one child type, use Send
-      _ <- H.query' CP.cp2 unit $ H.action $ F.Send unit (H.action DD.Clear)
+      _ <- H.query' CP.cp2 unit $ F.send unit (H.action DD.Clear)
       _ <- H.query' CP.cp1 unit $ H.action F.ResetAll
       _ <- H.query' CP.cp2 unit $ H.action F.ResetAll
       pure a
