@@ -1,4 +1,4 @@
--- | A module with helper lenses and functions for retriving particular fields from a form
+-- | A module with functions for retriving particular fields from a form
 module Formless.Spec.Retrieve where
 
 import Prelude
