@@ -5,12 +5,14 @@ import Prelude
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, over, unwrap, wrap)
-import Data.Symbol (class IsSymbol, SProxy(..))
+import Data.Symbol (class IsSymbol, SProxy)
 import Formless.Spec (FormField(..), InputField(..))
+import Formless.Transform.Types (FromScratch)
 import Heterogeneous.Folding (class Folding, class HFoldl, hfoldl)
 import Heterogeneous.Mapping (class HMap, class HMapWithIndex, class Mapping, class MappingWithIndex, hmap, hmapWithIndex)
 import Prim.Row (class Cons) as Row
 import Record (get) as Record
+import Record.Builder (build) as Builder
 
 ----------
 -- Scratch
@@ -33,9 +35,11 @@ testI =
   , x2: InputField 0
   }
 
-
 ----------
 -- Zips
+
+-- TODO:
+-- applyValidation
 
 newtype ReplaceInput r = ReplaceInput { | r }
 
@@ -85,6 +89,10 @@ countErrors = hfoldl CountError 0
 
 ----------
 -- Maps
+
+-- TODO:
+-- setInputV
+-- setValidationV
 
 -- | Transform a record of form fields into a record of input fields
 data FormFieldToInputField = FormFieldToInputField
@@ -138,3 +146,20 @@ instance wrapField :: (Newtype wrapper x) => Mapping WrapField x wrapper where
 
 wrapRecord :: ∀ r0 r1. HMap WrapField r0 r1 => r0 -> r1
 wrapRecord = hmap WrapField
+
+
+----------
+-- Traversals
+
+-- TODO
+-- formFieldsToMaybeOutputFields :: { | fields } -> Maybe { | outputs }
+
+
+----------
+-- Helpers
+
+-- | Apply a builder that produces an output record from an empty record
+fromScratch :: ∀ r. FromScratch r -> Record r
+fromScratch = Builder.build <@> {}
+
+-- | Perform a traversal
