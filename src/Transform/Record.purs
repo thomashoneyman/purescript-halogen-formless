@@ -2,15 +2,17 @@ module Formless.Transform.Record where
 
 import Prelude
 
-import Data.Either (Either(..))
+import Data.Either (Either(..), hush)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, over, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy)
-import Formless.Spec (FormField(..), InputField(..))
+import Formless.Spec (FormField(..), InputField(..), OutputField(..))
 import Heterogeneous.Folding as HF
 import Heterogeneous.Mapping as HM
 import Prim.Row as Row
 import Record as Record
+import Record.Builder (Builder)
+import Record.Builder as Builder
 
 ----------
 -- Scratch
@@ -146,8 +148,63 @@ wrapRecord :: ∀ r0 r1. HM.HMap WrapField r0 r1 => r0 -> r1
 wrapRecord = HM.hmap WrapField
 
 
-----------
--- Traversals
+-- | Attempt to retrieve an OutputField for every result
+data MaybeOutput = MaybeOutput
 
--- TODO
--- formFieldsToMaybeOutputFields :: { | fields } -> Maybe { | outputs }
+instance maybeOutput :: HM.Mapping MaybeOutput (FormField e i o) (Maybe (OutputField e i o)) where
+  mapping MaybeOutput (FormField { result }) = map OutputField =<< hush <$> result
+
+-- | For internal use. Can be used in conjunction with sequenceRecord to produce a Maybe record
+-- | of output fields.
+formFieldsToMaybeOutputFields :: ∀ r0 r1. HM.HMap MaybeOutput r0 r1 => r0 -> r1
+formFieldsToMaybeOutputFields = HM.hmap MaybeOutput
+
+
+----------
+-- Helpers
+
+-- @natefaubion
+data FoldSequenceMember (f :: Type -> Type) = FoldSequenceMember
+
+instance foldSequenceMember1
+  :: ( Applicative f
+     , Row.Cons sym a r2 r3
+     , Row.Lacks sym r2
+     , IsSymbol sym
+     )
+  => HF.FoldingWithIndex
+       (FoldSequenceMember f)
+       (SProxy sym)
+       (f (Builder { | r1 } { | r2 }))
+       (f a)
+       (f (Builder { | r1 } { | r3 })) where
+  foldingWithIndex FoldSequenceMember prop b1 fa =
+    (>>>) <$> b1 <*> (Builder.insert prop <$> fa)
+
+else instance foldSequenceMember2
+  :: ( Functor f
+     , Row.Cons sym a r2 r3
+     , Row.Lacks sym r2
+     , IsSymbol sym
+     )
+  => HF.FoldingWithIndex
+       (FoldSequenceMember f)
+       (SProxy sym)
+       (f (Builder { | r1 } { | r2 }))
+       a
+       (f (Builder { | r1 } { | r3 })) where
+  foldingWithIndex FoldSequenceMember prop b1 a = (_ >>> Builder.insert prop a) <$> b1
+
+sequenceRecord
+  :: ∀ f r1 r2
+   . Applicative f
+  => HF.HFoldlWithIndex
+       (FoldSequenceMember f)
+       (f (Builder {} {}))
+       { | r1 }
+       (f (Builder {} { | r2 }))
+  => { | r1 }
+  -> f { | r2 }
+sequenceRecord =
+  map (flip Builder.build {}) <$>
+    HF.hfoldlWithIndex FoldSequenceMember (pure identity :: f (Builder {} {}))
