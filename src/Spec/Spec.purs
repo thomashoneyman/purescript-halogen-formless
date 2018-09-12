@@ -12,6 +12,7 @@ import Data.Lens.Traversal (Traversal')
 import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype)
 import Data.Symbol (class IsSymbol, SProxy(..))
+import Formless.Transform.Record (unwrapRecord)
 import Prim.Row as Row
 
 -- | Create a proxy for your form type, for use with functions that generate records from
@@ -43,53 +44,36 @@ type FormFieldRow error input output =
   , result :: Maybe (Either error output)
   )
 
--- | Proxies for each of the fields in FormField for easy access
+-- | Proxy for the 'input' field of a form field
 _input = SProxy :: SProxy "input"
+
+-- | Proxy for the 'touched' field of a form field
 _touched = SProxy :: SProxy "touched"
+
+-- | Proxy for the 'result' field of a form field
 _result = SProxy :: SProxy "result"
 
+
 ----------
--- Get
+-- Helpers
 
-type FormFieldGet e i o x =
-  forall sym form fields t0
-   . IsSymbol sym
-  => Newtype (form Record FormField) (Record fields)
-  => Row.Cons sym (FormField e i o) t0 fields
-  => SProxy sym
-  -> form Record FormField
-  -> x
+-- | A type synonym that lets you pick out just the error type from
+-- | your form row.
+type ErrorType error input output = error
 
--- | Given a form, get the field at the specified symbol
-getField :: ∀ e i o. FormFieldGet e i o (Record (FormFieldRow e i o))
-getField sym = view (_Field sym)
+-- | A type synonym that lets you pick out just the input type from
+-- | your form row.
+type InputType error input output = input
 
--- | Given a form, get the input at the specified symbol
-getInput :: ∀ e i o. FormFieldGet e i o i
-getInput sym = view (_Input sym)
-
--- | Given a form, get the touched field at the specified symbol
-getTouched :: ∀ e i o. FormFieldGet e i o Boolean
-getTouched sym = view (_Touched sym)
-
--- | Given a form, get the result at the specified symbol
-getResult :: ∀ e i o. FormFieldGet e i o (Maybe (Either e o))
-getResult sym = view (_Result sym)
-
--- | Given a form, get the error (if it exists) at the specified symbol
-getError :: ∀ e i o. FormFieldGet e i o (Maybe e)
-getError sym = preview (_Error sym)
-
--- | Given a form, get the output (if it exists) at the specified symbol
-getOutput :: ∀ e i o. FormFieldGet e i o (Maybe o)
-getOutput sym = preview (_Output sym)
-
+-- | A type synonym that lets you pick out just the output type from
+-- | your form row.
+type OutputType error input output = output
 
 ----------
 -- Lenses
 
 type FormFieldLens e i o x =
-  forall sym form fields t0
+  ∀ sym form fields t0
    . IsSymbol sym
   => Newtype (form Record FormField) (Record fields)
   => Row.Cons sym (FormField e i o) t0 fields
@@ -135,16 +119,75 @@ _Output
 _Output sym = _Result sym <<< _Just <<< _Right
 
 ----------
--- Helpers
+-- Fields
 
--- | A type synonym that lets you pick out just the error type from
--- | your form row.
-type ErrorType error input output = error
+-- | A type representing a function to produce a value from a record of
+-- | form fields given a particular symbol. The result of `view` from
+-- | Data.Lens applied with a particular lens to the form.
+type FormFieldGet e i o x =
+  ∀ sym form fields t0
+   . IsSymbol sym
+  => Newtype (form Record FormField) (Record fields)
+  => Row.Cons sym (FormField e i o) t0 fields
+  => SProxy sym
+  -> form Record FormField
+  -> x
 
--- | A type synonym that lets you pick out just the input type from
--- | your form row.
-type InputType error input output = input
+-- | Given a form, get the field at the specified symbol
+getField :: ∀ e i o. FormFieldGet e i o (Record (FormFieldRow e i o))
+getField sym = view (_Field sym)
 
--- | A type synonym that lets you pick out just the output type from
--- | your form row.
-type OutputType error input output = output
+-- | Given a form, get the input at the specified symbol
+getInput :: ∀ e i o. FormFieldGet e i o i
+getInput sym = view (_Input sym)
+
+-- | Given a form, get the touched field at the specified symbol
+getTouched :: ∀ e i o. FormFieldGet e i o Boolean
+getTouched sym = view (_Touched sym)
+
+-- | Given a form, get the result at the specified symbol
+getResult :: ∀ e i o. FormFieldGet e i o (Maybe (Either e o))
+getResult sym = view (_Result sym)
+
+-- | Given a form, get the error (if it exists) at the specified symbol
+getError :: ∀ e i o. FormFieldGet e i o (Maybe e)
+getError sym = preview (_Error sym)
+
+-- | Given a form, get the output (if it exists) at the specified symbol
+getOutput :: ∀ e i o. FormFieldGet e i o (Maybe o)
+getOutput sym = preview (_Output sym)
+
+----------
+-- Summary types
+
+newtype GetField (field :: Symbol) = GetField (SProxy field)
+
+instance getField ::
+  ( IsSymbol field
+  , Row.Cons field a rx r
+  ) => Mapping (GetField field) { | r } a where
+  mapping (GetField field) = Record.get field
+
+type FormFieldGetFields sym =
+  ∀ a xs form fields rout ys
+   . RL.RowToList a ys
+  => HMap (GetField sym) { | a } { | rout }
+  => MapRecordWithIndex ys (ConstMapping (GetField sym)) a rout
+  => { | a }
+  -> { | rout }
+
+fromForm_ :: ∀ sym. GetField sym -> FormFieldGetFields sym
+fromForm_ g = hmap g <<< unwrapRecord
+
+-- | Given a form, get a record of all the fields with their input values
+getInputAll :: FormFieldGetFields "input"
+getInputAll = fromForm_ (GetProp (SProxy :: SProxy "input"))
+
+-- | Given a form, get a record of all the fields with their touched status
+getTouchedAll :: FormFieldGetFields "touched"
+getTouchedAll = fromForm_ (GetProp (SProxy :: SProxy "touched"))
+
+-- | Given a form, get a record of all the fields with their result values
+getResultAll :: FormFieldGetFields "result"
+getResultAll = fromForm_ (GetProp (SProxy :: SProxy "result"))
+
