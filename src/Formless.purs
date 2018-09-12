@@ -24,6 +24,7 @@ module Formless
   , module Formless.Spec.Transform
   , module Formless.Class.Initial
   , module Formless.Validation
+  , send
   , send'
   , modify
   , modify_
@@ -40,7 +41,9 @@ import Prelude
 
 import Control.Comonad (extract)
 import Control.Comonad.Store (Store, store)
+import Control.Monad.Free (liftF)
 import Data.Const (Const)
+import Data.Coyoneda (liftCoyoneda)
 import Data.Eq (class EqRecord)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
@@ -76,7 +79,7 @@ data Query pq cq cs form m a
   | Submit a
   | SubmitReply (Maybe (form Record OutputField) -> a)
   | GetState (PublicState form -> a)
-  | Send cs (cq Unit) a
+  | Send cs (cq a)
   | SyncFormData a
   | Raise (pq Unit) a
   | ReplaceInputs (form Record InputField) a
@@ -162,17 +165,6 @@ data Message pq form
   = Submitted (form Record OutputField)
   | Changed (PublicState form)
   | Emit (pq Unit)
-
--- | When you are using several different types of child components in Formless
--- | the component needs a child path to be able to pick the right slot to send
--- | a query to.
-send' :: ∀ pq cq' cs' cs cq form m a
-  . ChildPath cq cq' cs cs'
- -> cs
- -> cq Unit
- -> a
- -> Query pq cq' cs' form m a
-send' path p q = Send (injSlot path p) (injQuery path q)
 
 -- | Simple types
 
@@ -325,9 +317,7 @@ component =
       st <- getState
       pure $ reply $ getPublicState st
 
-    -- Only allows actions; always returns nothing. In Halogen v5.0.0 branch this does return
-    -- requests as expected in a Halogen component.
-    Send cs cq a -> H.query cs cq $> a
+    Send cs cq -> H.HalogenM $ liftF $ H.ChildQuery cs $ liftCoyoneda cq
 
     Raise query a -> do
       H.raise (Emit query)
@@ -472,6 +462,29 @@ component =
 
 ----------
 -- Component helper functions for variants
+
+-----
+-- Querying
+
+-- | For use when you need to query a component through Formless
+send :: ∀ pq cs cq form m a
+  . cs
+ -> cq a
+ -> Query pq cq cs form m a
+send p q = Send p q
+
+-- | When you are using several different types of child components in Formless
+-- | the component needs a child path to be able to pick the right slot to send
+-- | a query to.
+send' :: ∀ pq cq' cs' cs cq form m a
+  . ChildPath cq cq' cs cs'
+ -> cs
+ -> cq a
+ -> Query pq cq' cs' form m a
+send' path p q = Send (injSlot path p) (injQuery path q)
+
+-----
+-- Queries
 
 -- | A helper to create the correct `Modify` query for Formless given a label and
 -- | an input value

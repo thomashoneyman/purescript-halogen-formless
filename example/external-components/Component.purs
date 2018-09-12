@@ -2,7 +2,7 @@ module Example.ExternalComponents.Component where
 
 import Prelude
 
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Effect.Console as Console
@@ -59,9 +59,12 @@ component =
         H.liftEffect $ Console.log $ show $ delete (SProxy :: SProxy "form") fstate
 
     Reset a -> a <$ do
-      _ <- H.query unit $ H.action $ F.Send Email (H.action TA.Clear)
-      _ <- H.query unit $ H.action $ F.Send Whiskey (H.action TA.Clear)
-      _ <- H.query unit $ H.action $ F.Send Language (H.action TA.Clear)
+      x <- H.query unit $ F.send Email (H.request TA.GetItems)
+      -- If the reset succeeded, then print out the items.
+      H.liftEffect $ Console.logShow $ fromMaybe [] x
+      _ <- H.query unit $ F.send Email (H.action TA.Clear)
+      _ <- H.query unit $ F.send Whiskey (H.action TA.Clear)
+      _ <- H.query unit $ F.send Language (H.action TA.Clear)
       H.query unit $ H.action F.ResetAll
 
     Typeahead slot (TA.SelectionsChanged new) a -> case slot of
@@ -72,7 +75,7 @@ component =
         _ <- H.query unit $ F.modifyValidate_ prx.whiskey new
         -- We'll clear the email field when a new whiskey is selected
         _ <- H.query unit $ F.reset_ prx.email
-        H.query unit $ H.action $ F.Send Email (H.action TA.Clear)
+        H.query unit $ F.send Email (H.action TA.Clear)
 
       Language -> a <$ do
         H.query unit $ F.modifyValidate_ prx.language new
