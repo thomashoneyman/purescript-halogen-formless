@@ -43,7 +43,7 @@ import Control.Comonad (extract)
 import Control.Comonad.Store (Store, store)
 import Control.Monad.Free (liftF)
 import Data.Const (Const)
-import Data.Coyoneda (coyoneda)
+import Data.Coyoneda (liftCoyoneda)
 import Data.Eq (class EqRecord)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
@@ -317,7 +317,7 @@ component =
       st <- getState
       pure $ reply $ getPublicState st
 
-    Send cs cq -> H.HalogenM $ liftF $ H.ChildQuery cs $ coyoneda identity cq
+    Send cs cq -> H.HalogenM $ liftF $ H.ChildQuery cs $ liftCoyoneda cq
 
     Raise query a -> do
       H.raise (Emit query)
@@ -466,9 +466,7 @@ component =
 -----
 -- Querying
 
--- | When you are using several different types of child components in Formless
--- | the component needs a child path to be able to pick the right slot to send
--- | a query to.
+-- | For use when you need to query a component through Formless
 send :: ∀ pq cs cq form m a
   . cs
  -> cq a
