@@ -29,6 +29,9 @@ derive newtype instance eqInputField :: Eq i => Eq (InputField e i o)
 newtype OutputField error input output = OutputField output
 derive instance newtypeOutputField :: Newtype (OutputField e i o) _
 
+-- | Represents a unit value with the correct number of arguments; largely for internal use.
+data U e i o = U
+
 -- | The type that we need to record state across the form
 newtype FormField e i o = FormField (Record (FormFieldRow e i o))
 derive instance newtypeFormField :: Newtype (FormField e i o) _

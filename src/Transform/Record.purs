@@ -7,12 +7,10 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, over, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy)
 import Formless.Spec (FormField(..), InputField(..))
-import Formless.Transform.Types (FromScratch)
-import Heterogeneous.Folding (class Folding, class HFoldl, hfoldl)
-import Heterogeneous.Mapping (class HMap, class HMapWithIndex, class Mapping, class MappingWithIndex, hmap, hmapWithIndex)
-import Prim.Row (class Cons) as Row
-import Record (get) as Record
-import Record.Builder (build) as Builder
+import Heterogeneous.Folding as HF
+import Heterogeneous.Mapping as HM
+import Prim.Row as Row
+import Record as Record
 
 ----------
 -- Scratch
@@ -43,22 +41,22 @@ testI =
 
 newtype ReplaceInput r = ReplaceInput { | r }
 
-instance replaceInput'
+instance replaceInput
   :: ( IsSymbol sym
      , Row.Cons sym (InputField e i o) t0 r
      )
-  => MappingWithIndex (ReplaceInput r) (SProxy sym) (FormField e i o) (FormField e i o) where
+  => HM.MappingWithIndex (ReplaceInput r) (SProxy sym) (FormField e i o) (FormField e i o) where
   mappingWithIndex (ReplaceInput r) prop =
     let input = unwrap $ Record.get prop r
      in over FormField (_ { input = input })
 
 replaceFormFieldInputs
   :: ∀ r0 r1 r2
-   . HMapWithIndex (ReplaceInput r0) r1 r2
+   . HM.HMapWithIndex (ReplaceInput r0) r1 r2
   => { | r0 }
   -> r1
   -> r2
-replaceFormFieldInputs = hmapWithIndex <<< ReplaceInput
+replaceFormFieldInputs = HM.hmapWithIndex <<< ReplaceInput
 
 
 ----------
@@ -67,24 +65,24 @@ replaceFormFieldInputs = hmapWithIndex <<< ReplaceInput
 -- | Verify every 'touched' field in the form is 'true'
 data Touched = Touched
 
-instance touched' :: Folding Touched Boolean (FormField e i o) Boolean where
+instance touched' :: HF.Folding Touched Boolean (FormField e i o) Boolean where
   folding Touched acc (FormField { touched }) = acc && touched
 
-allTouched :: ∀ r0. HFoldl Touched Boolean r0 Boolean => r0 -> Boolean
-allTouched = hfoldl Touched true
+allTouched :: ∀ r0. HF.HFoldl Touched Boolean r0 Boolean => r0 -> Boolean
+allTouched = HF.hfoldl Touched true
 
 
 -- | Count the total errors in the form
 data CountError = CountError
 
-instance countError' :: Folding CountError Int (FormField e i o) Int where
+instance countError' :: HF.Folding CountError Int (FormField e i o) Int where
   folding CountError acc (FormField { result }) =
     acc + case result of
       Just (Left _) -> 1
       _ -> 0
 
-countErrors :: ∀ r0. HFoldl CountError Int r0 Int => r0 -> Int
-countErrors = hfoldl CountError 0
+countErrors :: ∀ r0. HF.HFoldl CountError Int r0 Int => r0 -> Int
+countErrors = HF.hfoldl CountError 0
 
 
 ----------
@@ -98,54 +96,54 @@ countErrors = hfoldl CountError 0
 data FormFieldToInputField = FormFieldToInputField
 
 instance formFieldToInputField
-  :: Mapping FormFieldToInputField (FormField e i o) (InputField e i o) where
+  :: HM.Mapping FormFieldToInputField (FormField e i o) (InputField e i o) where
   mapping FormFieldToInputField (FormField { input }) = InputField input
 
-formFieldsToInputFields :: ∀ r0 r1. HMap FormFieldToInputField r0 r1 => r0 -> r1
-formFieldsToInputFields = hmap FormFieldToInputField
+formFieldsToInputFields :: ∀ r0 r1. HM.HMap FormFieldToInputField r0 r1 => r0 -> r1
+formFieldsToInputFields = HM.hmap FormFieldToInputField
 
 
 -- | Transform a record of input fields into a record of form fields
 data InputFieldToFormField = InputFieldToFormField
 
 instance inputFieldToFormField
-  :: Mapping InputFieldToFormField (InputField e i o) (FormField e i o) where
+  :: HM.Mapping InputFieldToFormField (InputField e i o) (FormField e i o) where
   mapping InputFieldToFormField (InputField input) =
     FormField { input, touched: false, result: Nothing }
 
-inputFieldsToFormFields :: ∀ r0 r1. HMap InputFieldToFormField r0 r1 => r0 -> r1
-inputFieldsToFormFields = hmap InputFieldToFormField
+inputFieldsToFormFields :: ∀ r0 r1. HM.HMap InputFieldToFormField r0 r1 => r0 -> r1
+inputFieldsToFormFields = HM.hmap InputFieldToFormField
 
 
 -- | Set all form fields 'touched' field
 data SetFormFieldTouched = SetFormFieldTouched Boolean
 
 instance setFormFieldTouched
-  :: Mapping SetFormFieldTouched (FormField e i o) (FormField e i o) where
+  :: HM.Mapping SetFormFieldTouched (FormField e i o) (FormField e i o) where
   mapping (SetFormFieldTouched bool) = over FormField (_ { touched = bool })
 
-setFormFieldsTouched :: ∀ r0 r1. HMap SetFormFieldTouched r0 r1 => Boolean -> r0 -> r1
-setFormFieldsTouched = hmap <<< SetFormFieldTouched
+setFormFieldsTouched :: ∀ r0 r1. HM.HMap SetFormFieldTouched r0 r1 => Boolean -> r0 -> r1
+setFormFieldsTouched = HM.hmap <<< SetFormFieldTouched
 
 
 -- | Unwrap every newtype in a record filled with newtypes
 data UnwrapField = UnwrapField
 
-instance unwrapField :: (Newtype wrapper x) => Mapping UnwrapField wrapper x where
+instance unwrapField :: (Newtype wrapper x) => HM.Mapping UnwrapField wrapper x where
   mapping UnwrapField = unwrap
 
-unwrapRecord :: ∀ r0 r1. HMap UnwrapField r0 r1 => r0 -> r1
-unwrapRecord = hmap UnwrapField
+unwrapRecord :: ∀ r0 r1. HM.HMap UnwrapField r0 r1 => r0 -> r1
+unwrapRecord = HM.hmap UnwrapField
 
 
 -- | Wrap every field in a record with a particular newtype
 data WrapField = WrapField
 
-instance wrapField :: (Newtype wrapper x) => Mapping WrapField x wrapper where
+instance wrapField :: (Newtype wrapper x) => HM.Mapping WrapField x wrapper where
   mapping WrapField = wrap
 
-wrapRecord :: ∀ r0 r1. HMap WrapField r0 r1 => r0 -> r1
-wrapRecord = hmap WrapField
+wrapRecord :: ∀ r0 r1. HM.HMap WrapField r0 r1 => r0 -> r1
+wrapRecord = HM.hmap WrapField
 
 
 ----------
@@ -153,13 +151,3 @@ wrapRecord = hmap WrapField
 
 -- TODO
 -- formFieldsToMaybeOutputFields :: { | fields } -> Maybe { | outputs }
-
-
-----------
--- Helpers
-
--- | Apply a builder that produces an output record from an empty record
-fromScratch :: ∀ r. FromScratch r -> Record r
-fromScratch = Builder.build <@> {}
-
--- | Perform a traversal
