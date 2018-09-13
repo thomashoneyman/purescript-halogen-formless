@@ -9,7 +9,7 @@ import Effect.Aff (Aff)
 import Example.App.UI.Dropdown as Dropdown
 import Example.App.UI.Typeahead as TA
 import Example.RealWorld.Data.Group (Admin, Group, GroupForm)
-import Example.RealWorld.Data.Options (Metric, Options, OptionsForm)
+import Example.RealWorld.Data.Options (Metric, OptionsForm)
 import Formless as Formless
 
 ----------
@@ -18,8 +18,8 @@ import Formless as Formless
 -- | This component will only handle output from Formless to keep
 -- | things simple.
 data Query a
-  = GroupForm (Formless.Message Query GroupForm Group) a
-  | OptionsForm (Formless.Message Query OptionsForm Options) a
+  = GroupForm (Formless.Message Query GroupForm) a
+  | OptionsForm (Formless.Message Query OptionsForm) a
   | TASingle (TA.Message Maybe String) a
   | TAMulti GroupTASlot (TA.Message Array String) a
   | AdminDropdown (Dropdown.Message Admin) a
@@ -43,45 +43,28 @@ type State =
 
 -- | Now we can create _this_ component's child query and child slot pairing.
 type ChildQuery = Coproduct2
-  (Formless.Query Query GroupCQ GroupCS GroupForm Group Aff)
-  (Formless.Query Query OptionsCQ OptionsCS OptionsForm Options Aff)
+  (Formless.Query Query GroupCQ GroupCS GroupForm Aff)
+  (Formless.Query Query (Dropdown.Query Metric) Unit OptionsForm Aff)
 
-type ChildSlot = Either2
-  Unit
-  Unit
+type ChildSlot = Either2 Unit Unit
 
 ----------
 -- Formless
 
 -- | Types for the group form
-type GroupCQ = Coproduct3
-  (TA.Query String)
-  (TA.Query String)
-  (Dropdown.Query Admin)
-
-type GroupCS = Either3
-  GroupTASlot
-  Unit
-  Unit
-
--- | Types for the options form
-type OptionsCQ = Dropdown.Query Metric
-type OptionsCS = Unit
+type GroupCQ = Coproduct3 (TA.Query String) (TA.Query String) (Dropdown.Query Admin)
+type GroupCS = Either3 GroupTASlot Unit Unit
 
 ----------
 -- Slots
 
-data GroupTASlot
-  = Applications
-  | Pixels
+data GroupTASlot = Applications | Pixels
 derive instance eqGroupTASlot :: Eq GroupTASlot
 derive instance ordGroupTASlot :: Ord GroupTASlot
 
 ----------
 -- Navigation
 
-data Tab
-  = GroupTab
-  | OptionsTab
+data Tab = GroupTab | OptionsTab
 derive instance eqTab :: Eq Tab
 derive instance ordTab :: Ord Tab
