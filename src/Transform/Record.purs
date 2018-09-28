@@ -9,15 +9,12 @@ import Data.Symbol (class IsSymbol, SProxy)
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.Variant (Variant)
 import Data.Variant.Internal (VariantRep(..))
-import Formless.Internal (class Row1Cons)
 import Formless.Spec (FormField(..), InputField(..), OutputField(..), U)
 import Formless.Validation (Validation, runValidation)
 import Heterogeneous.Folding as HF
 import Heterogeneous.Mapping as HM
 import Prim.Row as Row
 import Record as Record
-import Record.Builder (Builder)
-import Record.Builder as Builder
 import Record.Unsafe (unsafeGet, unsafeSet)
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -77,12 +74,22 @@ instance replaceInput
   :: ( IsSymbol sym
      , Row.Cons sym (InputField e i o) t0 r
      )
-  => HM.MappingWithIndex (ReplaceInput r) (SProxy sym) (FormField e i o) (FormField e i o) where
+  => HM.MappingWithIndex
+       (ReplaceInput r)
+       (SProxy sym)
+       (FormField e i o)
+       (FormField e i o)
+     where
   mappingWithIndex (ReplaceInput r) prop =
     let input = unwrap $ Record.get prop r
      in over FormField (_ { input = input })
 
-replaceFormFieldInputs :: ∀ r0 r1 r2. HM.HMapWithIndex (ReplaceInput r0) r1 r2 => { | r0 } -> r1 -> r2
+replaceFormFieldInputs
+  :: ∀ r0 r1
+   . HM.HMapWithIndex (ReplaceInput r0) r1 r1
+  => { | r0 }
+  -> r1
+  -> r1
 replaceFormFieldInputs = HM.hmapWithIndex <<< ReplaceInput
 
 
@@ -172,7 +179,8 @@ wrapRecord = HM.hmap WrapField
 -- | Attempt to retrieve an OutputField for every result
 data MaybeOutput = MaybeOutput
 
-instance maybeOutput :: HM.Mapping MaybeOutput (FormField e i o) (Maybe (OutputField e i o)) where
+instance maybeOutput
+  :: HM.Mapping MaybeOutput (FormField e i o) (Maybe (OutputField e i o)) where
   mapping MaybeOutput (FormField { result }) = map OutputField =<< hush <$> result
 
 -- | For internal use. Can be used in conjunction with sequenceRecord to produce a Maybe record

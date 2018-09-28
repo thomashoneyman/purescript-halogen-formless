@@ -37,6 +37,7 @@ module Formless
   where
 
 import Formless.Spec
+import Formless.Transform.Record
 import Formless.Validation
 import Prelude
 
@@ -56,12 +57,12 @@ import Data.Traversable (traverse_)
 import Data.Variant (Variant, inj)
 import Data.Variant.Internal (VariantRep(..), unsafeGet)
 import Formless.Class.Initial (class Initial, initial)
-import Formless.Transform.Record
+import Formless.Spec.Retrieve (GetInputField(..), getInputAll)
 import Halogen as H
 import Halogen.Component.ChildPath (ChildPath, injQuery, injSlot)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
-import Heterogeneous.Folding (class HFoldlWithIndex)
+import Heterogeneous.Folding (class HFoldl, class HFoldlWithIndex)
 import Heterogeneous.Mapping (class HMap, class HMapWithIndex)
 import Prim.Row as Row
 import Prim.RowList as RL
@@ -189,7 +190,11 @@ component
   => RL.RowToList is ixs
   => EqRecord ixs is
   => HMap InputFieldToFormField { | is } { | fs }
+  => HMap GetInputField { | fs } { | fs }
+  => HMap SetFormFieldTouched { | fs } { | fs }
   => HMapWithIndex (ReplaceInput is) { | fs } { | fs }
+  => HFoldl CountError Int { | fs } Int
+  => HFoldl Touched Boolean { | fs } Boolean
   => Newtype (form Record InputField) { | is }
   => Newtype (form Variant InputField) (Variant ivs)
   => Newtype (form Record FormField) { | fs }
@@ -224,7 +229,8 @@ component =
 
     Validate variant a -> do
       st <- getState
-      form <- H.lift $ unsafeRunValidationVariant variant (unwrap st.internal).validators st.form
+      form <- H.lift
+        $ unsafeRunValidationVariant variant (unwrap st.internal).validators st.form
       modifyState_ _ { form = form }
       eval $ SyncFormData a
 
@@ -235,7 +241,10 @@ component =
 
     Reset variant a -> do
       modifyState_ \st -> st
-        { form = wrap $ replaceFormFieldInputs (unwrap (unwrap st.internal).initialInputs) (unwrap st.form)
+        { form = wrap
+          $ replaceFormFieldInputs
+            (unwrap (unwrap st.internal).initialInputs)
+            (unwrap st.form)
         , internal = over InternalState (_ { allTouched = false }) st.internal
         }
       eval $ SyncFormData a
@@ -250,16 +259,15 @@ component =
     -- A query to sync the overall state of the form after an individual field change
     -- or overall validation.
     SyncFormData a -> do
-      -- TODO
-      --  modifyState_ \st -> st
-      --    { errors = ?countErrors st.form
-      --      -- Dirty state is computed by checking equality of original input fields
-      --      -- vs. current ones. This relies on input fields passed by the user having
-      --      -- equality defined.
-      --    , dirty = not $ (==)
-      --        (unwrap (?formFieldsToInputFields st.form))
-      --        (unwrap (unwrap st.internal).initialInputs)
-      --    }
+      modifyState_ \st -> st
+        { errors = countErrors (unwrap st.form)
+          -- Dirty state is computed by checking equality of original input fields
+          -- vs. current ones. This relies on input fields passed by the user having
+          -- equality defined.
+        , dirty = not $ (==)
+            (getInputAll st.form)
+            (unwrapRecord (unwrap st.internal).initialInputs)
+        }
 
       st <- getState
       -- Need to verify the validity status of the form.
@@ -269,7 +277,7 @@ component =
 
         -- If not all fields are touched, then we need to quickly sync the form state
         -- to verify this is actually the case.
-        _ -> case ?checkTouched st.form of
+        _ -> case allTouched $ unwrap st.form of
 
           -- The sync revealed all fields really have been touched
           true -> modifyState _
@@ -302,7 +310,10 @@ component =
         , dirty = false
         , errors = 0
         , submitAttempts = 0
-        , form = ?replaceFormFieldInputs (unwrap st.internal).initialInputs st.form
+        , form = wrap
+            $ replaceFormFieldInputs
+              (unwrap (unwrap st.internal).initialInputs)
+              (unwrap st.form)
         , internal = over InternalState (_ { allTouched = false }) st.internal
         }
       H.raise $ Changed $ getPublicState new
@@ -326,8 +337,11 @@ component =
         , errors = 0
         , submitAttempts = 0
         , submitting = false
-        , form = ?replaceInput formInputs st.form
-        , internal = over InternalState (_ { allTouched = false, initialInputs = formInputs }) st.internal
+        , form = wrap $ replaceFormFieldInputs (unwrap formInputs) (unwrap st.form)
+        , internal = over
+            InternalState
+            (_ { allTouched = false, initialInputs = formInputs })
+            st.internal
         }
       H.raise $ Changed $ getPublicState new
       pure a
@@ -357,12 +371,10 @@ component =
     -- For performance purposes, avoid running this if possible
     let internal = unwrap init.internal
     when (not internal.allTouched) do
-      pure unit
-      -- TODO
-      --  modifyState_ _
-      --   { form = ?setTouched (over FormField (_ { touched = true })) init.form
-      --   , internal = over InternalState (_ { allTouched = true }) init.internal
-      --   }
+      modifyState_ _
+       { form = wrap $ setFormFieldsTouched true $ unwrap init.form
+       , internal = over InternalState (_ { allTouched = true }) init.internal
+       }
 
     -- Necessary to validate after fields are touched, but before parsing
     _ <- eval $ ValidateAll unit

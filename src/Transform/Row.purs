@@ -6,7 +6,6 @@ import Data.Newtype (class Newtype, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Spec (FormProxy, InputField(..))
-import Formless.Transform.Types as TT
 import Prim.Row as Row
 import Prim.RowList as RL
 import Record.Builder (Builder)
