@@ -6,9 +6,9 @@ import Data.Newtype (class Newtype, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Spec (FormProxy, InputField(..))
+import Formless.Transform.Internal (class Row1Cons, FromScratch, fromScratch)
 import Prim.Row as Row
 import Prim.RowList as RL
-import Record.Builder (Builder)
 import Record.Builder as Builder
 import Type.Row (RLProxy(..), RProxy(..))
 
@@ -98,17 +98,3 @@ instance makeSProxiesCons
     where
       rest = makeSProxiesBuilder (RLProxy :: RLProxy tail)
       first = Builder.insert (SProxy :: SProxy name) (SProxy :: SProxy name)
-
-----------
--- Helpers
-
--- | Apply a builder that produces an output record from an empty record
-fromScratch :: ∀ r. FromScratch r -> Record r
-fromScratch = Builder.build <@> {}
-
--- | Represents building some output record from an empty record
-type FromScratch r = Builder {} (Record r)
-
--- | A constraint synonym for Row.Cons and Row.Lacks
-class (Row.Cons s t r r', Row.Lacks s r) <= Row1Cons s t r r' | s t r -> r', s r' -> t r
-instance row1Cons :: (Row.Cons s t r r', Row.Lacks s r) => Row1Cons s t r r'
