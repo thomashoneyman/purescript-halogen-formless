@@ -386,13 +386,11 @@ component =
 
     -- For performance purposes, only attempt to submit if the form is valid
     validated <- getState
-
-    let form = case validated.validity of
-          Valid -> formFieldsToMaybeOutputFields validated.form
-          _ -> Nothing
-
     modifyState_ \st -> st { submitting = false }
-    pure form
+    pure $
+      if validated.validity == Valid
+        then formFieldsToMaybeOutputFields validated.form
+        else Nothing
 
 
 -----
