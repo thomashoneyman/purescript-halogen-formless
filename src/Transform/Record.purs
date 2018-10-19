@@ -5,17 +5,21 @@ import Prelude
 import Data.Either (Either(..), hush)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, over, unwrap, wrap)
-import Data.Symbol (class IsSymbol, SProxy)
+import Data.Symbol (class IsSymbol, SProxy(..))
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.Variant (Variant)
 import Data.Variant.Internal (VariantRep(..))
 import Formless.Spec (FormField(..), InputField(..), OutputField(..), U)
+import Formless.Transform.Row (class Row1Cons, FromScratch, fromScratch)
 import Formless.Validation (Validation, runValidation)
 import Heterogeneous.Folding as HF
 import Heterogeneous.Mapping as HM
 import Prim.Row as Row
+import Prim.RowList as RL
 import Record as Record
+import Record.Builder as Builder
 import Record.Unsafe (unsafeGet, unsafeSet)
+import Type.Row (RLProxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 
 ----------
@@ -80,16 +84,17 @@ instance replaceInput
        (FormField e i o)
        (FormField e i o)
      where
-  mappingWithIndex (ReplaceInput r) prop =
-    let input = unwrap $ Record.get prop r
-     in over FormField (_ { input = input })
+  mappingWithIndex (ReplaceInput r) prop = do
+    let input :: i
+        input = unwrap $ Record.get prop r
+    over FormField (_ { input = input })
 
 replaceFormFieldInputs
   :: ∀ r0 r1
-   . HM.HMapWithIndex (ReplaceInput r0) r1 r1
+   . HM.HMapWithIndex (ReplaceInput r0) { | r1 } { | r1 }
   => { | r0 }
-  -> r1
-  -> r1
+  -> { | r1 }
+  -> { | r1 }
 replaceFormFieldInputs = HM.hmapWithIndex <<< ReplaceInput
 
 
@@ -165,7 +170,6 @@ instance unwrapField :: (Newtype wrapper x) => HM.Mapping UnwrapField wrapper x 
 unwrapRecord :: ∀ r0 r1. HM.HMap UnwrapField r0 r1 => r0 -> r1
 unwrapRecord = HM.hmap UnwrapField
 
-
 -- | Wrap every field in a record with a particular newtype
 data WrapField = WrapField
 
@@ -176,14 +180,113 @@ wrapRecord :: ∀ r0 r1. HM.HMap WrapField r0 r1 => r0 -> r1
 wrapRecord = HM.hmap WrapField
 
 
--- | Attempt to retrieve an OutputField for every result
-data MaybeOutput = MaybeOutput
+----------
+-- Conveniences
 
-instance maybeOutput
-  :: HM.Mapping MaybeOutput (FormField e i o) (Maybe (OutputField e i o)) where
-  mapping MaybeOutput (FormField { result }) = map OutputField =<< hush <$> result
+unwrapOutputFields
+  :: ∀ form os os'
+   . Newtype (form Record OutputField) { | os }
+  => HM.HMap UnwrapField { | os } { | os' }
+  => form Record OutputField
+  -> { | os' }
+unwrapOutputFields = unwrapRecord <<< unwrap
 
--- | For internal use. Can be used in conjunction with sequenceRecord to produce a Maybe record
--- | of output fields.
-formFieldsToMaybeOutputFields :: ∀ r0 r1. HM.HMap MaybeOutput r0 r1 => r0 -> r1
-formFieldsToMaybeOutputFields = HM.hmap MaybeOutput
+wrapInputFields
+  :: ∀ form is is'
+   . Newtype (form Record InputField) { | is' }
+  => HM.HMap WrapField { | is } { | is' }
+  => { | is }
+  -> form Record InputField
+wrapInputFields = wrap <<< wrapRecord
+
+
+---------
+-- RowToList versions
+
+-- | The class that provides the Builder implementation to efficiently transform the record
+-- | of MaybeOutput to a record of OutputField, but only if all fields were successfully
+-- | validated.
+class FormFieldToMaybeOutput (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
+  formFieldsToMaybeOutputBuilder :: RLProxy xs -> Record row -> Maybe (FromScratch to)
+
+instance formFieldsToMaybeOutputNil :: FormFieldToMaybeOutput RL.Nil row () where
+  formFieldsToMaybeOutputBuilder _ _ = Just identity
+
+instance formFieldsToMaybeOutputCons
+  :: ( IsSymbol name
+     , Row.Cons name (FormField e i o) trash row
+     , FormFieldToMaybeOutput tail row from
+     , Row1Cons name (OutputField e i o) from to
+     )
+  => FormFieldToMaybeOutput (RL.Cons name (FormField e i o) tail) row to where
+  formFieldsToMaybeOutputBuilder _ r =
+    transform <$> val <*> rest
+    where
+      _name = SProxy :: SProxy name
+
+      val :: Maybe (OutputField e i o)
+      val = map OutputField $ join $ map hush (unwrap $ Record.get _name r).result
+
+      rest :: Maybe (FromScratch from)
+      rest = formFieldsToMaybeOutputBuilder (RLProxy :: RLProxy tail) r
+
+      transform :: OutputField e i o -> FromScratch from -> FromScratch to
+      transform v builder' = Builder.insert _name v <<< builder'
+
+formFieldsToMaybeOutputFields
+  :: ∀ xs form fields outputs
+   . RL.RowToList fields xs
+  => Newtype (form Record FormField) (Record fields)
+  => Newtype (form Record OutputField) (Record outputs)
+  => FormFieldToMaybeOutput xs fields outputs
+  => form Record FormField
+  -> Maybe (form Record OutputField)
+formFieldsToMaybeOutputFields r = map wrap $ fromScratch <$> builder
+  where builder = formFieldsToMaybeOutputBuilder (RLProxy :: RLProxy xs) (unwrap r)
+
+
+-- | A class that applies the current state to the unwrapped version of every validator
+class ApplyValidation (vs :: # Type) (xs :: RL.RowList) (row :: # Type) (to :: # Type) m | xs -> to where
+  applyValidationBuilder :: Record vs -> RLProxy xs -> Record row -> m (FromScratch to)
+
+instance applyToValidationNil :: Monad m => ApplyValidation vs RL.Nil row () m where
+  applyValidationBuilder _ _ _ = pure identity
+
+instance applyToValidationCons
+  :: ( IsSymbol name
+     , Monad m
+     , Row.Cons name (FormField e i o) t0 row
+     , Newtype (form Record FormField) (Record row)
+     , Row.Cons name (Validation form m e i o) t1 vs
+     , Row1Cons name (FormField e i o) from to
+     , ApplyValidation vs tail row from m
+     )
+  => ApplyValidation vs (RL.Cons name (FormField e i o) tail) row to m where
+  applyValidationBuilder vs _ r =
+    fn <$> val <*> rest
+    where
+      _name = SProxy :: SProxy name
+      fn val' rest' = Builder.insert _name val' <<< rest'
+      rest = applyValidationBuilder vs (RLProxy :: RLProxy tail) r
+
+      val = do
+        let validator = unwrap $ Record.get _name vs
+            formField = unwrap $ Record.get _name r
+        res <- validator (wrap r) formField.input
+        pure $ wrap $ formField { result = Just res }
+
+
+applyValidation
+  :: ∀ vs xs form fields m
+   . RL.RowToList fields xs
+  => Monad m
+  => ApplyValidation vs xs fields fields m
+  => Newtype (form Record (Validation form m)) (Record vs)
+  => Newtype (form Record FormField) (Record fields)
+  => form Record FormField
+  -> form Record (Validation form m)
+  -> m (form Record FormField)
+applyValidation fs vs = map wrap $ fromScratch <$> builder
+  where
+    builder = applyValidationBuilder (unwrap vs) (RLProxy :: RLProxy xs) (unwrap fs)
+

@@ -21,8 +21,11 @@ module Formless
   , ValidStatus(..)
   , component
   , module Formless.Spec
+  , module Formless.Spec.Retrieve
   , module Formless.Class.Initial
   , module Formless.Validation
+  , module Formless.Transform.Record
+  , module Formless.Transform.Row
   , send
   , send'
   , modify
@@ -36,9 +39,6 @@ module Formless
   )
   where
 
-import Formless.Spec
-import Formless.Transform.Record
-import Formless.Validation
 import Prelude
 
 import Control.Comonad (extract)
@@ -50,24 +50,25 @@ import Data.Eq (class EqRecord)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..))
-import Data.Monoid.Additive (Additive)
 import Data.Newtype (class Newtype, over, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Data.Traversable (traverse_)
 import Data.Variant (Variant, inj)
-import Data.Variant.Internal (VariantRep(..), unsafeGet)
 import Formless.Class.Initial (class Initial, initial)
-import Formless.Spec.Retrieve (GetInputField(..), getInputAll)
+import Formless.Spec (ErrorType, FormField(..), FormFieldLens, FormFieldRow, FormProxy(..), InputField(..), InputType, OutputField(..), OutputType, U(..), _Error, _Field, _Input, _Output, _Result, _Touched, _input, _result, _touched)
+import Formless.Spec.Retrieve (FormFieldGet, GetAll, GetError(..), GetInputField(..), GetOutput(..), GetResultField(..), GetTouchedField(..), getError, getErrorAll, getField, getInput, getInputAll, getOutput, getOutputAll, getResult, getResultAll, getTouched, getTouchedAll)
+import Formless.Transform.Record (class ApplyValidation, class FormFieldToMaybeOutput, CountError(..), FormFieldToInputField(..), InputFieldToFormField(..), ReplaceInput(..), SetFormFieldTouched(..), Touched(..), UnwrapField(..), WrapField(..), allTouched, applyValidation, applyValidationBuilder, countErrors, formFieldsToInputFields, formFieldsToMaybeOutputBuilder, formFieldsToMaybeOutputFields, inputFieldsToFormFields, replaceFormFieldInputs, setFormFieldsTouched, unsafeRunValidationVariant, unsafeSetInputVariant, unwrapOutputFields, unwrapRecord, wrapInputFields, wrapRecord)
+import Formless.Transform.Row (class MakeInputFieldsFromRow, class MakeSProxies, class Row1Cons, FromScratch, SProxies, fromScratch, makeSProxiesBuilder, mkInputFields, mkInputFieldsFromRowBuilder, mkSProxies)
+import Formless.Validation (EmptyValidators(..), Validation(..), hoistFn, hoistFnE, hoistFnE_, hoistFnME, hoistFnME_, hoistFn_, noValidation, runValidation)
 import Halogen as H
 import Halogen.Component.ChildPath (ChildPath, injQuery, injSlot)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
-import Heterogeneous.Folding (class HFoldl, class HFoldlWithIndex)
-import Heterogeneous.Mapping (class HMap, class HMapWithIndex)
+import Heterogeneous.Folding (class HFoldl)
+import Heterogeneous.Mapping (class HMap, class MapRecordWithIndex)
 import Prim.Row as Row
 import Prim.RowList as RL
 import Record as Record
-import Record.Builder (Builder)
 import Renderless.State (getState, modifyState, modifyState_, modifyStore_)
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -184,20 +185,25 @@ type Input' form m = Input (Const Void) (Const Void) Void form m
 
 -- | The component itself
 component
-  :: ∀ pq cq cs form m is ixs ivs fs us vs
+  :: ∀ pq cq cs form m is ixs ivs fs fxs us vs os
    . Ord cs
   => Monad m
   => RL.RowToList is ixs
+  => RL.RowToList fs fxs
   => EqRecord ixs is
   => HMap InputFieldToFormField { | is } { | fs }
-  => HMap GetInputField { | fs } { | fs }
+  => HMap GetInputField { | fs } { | is }
   => HMap SetFormFieldTouched { | fs } { | fs }
-  => HMapWithIndex (ReplaceInput is) { | fs } { | fs }
+  => HMap UnwrapField (form Record InputField) { | is }
+  => MapRecordWithIndex fxs (ReplaceInput is) fs fs
   => HFoldl CountError Int { | fs } Int
   => HFoldl Touched Boolean { | fs } Boolean
+  => FormFieldToMaybeOutput fxs fs os
+  => ApplyValidation vs fxs fs fs m
   => Newtype (form Record InputField) { | is }
   => Newtype (form Variant InputField) (Variant ivs)
   => Newtype (form Record FormField) { | fs }
+  => Newtype (form Record OutputField) { | os }
   => Newtype (form Record (Validation form m)) { | vs }
   => Newtype (form Variant U) (Variant us)
   => Component pq cq cs form m
@@ -250,10 +256,9 @@ component =
       eval $ SyncFormData a
 
     ValidateAll a -> do
-			-- TODO
-      --  st <- getState
-      --  form <- H.lift $ applyValidation st.form (unwrap (unwrap st.internal).validators)
-      --  modifyState_ _ { form = wrap form }
+      st <- getState
+      form <- H.lift $ applyValidation st.form (unwrap st.internal).validators
+      modifyState_ _ { form = form }
       eval $ SyncFormData a
 
     -- A query to sync the overall state of the form after an individual field change
@@ -382,11 +387,9 @@ component =
     -- For performance purposes, only attempt to submit if the form is valid
     validated <- getState
 
-    form <- case validated.validity of
-      Valid -> do
-        output <- H.lift $ ?sequenceRecord (?toMaybeOut validated.form)
-        pure (Just output)
-      _ -> pure Nothing
+    let form = case validated.validity of
+          Valid -> formFieldsToMaybeOutputFields validated.form
+          _ -> Nothing
 
     modifyState_ \st -> st { submitting = false }
     pure form

@@ -37,7 +37,7 @@ mkInputFields _ = wrap $ fromScratch builder
 -- | transform a row into a proper InputFields by wrapping it in newtypes and
 -- | supplying initial values
 class MakeInputFieldsFromRow (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
-  mkInputFieldsFromRowBuilder :: RLProxy xs -> RProxy row -> TT.FromScratch to
+  mkInputFieldsFromRowBuilder :: RLProxy xs -> RProxy row -> FromScratch to
 
 instance mkInputFieldsFromRowNil :: MakeInputFieldsFromRow RL.Nil row () where
   mkInputFieldsFromRowBuilder _ _ = identity
@@ -47,7 +47,7 @@ instance mkInputFieldsFromRowCons
      , Initial i
      , Row.Cons name (InputField e i o) trash row
      , MakeInputFieldsFromRow tail row from
-     , TT.Row1Cons name (InputField e i o) from to
+     , Row1Cons name (InputField e i o) from to
      )
   => MakeInputFieldsFromRow (RL.Cons name (InputField e i o) tail) row to where
   mkInputFieldsFromRowBuilder _ r =
@@ -83,14 +83,14 @@ mkSProxies _ = fromScratch builder
 -- | The class used to build up a new record of symbol proxies from an
 -- | input row list.
 class MakeSProxies (xs :: RL.RowList) (to :: # Type) | xs -> to where
-  makeSProxiesBuilder :: RLProxy xs -> TT.FromScratch to
+  makeSProxiesBuilder :: RLProxy xs -> FromScratch to
 
 instance makeSProxiesNil :: MakeSProxies RL.Nil () where
   makeSProxiesBuilder _ = identity
 
 instance makeSProxiesCons
   :: ( IsSymbol name
-     , TT.Row1Cons name (SProxy name) from to
+     , Row1Cons name (SProxy name) from to
      , MakeSProxies tail from
      )
   => MakeSProxies (RL.Cons name x tail) to where

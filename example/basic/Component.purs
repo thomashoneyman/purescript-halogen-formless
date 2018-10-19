@@ -40,7 +40,7 @@ component = H.parentComponent
         <> "Formless, most of which is simply Halogen boilerplate. The actual form spec and wiring "
         <> "consists of less than 20 lines of code."
     , HH.br_
-    , HH.slot unit F.component { initialInputs, validators, render: renderFormless } (HE.input Formless)
+    , HH.slot unit F.component ?abc (HE.input Formless) -- { initialInputs, validators, render: renderFormless } (HE.input Formless)
     ]
 
   eval :: Query ~> H.ParentDSL Unit Query ChildQuery ChildSlot Void Aff
