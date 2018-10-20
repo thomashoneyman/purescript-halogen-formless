@@ -431,11 +431,11 @@ instance replaceFormFieldInputsTouchedCons
   => ReplaceFormFieldInputs is (RL.Cons name (FormField e i o) tail) row to where
   replaceFormFieldInputsBuilder ir _ fr = first <<< rest
 		where
-			_name = SProxy :: SProxy name
-			i = Record.get _name ir
-			f = unwrap $ Record.get _name fr
-			rest = replaceFormFieldInputsBuilder ir (RLProxy :: RLProxy tail) fr
-			first =
-				Builder.insert
-					_name
-					(FormField $ f { input = unwrap i, touched = false, result = Nothing })
+      _name = SProxy :: SProxy name
+      i = Record.get _name ir
+      f = unwrap $ Record.get _name fr
+      rest = replaceFormFieldInputsBuilder ir (RLProxy :: RLProxy tail) fr
+      first =
+        Builder.insert
+          _name
+          (FormField $ f { input = unwrap i, touched = false, result = Nothing })
