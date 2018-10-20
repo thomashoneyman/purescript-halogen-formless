@@ -6,6 +6,8 @@
 
 Formless is a [renderless component](https://github.com/thomashoneyman/purescript-halogen-renderless) which helps you build forms in Halogen. Provide Formless with some initial inputs, validators, a submit function, and a render function, and the component will handle the tedious parts of managing form state, errors, submission, and more.
 
+> Note: This repository uses tagged releases. For that reason, the master branch does not necessarily represent the current release. To ensure you are viewing the correct documentation and examples, consider browsing the repository at the tag of the release you have specified in your `bower` or `psc-package` file.
+
 You can write a complete Halogen form component with multiple fields, validation, parsing, and errors in less than 100 lines of code (only ~20 lines of which are from Formless).
 
 - [Live examples / docs site](https://thomashoneyman.github.io/purescript-halogen-formless/)
