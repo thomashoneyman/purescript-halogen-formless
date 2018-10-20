@@ -31,7 +31,7 @@ data Query pq cq cs form m a
   | Send cs (cq a)
   | SyncFormData a
   | Raise (pq Unit) a
-  | ReplaceInputs (form Record InputField) a
+  | Initialize (form Record InputField) a
   | Receive (Input pq cq cs form m) a
   | AndThen (Query pq cq cs form m Unit) (Query pq cq cs form m Unit) a
 

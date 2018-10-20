@@ -190,7 +190,7 @@ component =
       H.raise (Emit query)
       pure a
 
-    ReplaceInputs formInputs a -> do
+    Initialize formInputs a -> do
       st <- getState
       new <- modifyState _
         { validity = Incomplete
