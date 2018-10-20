@@ -81,7 +81,7 @@ renderFormless state =
      , placeholder: "Dale"
      }
      [ HP.value $ F.getInput _name state.form
-     , HE.onValueInput $ HE.input $ F.modifyValidate _name
+     , HE.onValueInput $ HE.input $ F.setValidate _name
      ]
  , UI.textarea
      { label: "Message"
@@ -89,7 +89,7 @@ renderFormless state =
      , placeholder: "We prefer nice messages, but have at it."
      }
      [ HP.value $ F.getInput _text state.form
-     , HE.onValueInput $ HE.input $ F.modify _text
+     , HE.onValueInput $ HE.input $ F.set _text
      ]
    , UI.buttonPrimary
      [ HE.onClick $ HE.input_ F.Submit ]
