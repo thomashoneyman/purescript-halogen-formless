@@ -386,29 +386,29 @@ instance applyToValidationCons
 --------
 -- Apply modifications across a record
 
-class ModifyAll (ifs :: # Type) (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
-	modifyAllBuilder :: Record ifs -> RLProxy xs -> Record row -> FromScratch to
+class ModifyAll (ifs :: # Type) (xs :: RL.RowList) (fs :: # Type) (to :: # Type) | xs -> to where
+  modifyAllBuilder ::  Record ifs -> RLProxy xs -> Record fs -> FromScratch to
 
-instance modifyAllNil :: ModifyAll ifs RL.Nil row () where
-	modifyAllBuilder _ _ _ = identity
+instance modifyAllNil :: ModifyAll ifs RL.Nil fs () where
+  modifyAllBuilder _ _ _ = identity
 
 instance modifyAllCons
-	:: ( IsSymbol name
-		 , Row.Cons name (FormField e i o) t0 row
-		 , Newtype (form Record FormField) { | row }
-		 , Row.Cons name (InputFunction e i o) t1 ifs
-		 , Row1Cons name (FormField e i o) from to
-		 , ModifyAll ifs tail row from
-		 )
-	=> ModifyAll ifs (RL.Cons name (FormField e i o) tail) row to where
-	modifyAllBuilder ifs _ r =
-		first <<< rest
-		where
-			_name = SProxy :: SProxy name
-			field = Record.get _name r
-			f = unwrap $ Record.get _name ifs
-			rest = modifyAllBuilder ifs (RLProxy :: RLProxy tail) r
-			first = Builder.insert _name (over FormField (\x -> x { input = f x.input }) field)
+  :: ( IsSymbol name
+     , Newtype (InputFunction e i o) (i -> i)
+     , Newtype (FormField e i o) { | (FormFieldRow e i o) }
+     , Row.Cons name (InputFunction e i o) trash0 ifs
+     , Row.Cons name (FormField e i o) trash1 row
+     , Row1Cons name (FormField e i o) from to
+     , ModifyAll ifs tail row from
+     )
+  => ModifyAll ifs (RL.Cons name (FormField e i o) tail) row to where
+  modifyAllBuilder ifs _ r = first <<< rest
+    where
+      _name = SProxy :: SProxy name
+      f = unwrap $ Record.get _name ifs
+      field = Record.get _name r
+      rest = modifyAllBuilder ifs (RLProxy :: RLProxy tail) r
+      first = Builder.insert _name (over FormField (\x -> x { input = f x.input }) field)
 
 ----------
 -- Replace all form field inputs
