@@ -3,7 +3,7 @@ module Formless.Transform.Record where
 import Prelude
 
 import Data.Newtype (class Newtype, unwrap, wrap)
-import Formless.Spec (InputField, OutputField)
+import Formless.Types.Form (InputField, OutputField)
 import Heterogeneous.Mapping as HM
 
 -- | Unwrap every newtype in a record filled with newtypes

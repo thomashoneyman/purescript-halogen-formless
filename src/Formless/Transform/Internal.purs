@@ -9,7 +9,7 @@ import Data.Symbol (class IsSymbol, SProxy(..))
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.Variant (Variant)
 import Data.Variant.Internal (VariantRep(..))
-import Formless.Spec (FormField(..), InputField(..), OutputField(..), U, FormFieldRow)
+import Formless.Types.Form (FormField(..), FormFieldRow, InputField(..), InputFunction, OutputField(..), U)
 import Formless.Validation (Validation, runValidation)
 import Prim.Row as Row
 import Prim.RowList as RL
@@ -137,24 +137,24 @@ applyValidation vs fs = map wrap $ fromScratch <$> builder
 ----------
 -- Don't Tell Your Boss
 
--- | Given a variant of InputField and a record with the same labels but
+-- | Given a variant of InputFunction and a record with the same labels but
 -- | FormField values, replace the input of the form field.
-unsafeSetInputVariant
+unsafeModifyInputVariant
   :: ∀ form x y
-   . Newtype (form Variant InputField) (Variant x)
+   . Newtype (form Variant InputFunction) (Variant x)
   => Newtype (form Record FormField) { | y }
-  => form Variant InputField
+  => form Variant InputFunction
   -> form Record FormField
   -> form Record FormField
-unsafeSetInputVariant var rec = wrap $ unsafeSet (fst rep) val (unwrap rec)
+unsafeModifyInputVariant var rec = wrap $ unsafeSet (fst rep) val (unwrap rec)
   where
-    rep :: ∀ e i o. Tuple String (InputField e i o)
+    rep :: ∀ e i o. Tuple String (InputFunction e i o)
     rep = case unsafeCoerce (unwrap var) of
       VariantRep x -> Tuple x.type x.value
 
     val :: ∀ e i o. FormField e i o
     val = case unsafeGet (fst rep) (unwrap rec) of
-      FormField x -> FormField $ x { input = unwrap (snd rep) }
+      FormField x -> FormField $ x { input = unwrap (snd rep) $ x.input }
 
 unsafeRunValidationVariant
   :: ∀ form x y z m
