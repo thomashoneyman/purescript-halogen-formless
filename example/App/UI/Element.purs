@@ -160,9 +160,9 @@ formlessField
    . IsSymbol sym
   => ToText e
   => Newtype (form Record F.FormField) (Record fields)
-  => Newtype (form Variant F.InputField) (Variant inputs)
+  => Newtype (form Variant F.InputFunction) (Variant inputs)
   => Cons sym (F.FormField e String o) t0 fields
-  => Cons sym (F.InputField e String o) t1 inputs
+  => Cons sym (F.InputFunction e String o) t1 inputs
   => ( FieldConfig'
      -> Array ( HH.IProp
                 ( value :: String, onBlur :: FocusEvent, onInput :: Event | r)
@@ -183,5 +183,5 @@ formlessField fieldType config state = fieldType (Builder.build config' config) 
 
     props =
       [ HP.value (F.getInput config.sym state.form)
-      , HE.onValueInput $ HE.input $ F.modifyValidate config.sym
+      , HE.onValueInput $ HE.input $ F.setValidate config.sym
       ]

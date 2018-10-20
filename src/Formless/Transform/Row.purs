@@ -5,7 +5,7 @@ import Prelude
 import Data.Newtype (class Newtype, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Formless.Class.Initial (class Initial, initial)
-import Formless.Spec (FormProxy, InputField(..))
+import Formless.Types.Form (FormProxy, InputField(..))
 import Formless.Transform.Internal (class Row1Cons, FromScratch, fromScratch)
 import Prim.Row as Row
 import Prim.RowList as RL
