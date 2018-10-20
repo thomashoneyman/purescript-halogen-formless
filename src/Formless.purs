@@ -21,7 +21,7 @@ module Formless
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Component (component)
 import Formless.Retrieve (FormFieldGet, FormFieldLens, GetAll, GetError(..), GetInputField(..), GetOutput(..), GetResultField(..), GetTouchedField(..), _Error, _Field, _Input, _Output, _Result, _Touched, getError, getErrorAll, getField, getInput, getInputAll, getOutput, getOutputAll, getResult, getResultAll, getTouched, getTouchedAll)
-import Formless.Transform.Record (UnwrapField(..), WrapField(..), unwrapOutputFields, unwrapRecord, wrapInputFields, wrapRecord)
+import Formless.Transform.Record (UnwrapField(..), WrapField(..), unwrapOutputFields, unwrapRecord, wrapInputFields, wrapInputFunctions, wrapRecord)
 import Formless.Transform.Row (class MakeInputFieldsFromRow, class MakeSProxies, SProxies, makeSProxiesBuilder, mkInputFields, mkInputFieldsFromRowBuilder, mkSProxies)
 import Formless.Types.Component (Component, DSL, HTML, HTML', Input, Input', InternalState(..), Message(..), Message', PublicState, Query(..), Query', State, StateRow, StateStore, ValidStatus(..))
 import Formless.Types.Form (ErrorType, FormField(..), FormFieldRow, FormProxy(..), InputField(..), InputFunction(..), InputType, OutputField(..), OutputType, U(..))
