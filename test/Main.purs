@@ -42,11 +42,11 @@ testFormR = Form { foo: FormField { input: "goodbye", touched: true, result: Not
 -- Set Inputs
 
 testInputV :: Form Variant InputFunction
-testInputV = Form $ inj (SProxy :: SProxy "foo") (InputFunction \x -> x  <> "hello")
+testInputV = Form $ inj (SProxy :: SProxy "foo") (InputFunction \x -> "hello " <> x)
 
 testFormInputRes :: Form Record FormField
 testFormInputRes = Form
-  { foo: FormField { input: "hello", touched: true, result: Nothing } }
+  { foo: FormField { input: "hello goodbye", touched: true, result: Nothing } }
 
 -----
 -- Validation
