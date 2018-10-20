@@ -25,7 +25,7 @@ import Unsafe.Coerce (unsafeCoerce)
 
 -- | The Formless component
 component
-  :: ∀ pq cq cs form m is ixs ivs fs fxs us vs os ivfs
+  :: ∀ pq cq cs form m is ixs ivs fs fxs us vs os ifs ivfs
    . Ord cs
   => Monad m
   => RL.RowToList is ixs
@@ -37,9 +37,11 @@ component
   => Internal.AllTouched fxs fs
   => Internal.SetFormFieldsTouched fxs fs fs
   => Internal.ReplaceFormFieldInputs is fxs fs fs
-  => Internal.ApplyValidation vs fxs fs fs m
+  => Internal.ModifyAll ifs fxs fs fs
+  => Internal.ValidateAll vs fxs fs fs m
   => Internal.FormFieldToMaybeOutput fxs fs os
   => Newtype (form Record InputField) { | is }
+  => Newtype (form Record InputFunction) { | ifs }
   => Newtype (form Record FormField) { | fs }
   => Newtype (form Record OutputField) { | os }
   => Newtype (form Record (Validation form m)) { | vs }
@@ -69,11 +71,11 @@ component =
 
   eval :: Query pq cq cs form m ~> DSL pq cq cs form m
   eval = case _ of
-    ModifyInput variant a -> do
+    Modify variant a -> do
       modifyState_ \st -> st { form = Internal.unsafeModifyInputVariant variant st.form }
       eval $ SyncFormData a
 
-    ValidateInput variant a -> do
+    Validate variant a -> do
       st <- getState
       form <- H.lift
         $ Internal.unsafeRunValidationVariant variant (unwrap st.internal).validators st.form
@@ -81,7 +83,7 @@ component =
       eval $ SyncFormData a
 
     -- Provided as a separate query to minimize state updates / re-renders
-    ModifyValidateInput variant a -> do
+    ModifyValidate variant a -> do
       st <- getState
       let form = Internal.unsafeModifyInputVariant variant st.form
       form' <- do
@@ -92,16 +94,28 @@ component =
       modifyState_ _ { form = form' }
       eval $ SyncFormData a
 
-    ResetInput variant a -> do
+    Reset variant a -> do
       modifyState_ \st -> st
         { form = Internal.replaceFormFieldInputs (unwrap st.internal).initialInputs st.form
         , internal = over InternalState (_ { allTouched = false }) st.internal
         }
       eval $ SyncFormData a
 
+    SetAll formInputs a -> do
+      new <- modifyState \st -> st
+        { form = Internal.replaceFormFieldInputs formInputs st.form }
+      H.raise $ Changed $ getPublicState new
+      eval $ SyncFormData a
+
+    ModifyAll formInputs a -> do
+      new <- modifyState \st -> st
+        { form = Internal.modifyAll formInputs st.form }
+      H.raise $ Changed $ getPublicState new
+      eval $ SyncFormData a
+
     ValidateAll a -> do
       st <- getState
-      form <- H.lift $ Internal.applyValidation (unwrap st.internal).validators st.form
+      form <- H.lift $ Internal.validateAll (unwrap st.internal).validators st.form
       modifyState_ _ { form = form }
       eval $ SyncFormData a
 
@@ -156,8 +170,10 @@ component =
     ResetAll a -> do
       new <- modifyState \st -> st
         { validity = Incomplete
+        , dirty = false
         , errors = 0
         , submitAttempts = 0
+        , submitting = false
         , form = Internal.replaceFormFieldInputs (unwrap st.internal).initialInputs st.form
         , internal = over InternalState (_ { allTouched = false }) st.internal
         }

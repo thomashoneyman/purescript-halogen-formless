@@ -17,10 +17,12 @@ import Halogen.HTML as HH
 -- | The component query type. See Formless.Query for helpers related
 -- | to constructing and using these queries.
 data Query pq cq cs form m a
-  = ModifyInput (form Variant InputFunction) a
-  | ValidateInput (form Variant U) a
-  | ModifyValidateInput (form Variant InputFunction) a
-  | ResetInput (form Variant InputField) a
+  = Modify (form Variant InputFunction) a
+  | Validate (form Variant U) a
+  | ModifyValidate (form Variant InputFunction) a
+  | Reset (form Variant InputField) a
+  | SetAll (form Record InputField) a
+  | ModifyAll (form Record InputFunction) a
   | ResetAll a
   | ValidateAll a
   | Submit a
