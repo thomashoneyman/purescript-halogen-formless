@@ -58,10 +58,11 @@ You don't need to manage or worry about these two arguments much; they're mostly
 Here's what our form type looks like:
 
 ```purescript
+-- Note: Common practice to use `Void` to represent "no error possible"
 newtype Form r f = Form (r
-  ( name      :: f Error String String
-  , email1    :: f Error String Email
-  , email2    :: f Error String Email
+  ( name      :: f Error String String -- | String input to String output, or Error on failed validation
+  , email1    :: f Error String Email  -- | String input to Email output, or Error on failed validation
+  , email2    :: f Error String Email  -- | String input to Email output, or Error on failed validation
   ))
 derive instance newtypeForm :: Newtype (Form f r) _
 ```
