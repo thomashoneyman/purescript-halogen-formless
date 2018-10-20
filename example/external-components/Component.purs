@@ -65,7 +65,7 @@ component =
       _ <- H.query unit $ F.send Email (H.action TA.Clear)
       _ <- H.query unit $ F.send Whiskey (H.action TA.Clear)
       _ <- H.query unit $ F.send Language (H.action TA.Clear)
-      H.query unit $ H.action F.ResetAll
+      H.query unit F.resetAll_
 
     Typeahead slot (TA.SelectionsChanged new) a -> case slot of
       Email -> a <$ do

@@ -36,7 +36,7 @@ formless state =
       [ UI.buttonPrimary
         [ if state.submitting || state.validity /= F.Valid
             then HP.disabled true
-            else HE.onClick $ HE.input_ F.Submit
+            else HE.onClick $ HE.input_ F.submit
         ]
         [ HH.text "Submit" ]
       , UI.button

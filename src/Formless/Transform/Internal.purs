@@ -119,19 +119,31 @@ replaceFormFieldInputs
 replaceFormFieldInputs is fs = wrap $ fromScratch builder
   where builder = replaceFormFieldInputsBuilder (unwrap is) (RLProxy :: RLProxy fxs) (unwrap fs)
 
-applyValidation
+modifyAll
+  :: ∀ fxs form fs ifs
+   . RL.RowToList fs fxs
+  => ModifyAll ifs fxs fs fs
+  => Newtype (form Record InputFunction) { | ifs }
+  => Newtype (form Record FormField) { | fs }
+  => form Record InputFunction
+  -> form Record FormField
+  -> form Record FormField
+modifyAll ifs fs = wrap $ fromScratch builder
+  where builder = modifyAllBuilder (unwrap ifs) (RLProxy :: RLProxy fxs) (unwrap fs)
+
+validateAll
   :: ∀ vs fxs form fs m
    . RL.RowToList fs fxs
   => Monad m
-  => ApplyValidation vs fxs fs fs m
+  => ValidateAll vs fxs fs fs m
   => Newtype (form Record (Validation form m)) { | vs }
   => Newtype (form Record FormField) { | fs }
   => form Record (Validation form m)
   -> form Record FormField
   -> m (form Record FormField)
-applyValidation vs fs = map wrap $ fromScratch <$> builder
+validateAll vs fs = map wrap $ fromScratch <$> builder
   where
-    builder = applyValidationBuilder (unwrap vs) (RLProxy :: RLProxy fxs) (unwrap fs)
+    builder = validateAllBuilder (unwrap vs) (RLProxy :: RLProxy fxs) (unwrap fs)
 
 
 ----------
@@ -342,11 +354,11 @@ instance consAllTouched
 -- Apply form field validation
 
 -- | A class that applies the current state to the unwrapped version of every validator
-class ApplyValidation (vs :: # Type) (xs :: RL.RowList) (row :: # Type) (to :: # Type) m | xs -> to where
-  applyValidationBuilder :: Record vs -> RLProxy xs -> Record row -> m (FromScratch to)
+class ValidateAll (vs :: # Type) (xs :: RL.RowList) (row :: # Type) (to :: # Type) m | xs -> to where
+  validateAllBuilder :: Record vs -> RLProxy xs -> Record row -> m (FromScratch to)
 
-instance applyToValidationNil :: Monad m => ApplyValidation vs RL.Nil row () m where
-  applyValidationBuilder _ _ _ = pure identity
+instance applyToValidationNil :: Monad m => ValidateAll vs RL.Nil row () m where
+  validateAllBuilder _ _ _ = pure identity
 
 instance applyToValidationCons
   :: ( IsSymbol name
@@ -355,20 +367,48 @@ instance applyToValidationCons
      , Newtype (form Record FormField) { | row }
      , Row.Cons name (Validation form m e i o) t1 vs
      , Row1Cons name (FormField e i o) from to
-     , ApplyValidation vs tail row from m
+     , ValidateAll vs tail row from m
      )
-  => ApplyValidation vs (RL.Cons name (FormField e i o) tail) row to m where
-  applyValidationBuilder vs _ r =
+  => ValidateAll vs (RL.Cons name (FormField e i o) tail) row to m where
+  validateAllBuilder vs _ r =
     fn <$> val <*> rest
     where
       _name = SProxy :: SProxy name
       fn val' rest' = Builder.insert _name val' <<< rest'
-      rest = applyValidationBuilder vs (RLProxy :: RLProxy tail) r
+      rest = validateAllBuilder vs (RLProxy :: RLProxy tail) r
       val = do
         let validator = unwrap $ Record.get _name vs
             formField = unwrap $ Record.get _name r
         res <- validator (wrap r) formField.input
         pure $ wrap $ formField { result = Just res }
+
+
+--------
+-- Apply modifications across a record
+
+class ModifyAll (ifs :: # Type) (xs :: RL.RowList) (fs :: # Type) (to :: # Type) | xs -> to where
+  modifyAllBuilder ::  Record ifs -> RLProxy xs -> Record fs -> FromScratch to
+
+instance modifyAllNil :: ModifyAll ifs RL.Nil fs () where
+  modifyAllBuilder _ _ _ = identity
+
+instance modifyAllCons
+  :: ( IsSymbol name
+     , Newtype (InputFunction e i o) (i -> i)
+     , Newtype (FormField e i o) { | (FormFieldRow e i o) }
+     , Row.Cons name (InputFunction e i o) trash0 ifs
+     , Row.Cons name (FormField e i o) trash1 row
+     , Row1Cons name (FormField e i o) from to
+     , ModifyAll ifs tail row from
+     )
+  => ModifyAll ifs (RL.Cons name (FormField e i o) tail) row to where
+  modifyAllBuilder ifs _ r = first <<< rest
+    where
+      _name = SProxy :: SProxy name
+      f = unwrap $ Record.get _name ifs
+      field = Record.get _name r
+      rest = modifyAllBuilder ifs (RLProxy :: RLProxy tail) r
+      first = Builder.insert _name (over FormField (\x -> x { input = f x.input }) field)
 
 ----------
 -- Replace all form field inputs
@@ -389,14 +429,13 @@ instance replaceFormFieldInputsTouchedCons
      , ReplaceFormFieldInputs is tail row from
      )
   => ReplaceFormFieldInputs is (RL.Cons name (FormField e i o) tail) row to where
-  replaceFormFieldInputsBuilder ir _ fr =
-    first <<< rest
-    where
+  replaceFormFieldInputsBuilder ir _ fr = first <<< rest
+		where
       _name = SProxy :: SProxy name
-
-      i :: InputField e i o
       i = Record.get _name ir
-
       f = unwrap $ Record.get _name fr
-      first = Builder.insert _name (FormField $ f { input = unwrap i, touched = false, result = Nothing })
       rest = replaceFormFieldInputsBuilder ir (RLProxy :: RLProxy tail) fr
+      first =
+        Builder.insert
+          _name
+          (FormField $ f { input = unwrap i, touched = false, result = Nothing })

@@ -92,7 +92,7 @@ renderFormless state =
      , HE.onValueInput $ HE.input $ F.set _text
      ]
    , UI.buttonPrimary
-     [ HE.onClick $ HE.input_ F.Submit ]
+     [ HE.onClick $ HE.input_ F.submit ]
      [ HH.text "Submit" ]
    ]
   where

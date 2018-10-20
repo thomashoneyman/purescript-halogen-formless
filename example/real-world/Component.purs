@@ -121,8 +121,8 @@ component =
       _ <- H.query' CP.cp1 unit $ F.send' CP.cp3 unit (H.action DD.Clear)
       -- If there is only one child type, use Send
       _ <- H.query' CP.cp2 unit $ F.send unit (H.action DD.Clear)
-      _ <- H.query' CP.cp1 unit $ H.action F.ResetAll
-      _ <- H.query' CP.cp2 unit $ H.action F.ResetAll
+      _ <- H.query' CP.cp1 unit F.resetAll_
+      _ <- H.query' CP.cp2 unit F.resetAll_
       pure a
 
     -- On submit, we need to make sure both forms are run. We
@@ -193,9 +193,9 @@ component =
           case st'.optionsEnabled of
             true -> do
               let spec' = O.OptionsForm $ _ { enable = F.InputField true } $ unwrap optionsFormInputs
-              void $ H.query' CP.cp2 unit $ H.action $ F.ReplaceInputs spec'
+              void $ H.query' CP.cp2 unit $ F.initialize_ spec'
             _ -> do
-              void $ H.query' CP.cp2 unit $ H.action $ F.ReplaceInputs defaultInputs
+              void $ H.query' CP.cp2 unit $ F.initialize_ defaultInputs
         pure a
 
     MetricDropdown m a -> a <$ case m of
