@@ -9,8 +9,8 @@ import Data.Symbol (SProxy(..))
 import Data.Variant (Variant, inj)
 import Effect (Effect)
 import Effect.Aff (Aff)
-import Formless.Spec (FormField(..), InputField(..), U(..))
-import Formless.Transform.Internal (unsafeRunValidationVariant, unsafeSetInputVariant)
+import Formless.Transform.Internal (unsafeRunValidationVariant, unsafeModifyInputVariant)
+import Formless.Types.Form (FormField(..), InputFunction(..), U(..))
 import Formless.Validation (Validation, hoistFn_)
 import Test.Unit (suite, test)
 import Test.Unit.Assert (equal')
@@ -20,7 +20,7 @@ main :: Effect Unit
 main = runTest do
   suite "variant manipulation" do
    test "can set input variant" do
-     let res = unsafeSetInputVariant testInputV testFormR
+     let res = unsafeModifyInputVariant testInputV testFormR
      equal' "Setting inputs not equal" res testFormInputRes
 
    test "can run validation" do
@@ -41,8 +41,8 @@ testFormR = Form { foo: FormField { input: "goodbye", touched: true, result: Not
 -----
 -- Set Inputs
 
-testInputV :: Form Variant InputField
-testInputV = Form $ inj (SProxy :: SProxy "foo") (InputField "hello")
+testInputV :: Form Variant InputFunction
+testInputV = Form $ inj (SProxy :: SProxy "foo") (InputFunction \x -> x  <> "hello")
 
 testFormInputRes :: Form Record FormField
 testFormInputRes = Form
