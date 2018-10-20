@@ -172,7 +172,6 @@ Let's see some examples of validators written in this style:
 -- This helper function lets you take any function from `input` to `output` and turns it into
 -- the Validation type from Formless.
 hoistFn_ :: ∀ form m e i o. Monad m => (i -> o) -> Validation form m e i o
-hoistFn_ f = Validation $ const $ pure <<< pure <<< f
 
 -- For example, this validator simply transforms the input `Int` into a `String` using `hoistFn_`
 -- output.
@@ -182,7 +181,6 @@ myStringValidator = hoistFn_ show
 -- This helper function lets you take any function from `input` to `Either error output` and turns
 -- it into the Validation type from Formless.
 hoistFnE_ :: ∀ form m e i o. Monad m => (i -> Either e o) -> Validation form m e i o
-hoistFnE_ f = Validation $ const $ pure <<< f
 
 -- For example, this validator makes sure that the string is not empty
 isNonEmpty :: ∀ form m. Monad m => Validation form m Error String String
@@ -201,7 +199,6 @@ validEmail = hoistFnE_ $ \str ->
 -- Continuing the trend, this helper takes a function from `input` to a monad `m (Either error output)` and
 -- turns it into the Validation type from Formless.
 hoistFnME_ :: ∀ form m e i o. Monad m => (i -> m (Either e o)) -> Validation form m e i o
-hoistFnME_ f = Validation $ const f
 
 -- For example, this validator makes sure that an email address is not in use. Notice how it relies
 -- on the input value already being an `Email` -- we'll see how to chain validators together so this
@@ -219,7 +216,6 @@ emailNotUsed = hoistFnME_ $ \email -> do
 -- This time, we want to rely on our existing `Form` as an argument for our validation, so instead of using
 -- `hoistFnE_` we'll reach for `hoistFnE`, which doesn't throw away the form argument.
 hoistFnE :: ∀ form m e i o. Monad m => (form Record FormField -> i -> Either e o) -> Validation form m e i o
-hoistFnE f = Validation $ \form i -> pure $ f form i
 
 -- We'll use `getInput` from Formless to retrieve the input value of the field "email1" from the form, and then
 -- we'll validate that the current field is equal to it. Formless can prove that a "email1" field exists using
