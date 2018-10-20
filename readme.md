@@ -84,7 +84,7 @@ data Error
 
 Now that we have a form type and an output type we can produce the `Input` type that the Formless component requires. While we'll take a closer look at each of these types in the next few sections, here's a quick primer on what these types are:
 
-- `intialInputs`: Your `Form` newtype around a record, where each field contains its initial, starting value
+- `initialInputs`: Your `Form` newtype around a record, where each field contains its initial, starting value
 - `validators`: Your `Form` newtype around a record, where each field contains a validation function which will process its input value
 - `render`: The render function the component will use, which is the standard `State -> HTML` type in Halogen
 
@@ -155,7 +155,7 @@ This type represents a function which takes your entire form, the input for this
 
 The `FormField` newtype represents the state of every field in the form:
 
-```
+```purescript
 newtype FormField e i o = FormField
   { -- The value the user will input
     input :: i
@@ -169,7 +169,6 @@ newtype FormField e i o = FormField
 Let's see some examples of validators written in this style:
 
 ```purescript
-
 -- This helper function lets you take any function from `input` to `output` and turns it into
 -- the Validation type from Formless.
 hoistFn_ :: ∀ form m e i o. Monad m => (i -> o) -> Validation form m e i o
@@ -244,7 +243,7 @@ validators = Form
   }
 ```
 
-Note how validators can be composed: `validEmail` takes a `String` and produces an `Email`, which is then passed to `emailIsUsed`, which takes an `Email` and produces an `Email`. You can use this to build up validators that change a field's output type over time.
+Note how validators can be composed: `validEmail` takes a `String` and produces an `Email`, which is then passed to `emailIsUsed`, which takes an `Email` and produces an `Email`. You can use this to build up validators that change a field's output type over time. Composition with `>>>` will short-circuit on the first failure.
 
 ### Render Function
 
