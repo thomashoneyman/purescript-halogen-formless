@@ -9171,11 +9171,15 @@ var PS = {};
   "use strict";
   var Control_Category = PS["Control.Category"];
   var Control_Semigroupoid = PS["Control.Semigroupoid"];
+  var Data_Either = PS["Data.Either"];
+  var Data_Function = PS["Data.Function"];
   var Data_Functor = PS["Data.Functor"];
   var Data_Functor_App = PS["Data.Functor.App"];
+  var Data_Functor_Variant = PS["Data.Functor.Variant"];
   var Data_FunctorWithIndex = PS["Data.FunctorWithIndex"];
   var Data_Symbol = PS["Data.Symbol"];
   var Data_Tuple = PS["Data.Tuple"];
+  var Data_Variant = PS["Data.Variant"];
   var Prelude = PS["Prelude"];
   var Record_Builder = PS["Record.Builder"];
   var Type_Row = PS["Type.Row"];                 
@@ -9225,8 +9229,8 @@ var PS = {};
   };
   var hmapRecord = function (dictRowToList) {
       return function (dictMapRecordWithIndex) {
-          return new HMap(function ($35) {
-              return Record_Builder.build(mapRecordWithIndexBuilder(dictMapRecordWithIndex)(Type_Row.RLProxy.value)(ConstMapping($35)));
+          return new HMap(function ($70) {
+              return Record_Builder.build(mapRecordWithIndexBuilder(dictMapRecordWithIndex)(Type_Row.RLProxy.value)(ConstMapping($70)));
           });
       };
   };
