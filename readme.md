@@ -64,7 +64,7 @@ newtype Form r f = Form (r
   , email1    :: f Error String Email  -- | String input to Email output, or Error on failed validation
   , email2    :: f Error String Email  -- | String input to Email output, or Error on failed validation
   ))
-derive instance newtypeForm :: Newtype (Form f r) _
+derive instance newtypeForm :: Newtype (Form r f) _
 ```
 
 <details>
