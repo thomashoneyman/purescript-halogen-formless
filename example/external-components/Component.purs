@@ -65,17 +65,17 @@ component =
       _ <- H.query unit $ F.send Email (H.action TA.Clear)
       _ <- H.query unit $ F.send Whiskey (H.action TA.Clear)
       _ <- H.query unit $ F.send Language (H.action TA.Clear)
-      H.query unit $ H.action F.ResetAll
+      H.query unit F.resetAll_
 
     Typeahead slot (TA.SelectionsChanged new) a -> case slot of
       Email -> a <$ do
-        H.query unit $ F.modifyValidate_ prx.email new
+        H.query unit $ F.setValidate_ prx.email new
 
       Whiskey -> a <$ do
-        _ <- H.query unit $ F.modifyValidate_ prx.whiskey new
+        _ <- H.query unit $ F.setValidate_ prx.whiskey new
         -- We'll clear the email field when a new whiskey is selected
         _ <- H.query unit $ F.reset_ prx.email
         H.query unit $ F.send Email (H.action TA.Clear)
 
       Language -> a <$ do
-        H.query unit $ F.modifyValidate_ prx.language new
+        H.query unit $ F.setValidate_ prx.language new

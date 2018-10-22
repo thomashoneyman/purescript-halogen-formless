@@ -59,7 +59,7 @@ renderSecretKey1 st =
    }
    [ HP.value $ F.getInput prx.secretKey1 st.form
    , HE.onValueInput $ HE.input \str -> F.AndThen
-       (F.modifyValidate_ prx.secretKey1 str)
+       (F.setValidate_ prx.secretKey1 str)
        (F.validate_ prx.secretKey2)
    ]
 
@@ -74,7 +74,7 @@ renderSecretKey2 st =
    }
    [ HP.value $ F.getInput prx.secretKey2 st.form
    , HE.onValueInput $ HE.input \str -> F.AndThen
-       (F.modifyValidate_ prx.secretKey2 str)
+       (F.setValidate_ prx.secretKey2 str)
        (F.validate_ prx.secretKey1)
    ]
 

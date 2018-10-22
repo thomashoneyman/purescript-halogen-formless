@@ -121,8 +121,8 @@ component =
       _ <- H.query' CP.cp1 unit $ F.send' CP.cp3 unit (H.action DD.Clear)
       -- If there is only one child type, use Send
       _ <- H.query' CP.cp2 unit $ F.send unit (H.action DD.Clear)
-      _ <- H.query' CP.cp1 unit $ H.action F.ResetAll
-      _ <- H.query' CP.cp2 unit $ H.action F.ResetAll
+      _ <- H.query' CP.cp1 unit F.resetAll_
+      _ <- H.query' CP.cp2 unit F.resetAll_
       pure a
 
     -- On submit, we need to make sure both forms are run. We
@@ -156,22 +156,22 @@ component =
         pure a
 
     TASingle (TA.SelectionsChanged new) a -> a <$ do
-      H.query' CP.cp1 unit $ F.modifyValidate_ G.prx.whiskey new
+      H.query' CP.cp1 unit $ F.setValidate_ G.prx.whiskey new
 
     TAMulti slot (TA.SelectionsChanged new) a -> a <$ case slot of
       Applications ->
-        H.query' CP.cp1 unit $ F.modifyValidate_ G.prx.applications new
+        H.query' CP.cp1 unit $ F.setValidate_ G.prx.applications new
       Pixels ->
-        H.query' CP.cp1 unit $ F.modifyValidate_ G.prx.pixels new
+        H.query' CP.cp1 unit $ F.setValidate_ G.prx.pixels new
 
     AdminDropdown m a -> a <$ do
       _ <- H.query' CP.cp1 unit $ F.reset_ G.prx.secretKey1
       _ <- H.query' CP.cp1 unit $ F.reset_ G.prx.secretKey2
       case m of
         DD.Selected x -> do
-          H.query' CP.cp1 unit $ F.modifyValidate_ G.prx.admin (Just x)
+          H.query' CP.cp1 unit $ F.setValidate_ G.prx.admin (Just x)
         DD.Cleared -> do
-          H.query' CP.cp1 unit $ F.modifyValidate_ G.prx.admin Nothing
+          H.query' CP.cp1 unit $ F.setValidate_ G.prx.admin Nothing
 
     -----
     -- Options Form
@@ -193,13 +193,13 @@ component =
           case st'.optionsEnabled of
             true -> do
               let spec' = O.OptionsForm $ _ { enable = F.InputField true } $ unwrap optionsFormInputs
-              void $ H.query' CP.cp2 unit $ H.action $ F.ReplaceInputs spec'
+              void $ H.query' CP.cp2 unit $ F.initialize_ spec'
             _ -> do
-              void $ H.query' CP.cp2 unit $ H.action $ F.ReplaceInputs defaultInputs
+              void $ H.query' CP.cp2 unit $ F.initialize_ defaultInputs
         pure a
 
     MetricDropdown m a -> a <$ case m of
       DD.Selected x -> do
-        H.query' CP.cp2 unit $ F.modifyValidate_ O.prx.metric (Just x)
+        H.query' CP.cp2 unit $ F.setValidate_ O.prx.metric (Just x)
       DD.Cleared -> do
-        H.query' CP.cp2 unit $ F.modifyValidate_ O.prx.metric Nothing
+        H.query' CP.cp2 unit $ F.setValidate_ O.prx.metric Nothing
