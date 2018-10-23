@@ -12,10 +12,12 @@ import Data.Newtype (class Newtype, wrap)
 import Data.Symbol (class IsSymbol, SProxy)
 import Data.Variant (Variant, inj)
 import Formless.Class.Initial (class Initial, initial)
+import Formless.Transform.Record (WrapField, wrapInputFields, wrapInputFunctions)
 import Formless.Types.Component (Query(..), PublicState)
 import Formless.Types.Form (InputField, InputFunction, OutputField, U(..))
 import Halogen (request) as H
 import Halogen.Component.ChildPath (ChildPath, injQuery, injSlot)
+import Heterogeneous.Mapping as HM
 import Prim.Row as Row
 
 -- | Send a query transparently through Formless, when you only have one kind of child
@@ -35,6 +37,92 @@ send' :: ∀ pq cq' cs' cs cq form m a
  -> cq a
  -> Query pq cq' cs' form m a
 send' path p q = Send (injSlot path p) (injQuery path q)
+
+-- | Submit the form, which will trigger a `Submitted` result if the
+-- | form validates successfully.
+submit
+  :: ∀ pq cq cs form m a
+	 . a
+  -> Query pq cq cs form m a
+submit = Submit
+
+-- | `submit` as an action, so you don't need to specify a `Unit`
+-- | result. Use to skip a use of `Halogen.action`.
+submit_
+  :: ∀ pq cq cs form m
+   . Query pq cq cs form m Unit
+submit_ = Submit unit
+
+-- | Imperatively submit the form and collect the result of submission, without
+-- | triggering a `Submitted` message. Useful when you need to submit multiple
+-- | forms together without listening to submission events.
+submitReply
+	:: ∀ pq cq cs form m
+	 . Query pq cq cs form m (Maybe (form Record OutputField))
+submitReply = H.request SubmitReply
+
+-- | Imperatively receive the current state of the form.
+getState
+	:: ∀ pq cq cs form m
+	 . Query pq cq cs form m (PublicState form)
+getState = H.request GetState
+
+-- | Replace all form inputs with a new set of inputs, and re-initialize
+-- | the form to a new state. Useful to set a new "initial state" for a form,
+-- | especially when filling a form with data loaded asynchronously.
+initialize
+  :: ∀ pq cq cs form m a
+   . form Record InputField
+	-> a
+  -> Query pq cq cs form m a
+initialize = Initialize
+
+-- | `initialize` as an action, so you don't need to specify a `Unit`
+-- | result. Use to skip a use of `Halogen.action`.
+initialize_
+  :: ∀ pq cq cs form m
+   . form Record InputField
+  -> Query pq cq cs form m Unit
+initialize_ = flip Initialize unit
+
+-- | Perform two Formless actions in sequence. Can be chained arbitrarily.
+-- | Useful when a field needs to modify itself on change and also trigger
+-- | validation on one or more other fields, or when a modification on one
+-- | field should also modify another field.
+andThen
+  :: ∀ pq cq cs form m a
+	 . Query pq cq cs form m Unit
+  -> Query pq cq cs form m Unit
+  -> a
+  -> Query pq cq cs form m a
+andThen = AndThen
+
+-- | `andThen` as an action, so you don't need to specify a `Unit`
+-- | result. Use to skip a use of `Halogen.action`.
+andThen_
+  :: ∀ pq cq cs form m
+	 . Query pq cq cs form m Unit
+  -> Query pq cq cs form m Unit
+  -> Query pq cq cs form m Unit
+andThen_ a b = AndThen a b unit
+
+-- | Wrap a query from an external component embedded in Formless so it fits
+-- | the Formless query algebra. Any time this query is triggered, Formless
+-- | will then pass it up to your parent component via the `Emit` message.
+raise
+  :: ∀ pq cq cs form m a
+	 . pq Unit
+  -> a
+  -> Query pq cq cs form m a
+raise = Raise
+
+-- | `raise` as an action, so you don't need to specify a `Unit`
+-- | result. Use to skip a use of `Halogen.action`.
+raise_
+  :: ∀ pq cq cs form m
+	 . pq Unit
+  -> Query pq cq cs form m Unit
+raise_ = flip Raise unit
 
 -- | Set the input value of a form field at the specified label
 set
@@ -184,40 +272,48 @@ validate_
 validate_ sym = Validate (wrap (inj sym U)) unit
 
 -- | Provide a record of input fields to overwrite all current
--- | inputs. Unlike `replaceInputs`, this does not otherwise reset
+-- | inputs. Unlike `initialize`, this does not otherwise reset
 -- | the form as if it were new. Similar to calling `set` on every
 -- | field in the form.
 setAll
-  :: ∀ pq cq cs form m a
-   . form Record InputField
+  :: ∀ pq cq cs form m a is is'
+   . Newtype (form Record InputField) { | is' }
+  => HM.HMap WrapField { | is } { | is' }
+  => { | is }
 	-> a
   -> Query pq cq cs form m a
-setAll = SetAll
+setAll = SetAll <<< wrapInputFields
 
 -- | `setAll` as an action, so you don't need to specify a `Unit`
 -- | result. Use to skip a use of `Halogen.action`.
 setAll_
-  :: ∀ pq cq cs form m
-   . form Record InputField
+  :: ∀ pq cq cs form m is is'
+   . Newtype (form Record InputField) { | is' }
+  => HM.HMap WrapField { | is } { | is' }
+  => { | is }
   -> Query pq cq cs form m Unit
-setAll_ = flip SetAll unit
+setAll_ is = SetAll (wrapInputFields is) unit
 
 -- | Provide a record of input functions to modify all current
 -- | inputs. Similar to calling `modify` on every field in the form.
 modifyAll
-  :: ∀ pq cq cs form m a
-   . form Record InputFunction
+  :: ∀ pq cq cs form m ifs ifs' a
+   . Newtype (form Record InputFunction) { | ifs' }
+  => HM.HMap WrapField { | ifs } { | ifs' }
+  => { | ifs }
 	-> a
   -> Query pq cq cs form m a
-modifyAll = ModifyAll
+modifyAll = ModifyAll <<< wrapInputFunctions
 
 -- | `modifyAll` as an action, so you don't need to specify a `Unit`
 -- | result. Use to skip a use of `Halogen.action`.
 modifyAll_
-  :: ∀ pq cq cs form m
-   . form Record InputFunction
+  :: ∀ pq cq cs form m ifs ifs'
+   . Newtype (form Record InputFunction) { | ifs' }
+  => HM.HMap WrapField { | ifs } { | ifs' }
+  => { | ifs }
   -> Query pq cq cs form m Unit
-modifyAll_ = flip ModifyAll unit
+modifyAll_ ifs = ModifyAll (wrapInputFunctions ifs) unit
 
 -- | Reset all fields to their initial values, and reset the form
 -- | to its initial pristine state, no touched fields.
@@ -248,70 +344,47 @@ validateAll_
    . Query pq cq cs form m Unit
 validateAll_ = ValidateAll unit
 
--- | Submit the form, which will trigger a `Submitted` result if the
--- | form validates successfully.
-submit
-  :: ∀ pq cq cs form m a
-	 . a
-  -> Query pq cq cs form m a
-submit = Submit
-
--- | `submit` as an action, so you don't need to specify a `Unit`
--- | result. Use to skip a use of `Halogen.action`.
-submit_
-  :: ∀ pq cq cs form m
-   . Query pq cq cs form m Unit
-submit_ = Submit unit
-
--- | Imperatively submit the form and collect the result of submission, without
--- | triggering a `Submitted` message. Useful when you need to submit multiple
--- | forms together without listening to submission events.
-submitReply
-	:: ∀ pq cq cs form m
-	 . Query pq cq cs form m (Maybe (form Record OutputField))
-submitReply = H.request SubmitReply
-
--- | Imperatively receive the current state of the form.
-getState
-	:: ∀ pq cq cs form m
-	 . Query pq cq cs form m (PublicState form)
-getState = H.request GetState
-
--- | Replace all form inputs with a new set of inputs, and re-initialize
--- | the form to a new state. Useful to set a new "initial state" for a form,
--- | especially when filling a form with data loaded asynchronously.
-initialize
-  :: ∀ pq cq cs form m a
-   . form Record InputField
+-- | Provide a record of inputs to overwrite all current inputs without
+-- | resetting the form (as `initialize` does), and then validate the
+-- | entire new set of fields. Similar to calling `setValidate` on every
+-- | field in the form.
+setValidateAll
+  :: ∀ pq cq cs form m a is is'
+   . Newtype (form Record InputField) { | is' }
+  => HM.HMap WrapField { | is } { | is' }
+  => { | is }
 	-> a
   -> Query pq cq cs form m a
-initialize = Initialize
+setValidateAll is = setAll_ is `andThen` validateAll_
 
--- | `initialize` as an action, so you don't need to specify a `Unit`
+-- | `setValidateAll` as an action, so you don't need to specify a `Unit`
 -- | result. Use to skip a use of `Halogen.action`.
-initialize_
-  :: ∀ pq cq cs form m
-   . form Record InputField
+setValidateAll_
+  :: ∀ pq cq cs form m is is'
+   . Newtype (form Record InputField) { | is' }
+  => HM.HMap WrapField { | is } { | is' }
+  => { | is }
   -> Query pq cq cs form m Unit
-initialize_ = flip Initialize unit
+setValidateAll_ is = setAll_ is `andThen_` validateAll_
 
--- | Perform two Formless actions in sequence. Can be chained arbitrarily.
--- | Useful when a field needs to modify itself on change and also trigger
--- | validation on one or more other fields, or when a modification on one
--- | field should also modify another field.
-andThen
-  :: ∀ pq cq cs form m a
-	 . Query pq cq cs form m Unit
-  -> Query pq cq cs form m Unit
-  -> a
+-- | Provide a record of input functions to modify all current
+-- | inputs, and then validate all fields.  Similar to calling
+-- | `modifyValidate` on every field in the form.
+modifyValidateAll
+  :: ∀ pq cq cs form m ifs ifs' a
+   . Newtype (form Record InputFunction) { | ifs' }
+  => HM.HMap WrapField { | ifs } { | ifs' }
+  => { | ifs }
+	-> a
   -> Query pq cq cs form m a
-andThen = AndThen
+modifyValidateAll ifs = modifyAll_ ifs `andThen` validateAll_
 
--- | `andThen` as an action, so you don't need to specify a `Unit`
+-- | `modifyValidateAll` as an action, so you don't need to specify a `Unit`
 -- | result. Use to skip a use of `Halogen.action`.
-andThen_
-  :: ∀ pq cq cs form m
-	 . Query pq cq cs form m Unit
+modifyValidateAll_
+  :: ∀ pq cq cs form m ifs ifs'
+   . Newtype (form Record InputFunction) { | ifs' }
+  => HM.HMap WrapField { | ifs } { | ifs' }
+  => { | ifs }
   -> Query pq cq cs form m Unit
-  -> Query pq cq cs form m Unit
-andThen_ a b = AndThen a b unit
+modifyValidateAll_ ifs = modifyAll_ ifs `andThen_` validateAll_
