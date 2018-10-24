@@ -20242,7 +20242,7 @@ var PS = {};
   var Halogen_Storybook = PS["Halogen.Storybook"];
   var Halogen_Storybook_Proxy = PS["Halogen.Storybook.Proxy"];
   var Prelude = PS["Prelude"];                 
-  var stories = Foreign_Object.fromFoldable(Data_Foldable.foldableArray)([ Data_Tuple.Tuple.create("")(Halogen_Storybook_Proxy.proxy(Example_App_Home.component)), Data_Tuple.Tuple.create("Basic")(Halogen_Storybook_Proxy.proxy(Example_Basic_Component.component)), Data_Tuple.Tuple.create("External Components")(Halogen_Storybook_Proxy.proxy(Example_ExternalComponents_Component.component)), Data_Tuple.Tuple.create("Nested")(Halogen_Storybook_Proxy.proxy(Example_Nested_Component.component)), Data_Tuple.Tuple.create("Real World")(Halogen_Storybook_Proxy.proxy(Example_RealWorld_Component.component)) ]);
+  var stories = Foreign_Object.fromFoldable(Data_Foldable.foldableArray)([ Data_Tuple.Tuple.create("")(Halogen_Storybook_Proxy.proxy(Example_App_Home.component)), Data_Tuple.Tuple.create("basic")(Halogen_Storybook_Proxy.proxy(Example_Basic_Component.component)), Data_Tuple.Tuple.create("external-components")(Halogen_Storybook_Proxy.proxy(Example_ExternalComponents_Component.component)), Data_Tuple.Tuple.create("nested")(Halogen_Storybook_Proxy.proxy(Example_Nested_Component.component)), Data_Tuple.Tuple.create("real-world")(Halogen_Storybook_Proxy.proxy(Example_RealWorld_Component.component)) ]);
   var main = Halogen_Aff_Util.runHalogenAff(Control_Bind.bind(Effect_Aff.bindAff)(Halogen_Aff_Util.awaitBody)(function (v) {
       return Halogen_Storybook.runStorybook({
           stories: stories,
