@@ -19,10 +19,10 @@ import Halogen.Storybook (Stories, runStorybook, proxy)
 stories :: Stories Aff
 stories = Object.fromFoldable
   [ Tuple "" $ proxy Home.component
-  , Tuple "Basic" $ proxy Basic.component
-  , Tuple "External Components" $ proxy ExternalComponents.component
-  , Tuple "Nested" $ proxy Nested.component
-  , Tuple "Real World" $ proxy RealWorld.component
+  , Tuple "basic" $ proxy Basic.component
+  , Tuple "external-components" $ proxy ExternalComponents.component
+  , Tuple "nested" $ proxy Nested.component
+  , Tuple "real-world" $ proxy RealWorld.component
   ]
 
 main :: Effect Unit
