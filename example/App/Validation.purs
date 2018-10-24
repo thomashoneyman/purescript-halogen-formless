@@ -44,6 +44,7 @@ derive newtype instance showName :: Show Name
 
 newtype Email = Email String
 derive instance newtypeEmail :: Newtype Email _
+derive newtype instance eqEmail :: Eq Email
 derive newtype instance showEmail :: Show Email
 
 -- | Unpacks errors to render as a string
