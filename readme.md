@@ -45,27 +45,64 @@ This is the data type we'll use throughout our application, but our form will ha
 
 Formless requires a specific shape from your `Form` data type. You are expected to write a newtype that takes two arguments, `r` and `f` below, and a row containing the fields in your form.
 
-The first argument is `(# Type -> Type)` and turns a row of types into a concrete type. For example, you can fill in `Record` to get a record; `Record (name :: String)` is the same as `{ name :: String }`.
+The first argument has the kind `(# Type -> Type)` and turns a row of types into a concrete type. For example, you can fill in `Record` to get a record; `Record (name :: String)` is the same as `{ name :: String }`. However, Formless will often fill in `Variant` internally. This lets the library access the entire form at once (`Record`) or a single field (`Variant`) to perform various operations. The important thing is that you make sure this variable is left free in your `Form` newtype.
 
-The second argument is `(Type -> Type -> Type -> Type)` and will be filled in with one of many types Formless uses internally to manage your form. The three type arguments that `f` expects are:
+The second argument has the kind `(Type -> Type -> Type -> Type)` and will be filled in with one of many types Formless uses internally to manage your form. You should use this type on every field in your form and provide it with its three type arguments:
 
 - an `error` type, which represents possible validation errors for the field
 - an `input` type, which represents the value the user will provide when interacting with the field
 - an `output` type, which represents the type you'd like to result from successful validation
-
-You don't need to manage or worry about these two arguments much; they're mostly filled in by Formless on your behalf. Your biggest focus will be on defining the fields in your form with their input, error, and output types.
 
 Here's what our form type looks like:
 
 ```purescript
 -- Note: Common practice to use `Void` to represent "no error possible"
 newtype Form r f = Form (r
-  ( name      :: f Error String String -- | String input to String output, or Error on failed validation
-  , email1    :: f Error String Email  -- | String input to Email output, or Error on failed validation
-  , email2    :: f Error String Email  -- | String input to Email output, or Error on failed validation
+  ( name   :: f Error String String -- | String input to String output, or Error on failed validation
+  , email1 :: f Error String Email  -- | String input to Email output, or Error on failed validation
+  , email2 :: f Error String Email  -- | String input to Email output, or Error on failed validation
   ))
 derive instance newtypeForm :: Newtype (Form r f) _
 ```
+
+You don't need to manage or worry about these two arguments much; they're mostly filled in by Formless on your behalf. Your biggest focus will be on defining the fields in your form with their input, error, and output types.
+
+<details>
+  <summary>Expand to read a longer explanation of this form type</summary>
+
+This can be a scary type to look at, but it's not so bad once you provide concrete types for `r` and `f`. For example, let's try providing `Record` and the `OutputType` type from Formless:
+
+```purescript
+-- This type synonym will throw away most of its arguments, preserving only the last type. Since
+-- it takes three arguments, it fits the kind (Type -> Type -> Type -> Type), which is exactly what
+-- we need to provide as our `Form` newtype's second argument.
+type OutputType e i o = o
+
+-- Let's fill in each occurrence of `f` with `OutputType` 
+myForm :: Form Record OutputType
+myForm = Form
+  { name   :: OutputType Error String String
+  , email1 :: OutputType Error String Email
+  , email2 :: OutputType Error String Email
+  }
+  
+-- This isn't much less confusing, so let's take things a step further. What if we act as the
+-- compiler does and erase the type synonym? After all, OutputType is equivalent to only the
+-- third type argument from each field.
+myForm2 :: Form Record OutputType
+myForm2 = Form
+  { name   :: String
+  , email1 :: Email
+  , email2 :: Email
+  }
+  
+-- `myForm` and `myForm2` are exactly equivalent! Accepting a type that itself accepts three
+-- arguments allows us to represent several different sorts of records and variants from the
+-- same underlying row and can result in quite simple data types despite the admittedly
+-- complicated-looking original type.
+
+```
+</details>
 
 <details>
   <summary>Expand to see the definition of the <code>Error</code> and <code>Email</code> types</summary>
