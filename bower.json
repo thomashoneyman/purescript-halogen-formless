@@ -18,7 +18,8 @@
     "purescript-halogen": "^4.0.0",
     "purescript-halogen-renderless": "^0.0.3",
     "purescript-variant": "^5.0.0",
-    "purescript-heterogeneous": "^0.3.0"
+    "purescript-heterogeneous": "^0.3.0",
+    "purescript-generics-rep": "^6.1.0"
   },
   "devDependencies": {
     "purescript-halogen-storybook": "^0.4.0",
