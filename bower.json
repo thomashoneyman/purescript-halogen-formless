@@ -5,6 +5,10 @@
   ],
   "license": "MIT",
   "homepage": "https://github.com/thomashoneyman/purescript-halogen-formless",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thomashoneyman/purescript-halogen-formless.git"
+  },
   "private": true,
   "ignore": [
     "**/.*",
