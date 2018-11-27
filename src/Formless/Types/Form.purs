@@ -2,9 +2,8 @@ module Formless.Types.Form where
 
 import Prelude
 
-import Data.Either (Either)
-import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype)
+import Formless.Data.FormFieldResult (FormFieldResult)
 
 -- | Create a proxy for your form type, for use with functions that generate records from
 -- | form proxies.
@@ -32,13 +31,13 @@ derive instance newtypeInputFunction :: Newtype (InputFunction e i o) _
 -- | The type that we need to record state across the form
 newtype FormField e i o = FormField (Record (FormFieldRow e i o))
 derive instance newtypeFormField :: Newtype (FormField e i o) _
-derive newtype instance eqFormField :: (Eq e, Eq i, Eq o) => Eq (FormField e i o)
+derive instance eqFormField :: (Eq e, Eq i, Eq o) => Eq (FormField e i o)
 
 -- | The row used for the FormField newtype and in lens type signatures
 type FormFieldRow error input output =
   ( input :: input
   , touched :: Boolean
-  , result :: Maybe (Either error output)
+  , result :: FormFieldResult error output
   )
 
 ----------

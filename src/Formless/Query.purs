@@ -7,9 +7,10 @@ module Formless.Query where
 
 import Prelude
 
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, wrap)
 import Data.Symbol (class IsSymbol, SProxy)
+import Data.Time.Duration (Milliseconds)
 import Data.Variant (Variant, inj)
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Transform.Record (WrapField, wrapInputFields, wrapInputFunctions)
@@ -159,7 +160,7 @@ setValidate
   -> i
   -> a
   -> Query pq cq cs form m a
-setValidate sym i = ModifyValidate (wrap (inj sym (wrap (const i))))
+setValidate sym i = ModifyValidate Nothing (wrap (inj sym (wrap (const i))))
 
 -- | `setValidate` as an action, so you don't need to specify a `Unit`
 -- | result. Use to skip a use of `Halogen.action`.
@@ -171,7 +172,36 @@ setValidate_
   => SProxy sym
   -> i
   -> Query pq cq cs form m Unit
-setValidate_ sym i = ModifyValidate (wrap (inj sym (wrap (const i)))) unit
+setValidate_ sym i = ModifyValidate Nothing (wrap (inj sym (wrap (const i)))) unit
+
+-- | Set the input value of a form field at the specified label, while debouncing
+-- | validation so that it only runs after the specified amount of time has elapsed
+-- | since the last modification. Useful when you need to avoid expensive validation
+-- | but do not want to wait for a blur event to validate.
+asyncSetValidate
+  :: ∀ pq cq cs form inputs m sym t0 e i o a
+   . IsSymbol sym
+  => Newtype (form Variant InputFunction) (Variant inputs)
+  => Row.Cons sym (InputFunction e i o) t0 inputs
+  => Milliseconds
+  -> SProxy sym
+  -> i
+  -> a
+  -> Query pq cq cs form m a
+asyncSetValidate ms sym i = ModifyValidate (Just ms) (wrap (inj sym (wrap (const i))))
+
+-- | `asyncSetValidate` as an action, so you don't need to specify a `Unit`
+-- | result. Use to skip a use of `Halogen.action`.
+asyncSetValidate_
+  :: ∀ pq cq cs form inputs m sym t0 e i o
+   . IsSymbol sym
+  => Newtype (form Variant InputFunction) (Variant inputs)
+  => Row.Cons sym (InputFunction e i o) t0 inputs
+  => Milliseconds
+  -> SProxy sym
+  -> i
+  -> Query pq cq cs form m Unit
+asyncSetValidate_ ms sym i = ModifyValidate (Just ms) (wrap (inj sym (wrap (const i)))) unit
 
 -- | Modify the input value of a form field at the specified label with the
 -- | provided function.
@@ -209,7 +239,7 @@ modifyValidate
   -> (i -> i)
   -> a
   -> Query pq cq cs form m a
-modifyValidate sym f = ModifyValidate (wrap (inj sym (wrap f)))
+modifyValidate sym f = ModifyValidate Nothing (wrap (inj sym (wrap f)))
 
 -- | `modifyValidate` as an action, so you don't need to specify a `Unit`
 -- | result. Use to skip a use of `Halogen.action`.
@@ -221,7 +251,36 @@ modifyValidate_
   => SProxy sym
   -> (i -> i)
   -> Query pq cq cs form m Unit
-modifyValidate_ sym f = ModifyValidate (wrap (inj sym (wrap f))) unit
+modifyValidate_ sym f = ModifyValidate Nothing (wrap (inj sym (wrap f))) unit
+
+-- | Modify the input value of a form field at the specified label, while debouncing
+-- | validation so that it only runs after the specified amount of time has elapsed
+-- | since the last modification. Useful when you need to avoid expensive validation
+-- | but do not want to wait for a blur event to validate.
+asyncModifyValidate
+  :: ∀ pq cq cs form inputs m sym t0 e i o a
+   . IsSymbol sym
+  => Newtype (form Variant InputFunction) (Variant inputs)
+  => Row.Cons sym (InputFunction e i o) t0 inputs
+  => Milliseconds
+  -> SProxy sym
+  -> (i -> i)
+  -> a
+  -> Query pq cq cs form m a
+asyncModifyValidate ms sym f = ModifyValidate (Just ms) (wrap (inj sym (wrap f)))
+
+-- | `asyncModifyValidate` as an action, so you don't need to specify a `Unit`
+-- | result. Use to skip a use of `Halogen.action`.
+asyncModifyValidate_
+  :: ∀ pq cq cs form inputs m sym t0 e i o
+   . IsSymbol sym
+  => Newtype (form Variant InputFunction) (Variant inputs)
+  => Row.Cons sym (InputFunction e i o) t0 inputs
+  => Milliseconds
+  -> SProxy sym
+  -> (i -> i)
+  -> Query pq cq cs form m Unit
+asyncModifyValidate_ ms sym f = ModifyValidate (Just ms) (wrap (inj sym (wrap f))) unit
 
 -- | Reset the value of the specified form field to its default value
 -- | according to the `Initial` type class.

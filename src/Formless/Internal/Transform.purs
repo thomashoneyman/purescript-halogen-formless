@@ -1,8 +1,7 @@
-module Formless.Transform.Internal where
+module Formless.Internal.Transform where
 
 import Prelude
 
-import Data.Either (Either(..), hush)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, over, unwrap, wrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
@@ -10,6 +9,7 @@ import Data.Tuple (Tuple(..), fst, snd)
 import Data.Variant (Variant)
 import Data.Variant.Internal (VariantRep(..))
 import Formless.Types.Form (FormField(..), FormFieldRow, InputField(..), InputFunction, OutputField(..), U)
+import Formless.Data.FormFieldResult (FormFieldResult(..), fromEither, toMaybe)
 import Formless.Validation (Validation, runValidation)
 import Prim.Row as Row
 import Prim.RowList as RL
@@ -150,15 +150,18 @@ validateAll vs fs = map wrap $ fromScratch <$> builder
 -- Don't Tell Your Boss
 
 -- | Given a variant of InputFunction and a record with the same labels but
--- | FormField values, replace the input of the form field.
+-- | FormField values, replace the input of the form field. In addition, modify
+-- | the form field result to represent whether async validation is going to
+-- | occur.
 unsafeModifyInputVariant
   :: ∀ form x y
    . Newtype (form Variant InputFunction) (Variant x)
   => Newtype (form Record FormField) { | y }
-  => form Variant InputFunction
+  => Boolean
+  -> form Variant InputFunction
   -> form Record FormField
   -> form Record FormField
-unsafeModifyInputVariant var rec = wrap $ unsafeSet (fst rep) val (unwrap rec)
+unsafeModifyInputVariant async var rec = wrap $ unsafeSet (fst rep) val (unwrap rec)
   where
     rep :: ∀ e i o. Tuple String (InputFunction e i o)
     rep = case unsafeCoerce (unwrap var) of
@@ -166,7 +169,10 @@ unsafeModifyInputVariant var rec = wrap $ unsafeSet (fst rep) val (unwrap rec)
 
     val :: ∀ e i o. FormField e i o
     val = case unsafeGet (fst rep) (unwrap rec) of
-      FormField x -> FormField $ x { input = unwrap (snd rep) $ x.input }
+      FormField x -> FormField $ x 
+        { input = unwrap (snd rep) $ x.input 
+        , result = if async then Validating else NotValidated 
+        }
 
 unsafeRunValidationVariant
   :: ∀ form x y z m
@@ -188,9 +194,8 @@ unsafeRunValidationVariant var vs rec = rec2
     rec2 = case unsafeGet label (unwrap rec) of
       FormField x -> do
         res <- runValidation (unsafeGet label $ unwrap vs) rec x.input
-        let rec' = unsafeSet label (FormField $ x { result = Just res }) (unwrap rec)
+        let rec' = unsafeSet label (FormField $ x { result = fromEither res }) (unwrap rec)
         pure (wrap rec')
-
 
 -----
 -- Classes (Internal)
@@ -269,11 +274,7 @@ instance inputFieldsToFormFieldsCons
       val = transform $ Record.get _name r
       rest = inputFieldsToFormFieldsBuilder (RLProxy :: RLProxy tail) r
       first = Builder.insert _name val
-      transform (InputField input) = FormField
-        { input
-        , touched: false
-        , result: Nothing
-        }
+      transform (InputField input) = FormField { input, touched: false, result: NotValidated }
 
 ----------
 -- Flip all form fields if valid
@@ -300,7 +301,7 @@ instance formFieldsToMaybeOutputCons
       _name = SProxy :: SProxy name
 
       val :: Maybe (OutputField e i o)
-      val = map OutputField $ join $ map hush (unwrap $ Record.get _name r).result
+      val = OutputField <$> toMaybe (unwrap $ Record.get _name r).result
 
       rest :: Maybe (FromScratch from)
       rest = formFieldsToMaybeOutputBuilder (RLProxy :: RLProxy tail) r
@@ -324,7 +325,7 @@ instance consCountErrors
   where
     countErrorsImpl _ r = do
       let res = case (unwrap $ Record.get (SProxy :: SProxy name) r).result of
-            Just (Left _) -> 1
+            Error _ -> 1
             _ -> 0
       res + countErrorsImpl (RLProxy :: RLProxy tail) r
 
@@ -380,7 +381,7 @@ instance applyToValidationCons
         let validator = unwrap $ Record.get _name vs
             formField = unwrap $ Record.get _name r
         res <- validator (wrap r) formField.input
-        pure $ wrap $ formField { result = Just res }
+        pure $ wrap $ formField { result = fromEither res }
 
 
 --------
@@ -438,4 +439,4 @@ instance replaceFormFieldInputsTouchedCons
       first =
         Builder.insert
           _name
-          (FormField $ f { input = unwrap i, touched = false, result = Nothing })
+          (FormField $ f { input = unwrap i, touched = false, result = NotValidated })

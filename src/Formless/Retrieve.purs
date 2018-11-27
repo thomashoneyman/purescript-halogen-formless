@@ -3,16 +3,14 @@ module Formless.Retrieve where
 
 import Prelude
 
-import Data.Either (Either, either, hush)
 import Data.Lens (Lens', preview, view)
 import Data.Lens.Iso.Newtype (_Newtype)
-import Data.Lens.Prism.Either (_Left, _Right)
-import Data.Lens.Prism.Maybe (_Just)
 import Data.Lens.Record (prop)
 import Data.Lens.Traversal (Traversal')
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
 import Data.Symbol (class IsSymbol, SProxy(..))
+import Formless.Data.FormFieldResult (FormFieldResult(..), _Error, _Success, toMaybe)
 import Formless.Types.Form (FormField(..), FormFieldRow)
 import Heterogeneous.Mapping (class HMap, class Mapping, hmap)
 import Prim.Row as Row
@@ -26,23 +24,23 @@ getField sym = view (_Field sym)
 
 -- | Given a form, get the input at the specified symbol
 getInput :: ∀ e i o. FormFieldGet e i o i
-getInput sym = view (_Input sym)
+getInput sym = view (_FieldInput sym)
 
 -- | Given a form, get the touched field at the specified symbol
 getTouched :: ∀ e i o. FormFieldGet e i o Boolean
-getTouched sym = view (_Touched sym)
+getTouched sym = view (_FieldTouched sym)
 
 -- | Given a form, get the result at the specified symbol
-getResult :: ∀ e i o. FormFieldGet e i o (Maybe (Either e o))
-getResult sym = view (_Result sym)
+getResult :: ∀ e i o. FormFieldGet e i o (FormFieldResult e o) 
+getResult sym = view (_FieldResult sym)
 
 -- | Given a form, get the error (if it exists) at the specified symbol
 getError :: ∀ e i o. FormFieldGet e i o (Maybe e)
-getError sym = preview (_Error sym)
+getError sym = preview (_FieldError sym)
 
 -- | Given a form, get the output (if it exists) at the specified symbol
 getOutput :: ∀ e i o. FormFieldGet e i o (Maybe o)
-getOutput sym = preview (_Output sym)
+getOutput sym = preview (_FieldOutput sym)
 
 ----------
 -- Summary functions
@@ -75,38 +73,38 @@ _Field :: ∀ e i o. FormFieldLens e i o (Record (FormFieldRow e i o))
 _Field sym = _Newtype <<< prop sym <<< _Newtype
 
 -- | A lens to operate on the input at a given symbol in your form
-_Input :: ∀ e i o. FormFieldLens e i o i
-_Input sym = _Field sym <<< prop (SProxy :: SProxy "input")
+_FieldInput :: ∀ e i o. FormFieldLens e i o i
+_FieldInput sym = _Field sym <<< prop (SProxy :: SProxy "input")
 
 -- | A lens to operate on the 'touched' field at a given symbol in your form
-_Touched :: ∀ e i o. FormFieldLens e i o Boolean
-_Touched sym = _Field sym <<< prop (SProxy :: SProxy "touched")
+_FieldTouched :: ∀ e i o. FormFieldLens e i o Boolean
+_FieldTouched sym = _Field sym <<< prop (SProxy :: SProxy "touched")
 
 -- | A lens to operate on the 'result' field at a given symbol in your form
-_Result :: ∀ e i o. FormFieldLens e i o (Maybe (Either e o))
-_Result sym = _Field sym <<< prop (SProxy :: SProxy "result")
+_FieldResult :: ∀ e i o. FormFieldLens e i o (FormFieldResult e o)
+_FieldResult sym = _Field sym <<< prop (SProxy :: SProxy "result")
 
 -- | A traversal to operate on the possible error inside the 'result' field at
 -- | a given symbol in your form
-_Error
+_FieldError
   :: ∀ sym form fields t0 e i o
    . IsSymbol sym
   => Newtype (form Record FormField) (Record fields)
   => Row.Cons sym (FormField e i o) t0 fields
   => SProxy sym
   -> Traversal' (form Record FormField) e
-_Error sym = _Result sym <<< _Just <<< _Left
+_FieldError sym = _FieldResult sym <<< _Error
 
 -- | A traversal to operate on the possible output inside the 'result' field at
 -- | a given symbol in your form
-_Output
+_FieldOutput
   :: ∀ sym form fields t0 e i o
    . IsSymbol sym
   => Newtype (form Record FormField) (Record fields)
   => Row.Cons sym (FormField e i o) t0 fields
   => SProxy sym
   -> Traversal' (form Record FormField) o
-_Output sym = _Result sym <<< _Just <<< _Right
+_FieldOutput sym = _FieldResult sym <<< _Success
 
 ----------
 -- Types
@@ -159,7 +157,7 @@ instance getTouchedField :: Mapping GetTouchedField (FormField e i o) Boolean wh
 data GetResultField = GetResultField
 
 -- | Heterogeneous type class for the getResultField function
-instance getResultField :: Mapping GetResultField (FormField e i o) (Maybe (Either e o)) where
+instance getResultField :: Mapping GetResultField (FormField e i o) (FormFieldResult e o) where
   mapping GetResultField (FormField { result }) = result
 
 -- | Data constructor for the getError function
@@ -167,11 +165,13 @@ data GetError = GetError
 
 -- | Heterogeneous type class for the getError function
 instance getErrorResult' :: Mapping GetError (FormField e i o) (Maybe e) where
-  mapping GetError (FormField { result }) = join $ either Just (const Nothing) <$> result
+  mapping GetError (FormField { result }) = case result of 
+    Error e -> Just e
+    _ -> Nothing
 
 -- | Data constructor for the getOutput function
 data GetOutput = GetOutput
 
 -- | Heterogeneous type class for the getOutput function
 instance getOutput' :: Mapping GetOutput (FormField e i o) (Maybe o) where
-  mapping GetOutput (FormField { result }) = join $ hush <$> result
+  mapping GetOutput (FormField { result }) = toMaybe result

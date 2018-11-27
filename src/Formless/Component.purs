@@ -7,14 +7,16 @@ import Control.Comonad.Store (store)
 import Control.Monad.Free (liftF)
 import Data.Coyoneda (liftCoyoneda)
 import Data.Eq (class EqRecord)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), isJust)
 import Data.Newtype (class Newtype, over, unwrap)
 import Data.Symbol (SProxy(..))
 import Data.Traversable (traverse_)
 import Data.Variant (Variant)
-import Formless.Types.Form (FormField, InputField, InputFunction, OutputField, U)
-import Formless.Transform.Internal as Internal
+import Effect.Aff.Class (class MonadAff)
+import Formless.Internal.Debounce (debounceForm)
+import Formless.Internal.Transform as Internal
 import Formless.Types.Component (Component, DSL, Input, InternalState(..), Message(..), PublicState, Query(..), State, StateStore, ValidStatus(..))
+import Formless.Types.Form (FormField, InputField, InputFunction, OutputField, U)
 import Formless.Validation (Validation)
 import Halogen as H
 import Halogen.HTML.Events as HE
@@ -27,7 +29,7 @@ import Unsafe.Coerce (unsafeCoerce)
 component
   :: ∀ pq cq cs form m is ixs ivs fs fxs us vs os ifs ivfs
    . Ord cs
-  => Monad m
+  => MonadAff m
   => RL.RowToList is ixs
   => RL.RowToList fs fxs
   => EqRecord ixs is
@@ -66,13 +68,19 @@ component =
     , submitAttempts: 0
     , submitting: false
     , form: Internal.inputFieldsToFormFields initialInputs
-    , internal: InternalState { allTouched: false, initialInputs, validators }
+    , internal: InternalState 
+        { allTouched: false
+        , initialInputs
+        , validators 
+        , debouncer: Nothing
+        }
     }
 
   eval :: Query pq cq cs form m ~> DSL pq cq cs form m
   eval = case _ of
     Modify variant a -> do
-      modifyState_ \st -> st { form = Internal.unsafeModifyInputVariant variant st.form }
+      modifyState_ \st -> st 
+        { form = Internal.unsafeModifyInputVariant false variant st.form }
       eval $ SyncFormData a
 
     Validate variant a -> do
@@ -83,17 +91,27 @@ component =
       eval $ SyncFormData a
 
     -- Provided as a separate query to minimize state updates / re-renders
-    ModifyValidate variant a -> do
-      st <- getState
-      let form = Internal.unsafeModifyInputVariant variant st.form
-      form' <- do
-        let v :: form Variant U
-            v = unsafeCoerce variant
-            vs = (unwrap st.internal).validators
-        H.lift $ Internal.unsafeRunValidationVariant v vs form
-      modifyState_ _ { form = form' }
-      eval $ SyncFormData a
+    ModifyValidate ms variant a -> do
+      let 
+        modifyForm st = Internal.unsafeModifyInputVariant (isJust ms) variant st.form
+        run st f = do
+          let vs = (unwrap st.internal).validators
+          H.lift $ Internal.unsafeRunValidationVariant (unsafeCoerce variant) vs f
 
+      case ms of
+        Nothing -> do
+          st <- getState
+          form' <- run st $ modifyForm st
+          modifyState_ _ { form = form' }
+          eval $ SyncFormData a
+        Just milliseconds -> do
+          debounceForm
+            milliseconds
+            (getState >>= modifyForm >>> pure)   -- modify the input field right away
+            (getState >>= \st -> run st st.form) -- after `ms`, run debounced action
+            (eval $ SyncFormData a)              -- when debounced action completes, run sync
+          pure a
+        
     Reset variant a -> do
       modifyState_ \st -> st
         { form = Internal.replaceFormFieldInputs (unwrap st.internal).initialInputs st.form
