@@ -5,12 +5,13 @@ import Prelude
 import DOM.HTML.Indexed (HTMLa, HTMLbutton, HTMLinput, HTMLtextarea)
 import DOM.HTML.Indexed.InputType (InputType(..))
 import Data.Either (Either(..), either)
-import Data.Maybe (Maybe, maybe)
+import Data.Maybe (maybe)
 import Data.Newtype (class Newtype)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Data.Variant (Variant)
 import Example.App.Validation (class ToText, toText)
 import Example.App.Validation as V
+import Formless (FormFieldResult)
 import Formless as F
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -111,7 +112,7 @@ field config contents =
 -- Formless
 
 -- Render a result as help text
-resultToHelp :: ∀ t e. ToText e => String -> Maybe (Either e t) -> Either String String
+resultToHelp :: ∀ t e. ToText e => String -> FormFieldResult e t -> Either String String
 resultToHelp str = maybe (Right str) Left <<< V.showError
 
 -- Provide your own label, error or help text, and placeholder
