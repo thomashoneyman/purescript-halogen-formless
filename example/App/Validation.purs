@@ -2,17 +2,19 @@ module Example.App.Validation where
 
 import Prelude
 
-import Data.Either (Either(..), either)
+import Data.Either (Either(..))
 import Data.Foldable (length) as Foldable
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Int (fromString) as Int
-import Data.Maybe (Maybe(..), maybe)
+import Data.Lens (preview)
+import Data.Maybe (Maybe, maybe)
 import Data.Newtype (class Newtype)
 import Data.String (contains, length, null)
 import Data.String.Pattern (Pattern(..))
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Random (random)
+import Formless (FormFieldResult, _Error)
 import Formless.Validation (Validation(..), hoistFnE_)
 
 data FieldError
@@ -48,8 +50,8 @@ derive newtype instance eqEmail :: Eq Email
 derive newtype instance showEmail :: Show Email
 
 -- | Unpacks errors to render as a string
-showError :: ∀ e o. ToText e => Maybe (Either e o) -> Maybe String
-showError = (=<<) (either (pure <<< toText) (const Nothing))
+showError :: ∀ e o. ToText e => FormFieldResult e o -> Maybe String
+showError = map toText <<< preview _Error
 
 class ToText item where
   toText :: item -> String

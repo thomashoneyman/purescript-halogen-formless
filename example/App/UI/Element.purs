@@ -5,7 +5,6 @@ import Prelude
 import DOM.HTML.Indexed (HTMLa, HTMLbutton, HTMLinput, HTMLtextarea)
 import DOM.HTML.Indexed.InputType (InputType(..))
 import Data.Either (Either(..), either)
-import Data.Lens (preview)
 import Data.Maybe (Maybe, maybe)
 import Data.Newtype (class Newtype)
 import Data.Symbol (class IsSymbol, SProxy(..))
@@ -179,7 +178,7 @@ formlessField fieldType config state = fieldType (Builder.build config' config) 
       Builder.delete (SProxy :: SProxy "sym")
       <<< Builder.modify (SProxy :: SProxy "help") (const help')
 
-    help' = maybe (Right config.help) (Left <<< toText) (preview (F._Error config.sym) state.form)
+    help' = maybe (Right config.help) (Left <<< toText) (F.getError config.sym state.form)
 
     props =
       [ HP.value (F.getInput config.sym state.form)
