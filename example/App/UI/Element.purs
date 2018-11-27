@@ -11,7 +11,7 @@ import Data.Symbol (class IsSymbol, SProxy(..))
 import Data.Variant (Variant)
 import Example.App.Validation (class ToText, toText)
 import Example.App.Validation as V
-import Formless (FormFieldResult)
+import Formless (FormFieldResult(..))
 import Formless as F
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -113,7 +113,10 @@ field config contents =
 
 -- Render a result as help text
 resultToHelp :: ∀ t e. ToText e => String -> FormFieldResult e t -> Either String String
-resultToHelp str = maybe (Right str) Left <<< V.showError
+resultToHelp str = case _ of
+  NotValidated -> Right str
+  Validating -> Right "validating..."
+  other -> maybe (Right str) Left $ V.showError other
 
 -- Provide your own label, error or help text, and placeholder
 type FieldConfig' =
