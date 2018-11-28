@@ -157,11 +157,11 @@ unsafeModifyInputVariant
   :: ∀ form x y
    . Newtype (form Variant InputFunction) (Variant x)
   => Newtype (form Record FormField) { | y }
-  => Boolean
+  => (forall e o. FormFieldResult e o -> FormFieldResult e o)
   -> form Variant InputFunction
   -> form Record FormField
   -> form Record FormField
-unsafeModifyInputVariant async var rec = wrap $ unsafeSet (fst rep) val (unwrap rec)
+unsafeModifyInputVariant f var rec = wrap $ unsafeSet (fst rep) val (unwrap rec)
   where
     rep :: ∀ e i o. Tuple String (InputFunction e i o)
     rep = case unsafeCoerce (unwrap var) of
@@ -170,9 +170,7 @@ unsafeModifyInputVariant async var rec = wrap $ unsafeSet (fst rep) val (unwrap 
     val :: ∀ e i o. FormField e i o
     val = case unsafeGet (fst rep) (unwrap rec) of
       FormField x -> FormField $ x 
-        { input = unwrap (snd rep) $ x.input 
-        , result = if async then Validating else NotValidated 
-        }
+        { input = unwrap (snd rep) $ x.input, result = f x.result }
 
 unsafeRunValidationVariant
   :: ∀ form x y z m

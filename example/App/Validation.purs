@@ -117,6 +117,6 @@ enoughMoney :: ∀ form m. MonadAff m => Validation form m FieldError Int Int
 enoughMoney = Validation \_ i -> do
   -- Let's check if we have enough money...
   _ <- liftAff $ delay $ Milliseconds 5000.0
-  pure $ if (i < 1000)
+  pure $ if (i > 1000)
     then pure i
     else Left NotEnoughMoney

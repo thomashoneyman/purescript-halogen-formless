@@ -7,12 +7,13 @@ import Control.Comonad.Store (store)
 import Control.Monad.Free (liftF)
 import Data.Coyoneda (liftCoyoneda)
 import Data.Eq (class EqRecord)
-import Data.Maybe (Maybe(..), isJust)
+import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, over, unwrap)
 import Data.Symbol (SProxy(..))
 import Data.Traversable (traverse_)
 import Data.Variant (Variant)
 import Effect.Aff.Class (class MonadAff)
+import Formless.Data.FormFieldResult (FormFieldResult(..))
 import Formless.Internal.Debounce (debounceForm)
 import Formless.Internal.Transform as Internal
 import Formless.Types.Component (Component, DSL, Input, InternalState(..), Message(..), PublicState, Query(..), State, StateStore, ValidStatus(..))
@@ -80,7 +81,7 @@ component =
   eval = case _ of
     Modify variant a -> do
       modifyState_ \st -> st 
-        { form = Internal.unsafeModifyInputVariant false variant st.form }
+        { form = Internal.unsafeModifyInputVariant identity variant st.form }
       eval $ SyncFormData a
 
     Validate variant a -> do
@@ -91,25 +92,33 @@ component =
       eval $ SyncFormData a
 
     -- Provided as a separate query to minimize state updates / re-renders
-    ModifyValidate ms variant a -> do
+    ModifyValidate milliseconds variant a -> do
       let 
-        modifyForm st = Internal.unsafeModifyInputVariant (isJust ms) variant st.form
-        run st f = do
-          let vs = (unwrap st.internal).validators
-          H.lift $ Internal.unsafeRunValidationVariant (unsafeCoerce variant) vs f
+        modifyWith 
+          :: (forall e o. FormFieldResult e o -> FormFieldResult e o)
+          -> DSL pq cq cs form m (form Record FormField)
+        modifyWith f = do
+          s <- modifyState \st -> st { form = Internal.unsafeModifyInputVariant f variant st.form }
+          pure s.form
 
-      case ms of
-        Nothing -> do
+        validate = do
           st <- getState
-          form' <- run st $ modifyForm st
-          modifyState_ _ { form = form' }
-          eval $ SyncFormData a
-        Just milliseconds -> do
-          debounceForm
-            milliseconds
-            (getState >>= modifyForm >>> pure)   -- modify the input field right away
-            (getState >>= \st -> run st st.form) -- after `ms`, run debounced action
-            (eval $ SyncFormData a)              -- when debounced action completes, run sync
+          let vs = (unwrap st.internal).validators
+          form <- H.lift $ Internal.unsafeRunValidationVariant (unsafeCoerce variant) vs st.form
+          modifyState_ _ { form = form }
+          pure form
+
+      case milliseconds of
+        Nothing -> do
+          _ <- modifyWith identity
+          _ <- validate 
+          eval (SyncFormData a)
+        Just ms -> do
+          debounceForm 
+            ms 
+            (modifyWith identity) 
+            (modifyWith (const Validating) *> validate) 
+            (eval $ SyncFormData a)
           pure a
         
     Reset variant a -> do
