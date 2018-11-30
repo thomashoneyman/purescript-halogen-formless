@@ -193,9 +193,9 @@ component =
           case st'.optionsEnabled of
             true -> do
               let spec' = O.OptionsForm $ _ { enable = F.InputField true } $ unwrap optionsFormInputs
-              void $ H.query' CP.cp2 unit $ F.initialize_ spec'
+              void $ H.query' CP.cp2 unit $ F.loadForm_ spec'
             _ -> do
-              void $ H.query' CP.cp2 unit $ F.initialize_ defaultInputs
+              void $ H.query' CP.cp2 unit $ F.loadForm_ defaultInputs
         pure a
 
     MetricDropdown m a -> a <$ case m of

@@ -5,7 +5,6 @@ import Prelude
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.Traversable (traverse, traverse_)
-import Debug.Trace (spy)
 import Effect.Aff (Milliseconds, delay, error, forkAff, killFiber)
 import Effect.Aff.AVar as AVar
 import Effect.Aff.Class (class MonadAff)
@@ -49,9 +48,10 @@ debounceForm ms pre post last = do
         modifyState_ _ { form = form }
         last
 
+      H.liftEffect $ traverse_ (Ref.write $ Just { var, fiber }) ref
       form <- pre
       modifyState_ _ { form = form }
-      H.liftEffect $ traverse_ (Ref.write $ Just { var, fiber }) ref
+      pure unit
 
     Just db -> do
       let var = db.var

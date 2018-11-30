@@ -32,9 +32,10 @@ data Query pq cq cs form m a
   | SubmitReply (Maybe (form Record OutputField) -> a)
   | GetState (PublicState form -> a)
   | Send cs (cq a)
+  | LoadForm (form Record InputField) a
   | SyncFormData a
   | Raise (pq Unit) a
-  | Initialize (form Record InputField) a
+  | Initialize a
   | Receive (Input pq cq cs form m) a
   | AndThen (Query pq cq cs form m Unit) (Query pq cq cs form m Unit) a
 

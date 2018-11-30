@@ -54,11 +54,13 @@ component
   => Newtype (form Variant U) (Variant us)
   => Component pq cq cs form m
 component =
-  H.parentComponent
+  H.lifecycleParentComponent
     { initialState
     , render: extract
     , eval
     , receiver: HE.input Receive
+    , initializer: Just $ H.action Initialize
+    , finalizer: Nothing
     }
   where
 
@@ -80,6 +82,12 @@ component =
 
   eval :: Query pq cq cs form m ~> DSL pq cq cs form m
   eval = case _ of
+    Initialize a -> do
+      ref <- H.liftEffect $ Ref.new Nothing
+      modifyState_ \st -> st 
+        { internal = over InternalState (_ { debounceRef = Just ref }) st.internal }
+      pure a
+
     Modify variant a -> do
       modifyState_ \st -> st 
         { form = Internal.unsafeModifyInputVariant identity variant st.form }
@@ -218,9 +226,8 @@ component =
       H.raise (Emit query)
       pure a
 
-    Initialize formInputs a -> do
+    LoadForm formInputs a -> do
       st <- getState
-      ref <- H.liftEffect $ Ref.new Nothing
       new <- modifyState _
         { validity = Incomplete
         , dirty = false
@@ -233,11 +240,11 @@ component =
             (_ 
               { allTouched = false
               , initialInputs = formInputs 
-              , debounceRef = Just ref
               }
             )
             st.internal
         }
+
       H.raise $ Changed $ getPublicState new
       pure a
 

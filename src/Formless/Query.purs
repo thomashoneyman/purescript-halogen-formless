@@ -71,20 +71,20 @@ getState = H.request GetState
 -- | Replace all form inputs with a new set of inputs, and re-initialize
 -- | the form to a new state. Useful to set a new "initial state" for a form,
 -- | especially when filling a form with data loaded asynchronously.
-initialize
+loadForm
   :: ∀ pq cq cs form m a
    . form Record InputField
 	-> a
   -> Query pq cq cs form m a
-initialize = Initialize
+loadForm = LoadForm
 
 -- | `initialize` as an action, so you don't need to specify a `Unit`
 -- | result. Use to skip a use of `Halogen.action`.
-initialize_
+loadForm_
   :: ∀ pq cq cs form m
    . form Record InputField
   -> Query pq cq cs form m Unit
-initialize_ = flip Initialize unit
+loadForm_ = flip LoadForm unit
 
 -- | Perform two Formless actions in sequence. Can be chained arbitrarily.
 -- | Useful when a field needs to modify itself on change and also trigger
