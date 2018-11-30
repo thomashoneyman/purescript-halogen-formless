@@ -13,6 +13,7 @@ import Data.Symbol (SProxy(..))
 import Data.Traversable (traverse_)
 import Data.Variant (Variant)
 import Effect.Aff.Class (class MonadAff)
+import Effect.Ref as Ref
 import Formless.Data.FormFieldResult (FormFieldResult(..))
 import Formless.Internal.Debounce (debounceForm)
 import Formless.Internal.Transform as Internal
@@ -73,7 +74,7 @@ component =
         { allTouched: false
         , initialInputs
         , validators 
-        , debouncer: Nothing
+        , debounceRef: Nothing
         }
     }
 
@@ -219,6 +220,7 @@ component =
 
     Initialize formInputs a -> do
       st <- getState
+      ref <- H.liftEffect $ Ref.new Nothing
       new <- modifyState _
         { validity = Incomplete
         , dirty = false
@@ -228,7 +230,12 @@ component =
         , form = Internal.replaceFormFieldInputs formInputs st.form
         , internal = over
             InternalState
-            (_ { allTouched = false, initialInputs = formInputs })
+            (_ 
+              { allTouched = false
+              , initialInputs = formInputs 
+              , debounceRef = Just ref
+              }
+            )
             st.internal
         }
       H.raise $ Changed $ getPublicState new

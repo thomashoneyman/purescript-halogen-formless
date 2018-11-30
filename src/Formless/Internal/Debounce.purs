@@ -3,21 +3,20 @@ module Formless.Internal.Debounce where
 import Prelude
 
 import Data.Maybe (Maybe(..))
-import Data.Newtype (over, unwrap)
+import Data.Newtype (unwrap)
+import Data.Traversable (traverse, traverse_)
+import Debug.Trace (spy)
 import Effect.Aff (Milliseconds, delay, error, forkAff, killFiber)
 import Effect.Aff.AVar as AVar
 import Effect.Aff.Class (class MonadAff)
-import Formless.Types.Component (DSL, InternalState(..))
+import Effect.Ref as Ref
+import Formless.Types.Component (DSL, Debouncer)
 import Formless.Types.Form (FormField)
 import Halogen as H
 import Renderless.State (getState, modifyState_)
 
 -- | A helper function to debounce actions on the form and form fields. Implemented
--- | to reduce type variables necessary in the `State` type, but will cause
--- | unnecessary renders as implemented. 
--- | 
--- | TODO: Experiment with using a ref to avoid a state update when the debouncer
--- | is being re-triggered.
+-- | to reduce type variables necessary in the `State` type
 
 debounceForm 
   :: forall pq cq cs form m a
@@ -31,10 +30,12 @@ debounceForm ms pre post last = do
   state <- getState
 
   let 
-    debouncer = (unwrap state.internal).debouncer
+    ref = (unwrap state.internal).debounceRef
     mkFiber v = H.liftAff $ forkAff do
       delay ms
       AVar.put unit v
+
+  debouncer :: Maybe Debouncer <- H.liftEffect $ map join $ traverse Ref.read ref
 
   case debouncer of
     Nothing -> do
@@ -42,23 +43,18 @@ debounceForm ms pre post last = do
       fiber <- mkFiber var
 
       void $ H.fork do 
-        void $ H.liftAff (AVar.take var)
+        _ <- H.liftAff (AVar.take var)
+        H.liftEffect $ traverse_ (Ref.write Nothing) ref
         form <- post
-        modifyState_ \st -> st
-          { internal = over InternalState (_ { debouncer = Nothing }) st.internal
-          , form = form 
-          }
+        modifyState_ _ { form = form }
         last
 
       form <- pre
-      modifyState_ \st -> st
-        { internal = over InternalState (_ { debouncer = Just { var, fiber } }) st.internal
-        , form = form 
-        }
+      modifyState_ _ { form = form }
+      H.liftEffect $ traverse_ (Ref.write $ Just { var, fiber }) ref
 
     Just db -> do
       let var = db.var
-      void $ H.liftAff $ killFiber (error "") db.fiber
+      _ <- H.liftAff $ killFiber (error "time's up!") db.fiber
       fiber <- mkFiber var
-      modifyState_ \st -> st
-        { internal = over InternalState (_ { debouncer = Just { var, fiber } }) st.internal }
+      H.liftEffect $ traverse_ (Ref.write $ Just { var, fiber }) ref

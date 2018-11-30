@@ -11,6 +11,7 @@ import Data.Newtype (class Newtype)
 import Data.Variant (Variant)
 import Effect.Aff (Fiber, Milliseconds)
 import Effect.Aff.AVar (AVar)
+import Effect.Ref (Ref)
 import Formless.Types.Form (FormField, InputField, InputFunction, OutputField, U)
 import Formless.Validation (Validation)
 import Halogen as H
@@ -86,7 +87,7 @@ newtype InternalState form m = InternalState
   { initialInputs :: form Record InputField
   , validators :: form Record (Validation form m)
   , allTouched :: Boolean
-  , debouncer :: Maybe Debouncer
+  , debounceRef :: Maybe (Ref (Maybe Debouncer))
   }
 derive instance newtypeInternalState :: Newtype (InternalState form m) _
 
