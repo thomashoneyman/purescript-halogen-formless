@@ -45,9 +45,15 @@ This is the data type we'll use throughout our application, but our form will ha
 
 Formless requires a specific shape from your `Form` data type. You are expected to write a newtype that takes two arguments, `r` and `f` below, and a row containing the fields in your form.
 
+<details>
+  <summary>Expand to read about these two type arguments</summary>
 The first argument has the kind `(# Type -> Type)` and turns a row of types into a concrete type. For example, you can fill in `Record` to get a record; `Record (name :: String)` is the same as `{ name :: String }`. However, Formless will often fill in `Variant` internally. This lets the library access the entire form at once (`Record`) or a single field (`Variant`) to perform various operations. The important thing is that you make sure this variable is left free in your `Form` newtype.
 
-The second argument has the kind `(Type -> Type -> Type -> Type)` and will be filled in with one of many types Formless uses internally to manage your form. You should use this type on every field in your form and provide it with its three type arguments:
+The second argument has the kind `(Type -> Type -> Type -> Type)` and will be filled in with one of many types Formless uses internally to manage your form. It expects an error type, an input type, and an output type for the field in question.
+
+</details>
+
+Every field should use the second argument, `f`, and provide it with three type arguments:
 
 - an `error` type, which represents possible validation errors for the field
 - an `input` type, which represents the value the user will provide when interacting with the field
@@ -65,7 +71,7 @@ newtype Form r f = Form (r
 derive instance newtypeForm :: Newtype (Form r f) _
 ```
 
-You don't need to manage or worry about these two arguments much; they're mostly filled in by Formless on your behalf. Your biggest focus will be on defining the fields in your form with their input, error, and output types.
+Formless will use this type to perform all kinds of transformations and track data about your form over time. You simply need to decide what fields will exist and what their error, input, and output types are.
 
 <details>
   <summary>Expand to read a longer explanation of this form type</summary>
@@ -78,14 +84,14 @@ This can be a scary type to look at, but it's not so bad once you provide concre
 -- we need to provide as our `Form` newtype's second argument.
 type OutputType e i o = o
 
--- Let's fill in each occurrence of `f` with `OutputType` 
+-- Let's fill in each occurrence of `f` with `OutputType`
 myForm :: Form Record OutputType
 myForm = Form
   { name   :: OutputType Error String String
   , email1 :: OutputType Error String Email
   , email2 :: OutputType Error String Email
   }
-  
+
 -- This isn't much less confusing, so let's take things a step further. What if we act as the
 -- compiler does and erase the type synonym? After all, OutputType is equivalent to only the
 -- third type argument from each field.
@@ -95,13 +101,14 @@ myForm2 = Form
   , email1 :: Email
   , email2 :: Email
   }
-  
+
 -- `myForm` and `myForm2` are exactly equivalent! Accepting a type that itself accepts three
 -- arguments allows us to represent several different sorts of records and variants from the
 -- same underlying row and can result in quite simple data types despite the admittedly
 -- complicated-looking original type.
 
 ```
+
 </details>
 
 <details>
@@ -116,6 +123,7 @@ data Error
   | EmailIsUsed
   | EmailInvalid
 ```
+
 </details>
 
 ## Component Inputs
@@ -125,7 +133,6 @@ Now that we have a form type and an output type we can produce the `Input` type 
 - `initialInputs`: Your `Form` newtype around a record, where each field contains its initial, starting value
 - `validators`: Your `Form` newtype around a record, where each field contains a validation function which will process its input value
 - `render`: The render function the component will use, which is the standard `State -> HTML` type in Halogen
-
 
 ```purescript
 import Formless as F
@@ -194,14 +201,24 @@ This type represents a function which takes your entire form, the input for this
 The `FormField` newtype represents the state of every field in the form:
 
 ```purescript
-newtype FormField e i o = FormField
+newtype FormField error input output = FormField
   { -- The value the user will input
-    input :: i
+    input :: input
     -- Whether the field has been modified yet (validators ignore untouched fields)
   , touched :: Boolean
     -- The result of validation, IF validation has been run on this field
-  , result :: Maybe (Either e o)
+  , result :: FormFieldResult error output
   }
+```
+
+A field's result can be in one of several states, represented by the `FormFieldResult` type:
+
+```purescript
+data FormFieldResult e o
+  = NotValidated
+  | Validating -- Useful to display a loading spinner during asynchronous / long validations
+  | Error e
+  | Success o
 ```
 
 Let's see some examples of validators written in this style:
@@ -272,12 +289,12 @@ These validators are building blocks that you can compose together to validate a
 validators :: Form Record (F.Validation Form Aff)
 validators = Form
   { name: isNonEmpty
-  , email1: isNonEmpty >>> validEmail >>> emailIsUsed
-  , email2: isNonEmpty >>> equalsEmail1 >>> emailIsUsed
+  , email1: isNonEmpty >>> validEmail >>> emailNotUsed
+  , email2: isNonEmpty >>> equalsEmail1 >>> emailNotUsed
   }
 ```
 
-Note how validators can be composed: `validEmail` takes a `String` and produces an `Email`, which is then passed to `emailIsUsed`, which takes an `Email` and produces an `Email`. You can use this to build up validators that change a field's output type over time. Composition with `>>>` will short-circuit on the first failure.
+Note how validators can be composed: `validEmail` takes a `String` and produces an `Email`, which is then passed to `emailNotUsed`, which takes an `Email` and produces an `Email`. You can use this to build up validators that change a field's output type over time. Composition with `>>>` will short-circuit on the first failure.
 
 ### Render Function
 
@@ -289,10 +306,11 @@ The main things to keep in mind when writing a render function for Formless:
 - You can extend Formless' functionality by embedding your own queries in the render function with `Raise`
 - You can mount external components inside Formless and control them from the parent with `send` and `send'`
 - You should use `F.set` to set a field's value, `F.modify` to modify a field with a function, `F.validate` to validate fields, and `F.setValidate` or `F.modifyValidate` to do both at the same time
+- If you want to avoid running expensive or long-running validations on each key press, use the asynchronous versions (`F.asyncSetValidate`, etc.) and provide a number of milliseconds to debounce. You can use `getResult` to show a loading spinner when the result is `Validating`.
 - If you need to chain multiple operations, you can use `F.andThen` to provide multiple Formless queries
 - There are functions to get various parts of a field, given a symbol; these include `getInput`, `getResult`, `getError`, and more.
 
-Let's write a render function using `setValidate` and `getInput`, using symbol proxies we've defined in the `where` clause:
+Let's write a render function using `setValidate`, `asyncSetValidate`, and `getInput`, using symbol proxies we've defined in the `where` clause:
 
 ```purescript
 renderFormless :: ∀ m. F.State Form m -> F.HTML' Form m
@@ -304,17 +322,19 @@ renderFormless fstate =
     ]
   , HH.input
     [ HP.value $ F.getInput _email1 fstate.form
-    , HE.onValueInput $ HE.input $ F.setValidate _email1
+      -- This will help us avoid hitting the server on every single key press.
+    , HE.onValueInput $ HE.input $ F.asyncSetValidate debounceTime _email1
     ]
   , HH.input
     [ HP.value $ F.getInput _email2 fstate.form
-    , HE.onValueInput $ HE.input $ F.setValidate _email2
+    , HE.onValueInput $ HE.input $ F.asyncSetValidate debounceTime _email2
     ]
   ]
   where
     _name = SProxy :: SProxy "name"
     _email1 SProxy :: SProxy "email1"
     _email2 = SProxy :: SProxy "email2"
+    debounceTime = Milliseconds 300.0
 ```
 
 It can be tedious to write out symbol proxies for every field you want to access in a form. You can instead generate a record of these proxies automatically using the `mkSProxies` function:
@@ -329,7 +349,6 @@ x = prx.name
 ```
 
 Now, instead of writing out proxies over and over, you can just import the proxies record!
-
 
 ## Mounting The Component
 

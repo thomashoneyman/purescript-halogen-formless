@@ -2,17 +2,19 @@ module Example.App.Validation where
 
 import Prelude
 
-import Data.Either (Either(..), either)
+import Data.Either (Either(..))
 import Data.Foldable (length) as Foldable
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Int (fromString) as Int
-import Data.Maybe (Maybe(..), maybe)
+import Data.Lens (preview)
+import Data.Maybe (Maybe, maybe)
 import Data.Newtype (class Newtype)
 import Data.String (contains, length, null)
 import Data.String.Pattern (Pattern(..))
-import Effect.Class (class MonadEffect, liftEffect)
-import Effect.Random (random)
+import Effect.Aff (Milliseconds(..), delay)
+import Effect.Aff.Class (class MonadAff, liftAff)
+import Formless (FormFieldResult, _Error)
 import Formless.Validation (Validation(..), hoistFnE_)
 
 data FieldError
@@ -23,6 +25,7 @@ data FieldError
   | TooLong Int
   | InvalidInt String
   | NotEqual String String
+  | NotEnoughMoney
 
 derive instance genericFieldError :: Generic FieldError _
 instance showFieldError :: Show FieldError where
@@ -36,6 +39,7 @@ instance toTextFieldError :: ToText FieldError where
   toText (TooLong n) = "You must enter less than " <> show n <> " characters."
   toText (InvalidInt str) = "Could not parse \"" <> str <> "\" to a valid integer."
   toText (NotEqual str0 str1) = "This field contains \"" <> str1 <> "\" but must be equal to \"" <> str0 <> "\" to validate."
+  toText (NotEnoughMoney) = "You don't have that much money."
 
 -- | Some useful types we'll parse to
 newtype Name = Name String
@@ -48,8 +52,8 @@ derive newtype instance eqEmail :: Eq Email
 derive newtype instance showEmail :: Show Email
 
 -- | Unpacks errors to render as a string
-showError :: ∀ e o. ToText e => Maybe (Either e o) -> Maybe String
-showError = (=<<) (either (pure <<< toText) (const Nothing))
+showError :: ∀ e o. ToText e => FormFieldResult e o -> Maybe String
+showError = map toText <<< preview _Error
 
 class ToText item where
   toText :: item -> String
@@ -66,14 +70,6 @@ emailFormat = hoistFnE_ $ \str ->
   if contains (Pattern "@") str
     then pure $ Email str
     else Left InvalidEmail
-
-emailIsUsed :: ∀ form m. MonadEffect m => Validation form m FieldError Email Email
-emailIsUsed = Validation \_ e@(Email e') -> do
-  -- Perhaps we hit the server to  if the email is in use
-  _ <- liftEffect random
-  pure $ if (contains (Pattern "t") e')
-    then pure e
-    else Left EmailInUse
 
 minLength :: ∀ form m. Monad m => Int -> Validation form m FieldError String String
 minLength n = hoistFnE_ $ \str ->
@@ -104,3 +100,23 @@ nonEmptyStr = hoistFnE_ $ \str ->
   if null str
     then Left EmptyField
     else Right str
+
+--------------------
+-- Formless Async Validation
+--------------------
+
+emailIsUsed :: ∀ form m. MonadAff m => Validation form m FieldError Email Email
+emailIsUsed = Validation \_ e@(Email e') -> do
+  -- Perhaps we hit the server to  if the email is in use
+  _ <- liftAff $ delay $ Milliseconds 1000.0
+  pure $ if (contains (Pattern "t") e')
+    then pure e
+    else Left EmailInUse
+
+enoughMoney :: ∀ form m. MonadAff m => Validation form m FieldError Int Int
+enoughMoney = Validation \_ i -> do
+  -- Let's check if we have enough money...
+  _ <- liftAff $ delay $ Milliseconds 5000.0
+  pure $ if (i > 1000)
+    then pure i
+    else Left NotEnoughMoney

@@ -9,6 +9,9 @@ import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype)
 import Data.Variant (Variant)
+import Effect.Aff (Fiber, Milliseconds)
+import Effect.Aff.AVar (AVar)
+import Effect.Ref (Ref)
 import Formless.Types.Form (FormField, InputField, InputFunction, OutputField, U)
 import Formless.Validation (Validation)
 import Halogen as H
@@ -19,7 +22,7 @@ import Halogen.HTML as HH
 data Query pq cq cs form m a
   = Modify (form Variant InputFunction) a
   | Validate (form Variant U) a
-  | ModifyValidate (form Variant InputFunction) a
+  | ModifyValidate (Maybe Milliseconds) (form Variant InputFunction) a
   | Reset (form Variant InputField) a
   | SetAll (form Record InputField) a
   | ModifyAll (form Record InputFunction) a
@@ -29,16 +32,16 @@ data Query pq cq cs form m a
   | SubmitReply (Maybe (form Record OutputField) -> a)
   | GetState (PublicState form -> a)
   | Send cs (cq a)
+  | LoadForm (form Record InputField) a
   | SyncFormData a
   | Raise (pq Unit) a
-  | Initialize (form Record InputField) a
+  | Initialize a
   | Receive (Input pq cq cs form m) a
   | AndThen (Query pq cq cs form m Unit) (Query pq cq cs form m Unit) a
 
 -- | The overall component state type, which contains the local state type
 -- | and also the render function
-type StateStore pq cq cs form m =
-  Store (State form m) (HTML pq cq cs form m)
+type StateStore pq cq cs form m = Store (State form m) (HTML pq cq cs form m)
 
 -- | The component type
 type Component pq cq cs form m
@@ -50,8 +53,7 @@ type Component pq cq cs form m
       m
 
 -- | The component's HTML type, the result of the render function.
-type HTML pq cq cs form m
-  = H.ParentHTML (Query pq cq cs form m) cq cs m
+type HTML pq cq cs form m = H.ParentHTML (Query pq cq cs form m) cq cs m
 
 -- | The component's DSL type, the result of the eval function.
 type DSL pq cq cs form m
@@ -86,17 +88,26 @@ newtype InternalState form m = InternalState
   { initialInputs :: form Record InputField
   , validators :: form Record (Validation form m)
   , allTouched :: Boolean
+  , debounceRef :: Maybe (Ref (Maybe Debouncer))
   }
 derive instance newtypeInternalState :: Newtype (InternalState form m) _
+
+-- | A type to represent a running debouncer 
+type Debouncer =
+  { var   :: AVar Unit
+  , fiber :: Fiber Unit 
+  }
 
 -- | A type to represent validation status
 data ValidStatus
   = Invalid
   | Incomplete
   | Valid
+
 derive instance genericValidStatus :: Generic ValidStatus _
 derive instance eqValidStatus :: Eq ValidStatus
 derive instance ordValidStatus :: Ord ValidStatus
+
 instance showValidStatus :: Show ValidStatus where
   show = genericShow
 

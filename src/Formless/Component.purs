@@ -12,9 +12,13 @@ import Data.Newtype (class Newtype, over, unwrap)
 import Data.Symbol (SProxy(..))
 import Data.Traversable (traverse_)
 import Data.Variant (Variant)
-import Formless.Types.Form (FormField, InputField, InputFunction, OutputField, U)
-import Formless.Transform.Internal as Internal
+import Effect.Aff.Class (class MonadAff)
+import Effect.Ref as Ref
+import Formless.Data.FormFieldResult (FormFieldResult(..))
+import Formless.Internal.Debounce (debounceForm)
+import Formless.Internal.Transform as Internal
 import Formless.Types.Component (Component, DSL, Input, InternalState(..), Message(..), PublicState, Query(..), State, StateStore, ValidStatus(..))
+import Formless.Types.Form (FormField, InputField, InputFunction, OutputField, U)
 import Formless.Validation (Validation)
 import Halogen as H
 import Halogen.HTML.Events as HE
@@ -27,7 +31,7 @@ import Unsafe.Coerce (unsafeCoerce)
 component
   :: ∀ pq cq cs form m is ixs ivs fs fxs us vs os ifs ivfs
    . Ord cs
-  => Monad m
+  => MonadAff m
   => RL.RowToList is ixs
   => RL.RowToList fs fxs
   => EqRecord ixs is
@@ -50,11 +54,13 @@ component
   => Newtype (form Variant U) (Variant us)
   => Component pq cq cs form m
 component =
-  H.parentComponent
+  H.lifecycleParentComponent
     { initialState
     , render: extract
     , eval
     , receiver: HE.input Receive
+    , initializer: Just $ H.action Initialize
+    , finalizer: Nothing
     }
   where
 
@@ -66,13 +72,25 @@ component =
     , submitAttempts: 0
     , submitting: false
     , form: Internal.inputFieldsToFormFields initialInputs
-    , internal: InternalState { allTouched: false, initialInputs, validators }
+    , internal: InternalState 
+        { allTouched: false
+        , initialInputs
+        , validators 
+        , debounceRef: Nothing
+        }
     }
 
   eval :: Query pq cq cs form m ~> DSL pq cq cs form m
   eval = case _ of
+    Initialize a -> do
+      ref <- H.liftEffect $ Ref.new Nothing
+      modifyState_ \st -> st 
+        { internal = over InternalState (_ { debounceRef = Just ref }) st.internal }
+      pure a
+
     Modify variant a -> do
-      modifyState_ \st -> st { form = Internal.unsafeModifyInputVariant variant st.form }
+      modifyState_ \st -> st 
+        { form = Internal.unsafeModifyInputVariant identity variant st.form }
       eval $ SyncFormData a
 
     Validate variant a -> do
@@ -83,17 +101,35 @@ component =
       eval $ SyncFormData a
 
     -- Provided as a separate query to minimize state updates / re-renders
-    ModifyValidate variant a -> do
-      st <- getState
-      let form = Internal.unsafeModifyInputVariant variant st.form
-      form' <- do
-        let v :: form Variant U
-            v = unsafeCoerce variant
-            vs = (unwrap st.internal).validators
-        H.lift $ Internal.unsafeRunValidationVariant v vs form
-      modifyState_ _ { form = form' }
-      eval $ SyncFormData a
+    ModifyValidate milliseconds variant a -> do
+      let 
+        modifyWith 
+          :: (forall e o. FormFieldResult e o -> FormFieldResult e o)
+          -> DSL pq cq cs form m (form Record FormField)
+        modifyWith f = do
+          s <- modifyState \st -> st { form = Internal.unsafeModifyInputVariant f variant st.form }
+          pure s.form
 
+        validate = do
+          st <- getState
+          let vs = (unwrap st.internal).validators
+          form <- H.lift $ Internal.unsafeRunValidationVariant (unsafeCoerce variant) vs st.form
+          modifyState_ _ { form = form }
+          pure form
+
+      case milliseconds of
+        Nothing -> do
+          _ <- modifyWith identity
+          _ <- validate 
+          eval (SyncFormData a)
+        Just ms -> do
+          debounceForm 
+            ms 
+            (modifyWith identity) 
+            (modifyWith (const Validating) *> validate) 
+            (eval $ SyncFormData a)
+          pure a
+        
     Reset variant a -> do
       modifyState_ \st -> st
         { form = Internal.replaceFormFieldInputs (unwrap st.internal).initialInputs st.form
@@ -190,7 +226,7 @@ component =
       H.raise (Emit query)
       pure a
 
-    Initialize formInputs a -> do
+    LoadForm formInputs a -> do
       st <- getState
       new <- modifyState _
         { validity = Incomplete
@@ -201,9 +237,14 @@ component =
         , form = Internal.replaceFormFieldInputs formInputs st.form
         , internal = over
             InternalState
-            (_ { allTouched = false, initialInputs = formInputs })
+            (_ 
+              { allTouched = false
+              , initialInputs = formInputs 
+              }
+            )
             st.internal
         }
+
       H.raise $ Changed $ getPublicState new
       pure a
 

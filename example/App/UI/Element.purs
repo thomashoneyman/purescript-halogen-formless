@@ -5,13 +5,13 @@ import Prelude
 import DOM.HTML.Indexed (HTMLa, HTMLbutton, HTMLinput, HTMLtextarea)
 import DOM.HTML.Indexed.InputType (InputType(..))
 import Data.Either (Either(..), either)
-import Data.Lens (preview)
-import Data.Maybe (Maybe, maybe)
+import Data.Maybe (maybe)
 import Data.Newtype (class Newtype)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Data.Variant (Variant)
 import Example.App.Validation (class ToText, toText)
 import Example.App.Validation as V
+import Formless (FormFieldResult(..))
 import Formless as F
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -112,8 +112,11 @@ field config contents =
 -- Formless
 
 -- Render a result as help text
-resultToHelp :: ∀ t e. ToText e => String -> Maybe (Either e t) -> Either String String
-resultToHelp str = maybe (Right str) Left <<< V.showError
+resultToHelp :: ∀ t e. ToText e => String -> FormFieldResult e t -> Either String String
+resultToHelp str = case _ of
+  NotValidated -> Right str
+  Validating -> Right "validating..."
+  other -> maybe (Right str) Left $ V.showError other
 
 -- Provide your own label, error or help text, and placeholder
 type FieldConfig' =
@@ -179,7 +182,7 @@ formlessField fieldType config state = fieldType (Builder.build config' config) 
       Builder.delete (SProxy :: SProxy "sym")
       <<< Builder.modify (SProxy :: SProxy "help") (const help')
 
-    help' = maybe (Right config.help) (Left <<< toText) (preview (F._Error config.sym) state.form)
+    help' = maybe (Right config.help) (Left <<< toText) (F.getError config.sym state.form)
 
     props =
       [ HP.value (F.getInput config.sym state.form)
