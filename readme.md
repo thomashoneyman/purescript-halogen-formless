@@ -166,7 +166,7 @@ inputs = Form
 It's a little tedious writing out all those newtypes, so `Formless.Spec.Transform` provides helper functions to generate them for you:
 
 ```purescript
-inputs :: Form Record F.InputFields
+inputs :: Form Record F.InputField
 inputs = F.wrapInputFields
   { name: ""
   , email1: ""
