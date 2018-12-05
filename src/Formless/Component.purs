@@ -72,10 +72,10 @@ component =
     , submitAttempts: 0
     , submitting: false
     , form: Internal.inputFieldsToFormFields initialInputs
-    , internal: InternalState 
+    , internal: InternalState
         { allTouched: false
         , initialInputs
-        , validators 
+        , validators
         , debounceRef: Nothing
         }
     }
@@ -84,12 +84,12 @@ component =
   eval = case _ of
     Initialize a -> do
       ref <- H.liftEffect $ Ref.new Nothing
-      modifyState_ \st -> st 
+      modifyState_ \st -> st
         { internal = over InternalState (_ { debounceRef = Just ref }) st.internal }
       pure a
 
     Modify variant a -> do
-      modifyState_ \st -> st 
+      modifyState_ \st -> st
         { form = Internal.unsafeModifyInputVariant identity variant st.form }
       eval $ SyncFormData a
 
@@ -102,8 +102,8 @@ component =
 
     -- Provided as a separate query to minimize state updates / re-renders
     ModifyValidate milliseconds variant a -> do
-      let 
-        modifyWith 
+      let
+        modifyWith
           :: (forall e o. FormFieldResult e o -> FormFieldResult e o)
           -> DSL pq cq cs form m (form Record FormField)
         modifyWith f = do
@@ -120,19 +120,19 @@ component =
       case milliseconds of
         Nothing -> do
           _ <- modifyWith identity
-          _ <- validate 
+          _ <- validate
           eval (SyncFormData a)
         Just ms -> do
-          debounceForm 
-            ms 
-            (modifyWith identity) 
-            (modifyWith (const Validating) *> validate) 
+          debounceForm
+            ms
+            (modifyWith identity)
+            (modifyWith (const Validating) *> validate)
             (eval $ SyncFormData a)
           pure a
-        
+
     Reset variant a -> do
       modifyState_ \st -> st
-        { form = Internal.replaceFormFieldInputs (unwrap st.internal).initialInputs st.form
+        { form = Internal.unsafeModifyInputVariant identity variant st.form
         , internal = over InternalState (_ { allTouched = false }) st.internal
         }
       eval $ SyncFormData a
@@ -237,9 +237,9 @@ component =
         , form = Internal.replaceFormFieldInputs formInputs st.form
         , internal = over
             InternalState
-            (_ 
+            (_
               { allTouched = false
-              , initialInputs = formInputs 
+              , initialInputs = formInputs
               }
             )
             st.internal
