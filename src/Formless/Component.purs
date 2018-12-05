@@ -77,15 +77,24 @@ component =
         , initialInputs
         , validators
         , debounceRef: Nothing
+        , validationRef: Nothing
         }
     }
 
   eval :: Query pq cq cs form m ~> DSL pq cq cs form m
   eval = case _ of
     Initialize a -> do
-      ref <- H.liftEffect $ Ref.new Nothing
+      dr <- H.liftEffect $ Ref.new Nothing
+      vr <- H.liftEffect $ Ref.new Nothing
       modifyState_ \st -> st
-        { internal = over InternalState (_ { debounceRef = Just ref }) st.internal }
+        { internal = over InternalState 
+            (_ 
+              { debounceRef = Just dr
+              , validationRef = Just vr
+              }
+            )
+            st.internal 
+        }
       pure a
 
     Modify variant a -> do
