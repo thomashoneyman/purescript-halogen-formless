@@ -288,12 +288,12 @@ reset
   :: ∀ pq cq cs form inputs m sym a t0 e i o
    . IsSymbol sym
   => Initial i
-  => Newtype (form Variant InputField) (Variant inputs)
-  => Row.Cons sym (InputField e i o) t0 inputs
+  => Newtype (form Variant InputFunction) (Variant inputs)
+  => Row.Cons sym (InputFunction e i o) t0 inputs
   => SProxy sym
   -> a
   -> Query pq cq cs form m a
-reset sym = Reset (wrap (inj sym (wrap initial)))
+reset sym = Reset (wrap (inj sym (wrap (const initial))))
 
 -- | `reset` as an action, so you don't need to specify a `Unit`
 -- | result. Use to skip a use of `Halogen.action`.
@@ -301,11 +301,11 @@ reset_
   :: ∀ pq cq cs form inputs m sym t0 e i o
    . IsSymbol sym
   => Initial i
-  => Newtype (form Variant InputField) (Variant inputs)
-  => Row.Cons sym (InputField e i o) t0 inputs
+  => Newtype (form Variant InputFunction) (Variant inputs)
+  => Row.Cons sym (InputFunction e i o) t0 inputs
   => SProxy sym
   -> Query pq cq cs form m Unit
-reset_ sym = Reset (wrap (inj sym (wrap initial))) unit
+reset_ sym = Reset (wrap (inj sym (wrap (const initial)))) unit
 
 -- | A helper to create the correct `Validate` query for Formless, given
 -- | a label

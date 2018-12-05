@@ -23,7 +23,7 @@ data Query pq cq cs form m a
   = Modify (form Variant InputFunction) a
   | Validate (form Variant U) a
   | ModifyValidate (Maybe Milliseconds) (form Variant InputFunction) a
-  | Reset (form Variant InputField) a
+  | Reset (form Variant InputFunction) a
   | SetAll (form Record InputField) a
   | ModifyAll (form Record InputFunction) a
   | ResetAll a
@@ -92,10 +92,10 @@ newtype InternalState form m = InternalState
   }
 derive instance newtypeInternalState :: Newtype (InternalState form m) _
 
--- | A type to represent a running debouncer 
+-- | A type to represent a running debouncer
 type Debouncer =
   { var   :: AVar Unit
-  , fiber :: Fiber Unit 
+  , fiber :: Fiber Unit
   }
 
 -- | A type to represent validation status
