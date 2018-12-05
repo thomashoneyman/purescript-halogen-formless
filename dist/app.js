@@ -12346,7 +12346,7 @@ var PS = {};
           return function (dictNewtype) {
               return function (dictCons) {
                   return function (sym) {
-                      return new Formless_Types_Component.Reset(Data_Newtype.wrap(dictNewtype)(Data_Variant.inj(dictCons)(dictIsSymbol)(sym)(Data_Newtype.wrap(Formless_Types_Form.newtypeInputField)(Formless_Class_Initial.initial(dictInitial)))), Data_Unit.unit);
+                      return new Formless_Types_Component.Reset(Data_Newtype.wrap(dictNewtype)(Data_Variant.inj(dictCons)(dictIsSymbol)(sym)(Data_Newtype.wrap(Formless_Types_Form.newtypeInputFunction)(Data_Function["const"](Formless_Class_Initial.initial(dictInitial))))), Data_Unit.unit);
                   };
               };
           };
@@ -15087,7 +15087,7 @@ var PS = {};
                                                                                                               $122[$123] = st[$123];
                                                                                                           };
                                                                                                       };
-                                                                                                      $122.form = Formless_Internal_Transform.replaceFormFieldInputs(dictRowToList1)(dictReplaceFormFieldInputs)(dictNewtype)(dictNewtype2)((Data_Newtype.unwrap(Formless_Types_Component.newtypeInternalState)(st.internal)).initialInputs)(st.form);
+                                                                                                      $122.form = Formless_Internal_Transform.unsafeModifyInputVariant(dictNewtype6)(dictNewtype2)(Control_Category.identity(Control_Category.categoryFn))(v.value0)(st.form);
                                                                                                       $122.internal = Data_Newtype.over(Formless_Types_Component.newtypeInternalState)(Formless_Types_Component.newtypeInternalState)(Formless_Types_Component.InternalState)(function (v2) {
                                                                                                           return {
                                                                                                               allTouched: false,
