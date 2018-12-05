@@ -9,7 +9,7 @@ import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype)
 import Data.Variant (Variant)
-import Effect.Aff (Fiber, Milliseconds)
+import Effect.Aff (Error, Fiber, Milliseconds)
 import Effect.Aff.AVar (AVar)
 import Effect.Ref (Ref)
 import Formless.Types.Form (FormField, InputField, InputFunction, OutputField, U)
@@ -89,12 +89,13 @@ newtype InternalState form m = InternalState
   , validators :: form Record (Validation form m)
   , allTouched :: Boolean
   , debounceRef :: Maybe (Ref (Maybe Debouncer))
+  , validationRef :: Maybe (Ref (Maybe (Error -> m Unit)))
   }
 derive instance newtypeInternalState :: Newtype (InternalState form m) _
 
 -- | A type to represent a running debouncer
 type Debouncer =
-  { var   :: AVar Unit
+  { var :: AVar Unit
   , fiber :: Fiber Unit
   }
 

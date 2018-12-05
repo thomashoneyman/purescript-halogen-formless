@@ -5,11 +5,13 @@ import Prelude
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.Traversable (traverse, traverse_)
-import Effect.Aff (Milliseconds, delay, error, forkAff, killFiber)
+import Effect.Aff (Error, Fiber, Milliseconds, delay, error, forkAff, killFiber)
+import Effect.Aff.AVar (AVar)
 import Effect.Aff.AVar as AVar
 import Effect.Aff.Class (class MonadAff)
+import Effect.Ref (Ref)
 import Effect.Ref as Ref
-import Formless.Types.Component (DSL, Debouncer)
+import Formless.Types.Component (DSL)
 import Formless.Types.Form (FormField)
 import Halogen as H
 import Renderless.State (getState, modifyState_)
@@ -29,32 +31,63 @@ debounceForm ms pre post last = do
   state <- getState
 
   let 
-    ref = (unwrap state.internal).debounceRef
-    mkFiber v = H.liftAff $ forkAff do
-      delay ms
-      AVar.put unit v
+    dbRef = (unwrap state.internal).debounceRef
+    vdRef = (unwrap state.internal).validationRef
 
-  debouncer :: Maybe Debouncer <- H.liftEffect $ map join $ traverse Ref.read ref
+  -- if there is a running validation, cancel it
+  traverse_ (\f -> H.lift $ f $ error "times' up!") =<< readRef vdRef
+  debouncer <- H.liftEffect $ map join $ traverse Ref.read dbRef
 
   case debouncer of
     Nothing -> do
       var <- H.liftAff $ AVar.empty
       fiber <- mkFiber var
 
-      void $ H.fork do 
+      _ <- H.fork do 
         _ <- H.liftAff (AVar.take var)
-        H.liftEffect $ traverse_ (Ref.write Nothing) ref
-        form <- post
-        modifyState_ _ { form = form }
-        last
+        H.liftEffect $ traverse_ (Ref.write Nothing) dbRef
+        atomic post (Just last)
 
-      H.liftEffect $ traverse_ (Ref.write $ Just { var, fiber }) ref
-      form <- pre
-      modifyState_ _ { form = form }
-      pure unit
+      H.liftEffect $ traverse_ (Ref.write $ Just { var, fiber }) dbRef
+      atomic pre Nothing
 
     Just db -> do
       let var = db.var
-      _ <- H.liftAff $ killFiber (error "time's up!") db.fiber
+      void $ killFiber' db.fiber
       fiber <- mkFiber var
-      H.liftEffect $ traverse_ (Ref.write $ Just { var, fiber }) ref
+      H.liftEffect $ traverse_ (Ref.write $ Just { var, fiber }) dbRef
+  
+  where
+
+  mkFiber :: AVar Unit -> DSL pq cq cs form m (Fiber Unit)
+  mkFiber v = H.liftAff $ forkAff do 
+    delay ms 
+    AVar.put unit v
+
+  killFiber' :: forall x n. MonadAff n => Fiber x -> n Unit
+  killFiber' = H.liftAff <<< killFiber (error ("time's up!"))
+
+  readRef :: forall x n. MonadAff n => Maybe (Ref (Maybe x)) -> n (Maybe x) 
+  readRef = H.liftEffect <<< map join <<< traverse Ref.read
+
+  atomic 
+    :: forall n
+     . MonadAff n 
+    => DSL pq cq cs form n (form Record FormField) 
+    -> Maybe (DSL pq cq cs form n a)
+    -> DSL pq cq cs form n Unit
+  atomic process maybeLast = do
+    state <- getState 
+    let ref = (unwrap state.internal).validationRef
+    canceller <- readRef ref
+    traverse_ (\(f :: Error -> n Unit) -> H.lift $ f $ error "new action") canceller
+    H.liftEffect $ traverse_ (Ref.write Nothing) ref
+
+    cancel <- H.fork do
+      form <- process
+      modifyState_ _ { form = form }
+      H.liftEffect $ traverse_ (Ref.write Nothing) ref
+      traverse_ identity maybeLast
+
+    H.liftEffect $ traverse_ (Ref.write (Just cancel)) ref
+    pure unit
