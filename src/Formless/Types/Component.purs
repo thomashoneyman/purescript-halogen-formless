@@ -17,6 +17,9 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.Query.ChildQuery (ChildQueryBox)
 
+-- | The private component action type. To embed a parent query into Formless
+-- | via the render function, see `Query` and the helpers in Formless.Query,
+-- | specifically `embed`.
 data Action form query ps m
   = Initialize
   | Receive (form Record (Validation form m))
@@ -119,15 +122,21 @@ data Message form msg
   | Changed (PublicState form)
   | Raised msg
 
--- | A simple query type when you have no child slots in use
+-- | A slot type that can be used in the ChildSlots definition for your parent
+-- | component
+type Slot form query ps msg = H.Slot (Query form query ps) (Message form msg)
+
+-- | A simple query type when the component does not need extension
 type Query' form = Query form (Const Void) ()
 
--- | A simple HTML type when the component does not need embedding
+-- | A simple HTML type when the component does not need extension
 type HTML' form m = ComponentHTML form (Const Void) () m
 
--- | A simple Message type when the component does not need embedding
+-- | A simple Message type when the component does not need extension
 type Message' form = Message form Void
 
--- | A simple Input type when the component does not need embedding
+-- | A simple Input type when the component does not need extension
 type Input' form m = Input form () m
 
+-- | A simple Slot type when the component does not need extension
+type Slot' form = H.Slot (Query' form) (Message' form)
