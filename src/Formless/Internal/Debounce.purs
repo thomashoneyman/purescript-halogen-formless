@@ -19,13 +19,13 @@ import Halogen as H
 -- | to reduce type variables necessary in the `State` type
 
 debounceForm 
-  :: forall form st query ps msg m a
+  :: forall form st act ps msg m a
    . MonadAff m
   => Milliseconds
-  -> HalogenM form st query ps msg m (form Record FormField)
-  -> HalogenM form st query ps msg m (form Record FormField)
-  -> HalogenM form st query ps msg m a
-  -> HalogenM form st query ps msg m Unit
+  -> HalogenM form st act ps msg m (form Record FormField)
+  -> HalogenM form st act ps msg m (form Record FormField)
+  -> HalogenM form st act ps msg m a
+  -> HalogenM form st act ps msg m Unit
 debounceForm ms pre post last = do
   state <- H.get
 
@@ -57,7 +57,7 @@ debounceForm ms pre post last = do
       H.liftEffect $ for_ dbRef $ Ref.write (Just { var, fiber })
 
   where
-  mkFiber :: AVar Unit -> HalogenM form st query ps msg m (Fiber Unit)
+  mkFiber :: AVar Unit -> HalogenM form st act ps msg m (Fiber Unit)
   mkFiber v = H.liftAff $ forkAff do 
     delay ms 
     AVar.put unit v
@@ -71,9 +71,9 @@ debounceForm ms pre post last = do
   atomic 
     :: forall n
      . MonadAff n 
-    => HalogenM form st query ps msg n (form Record FormField)
-    -> Maybe (HalogenM form st query ps msg n a)
-    -> HalogenM form st query ps msg n Unit
+    => HalogenM form st act ps msg n (form Record FormField)
+    -> Maybe (HalogenM form st act ps msg n a)
+    -> HalogenM form st act ps msg n Unit
   atomic process maybeLast = do
     state <- H.get 
     let ref = (unwrap state.internal).validationRef

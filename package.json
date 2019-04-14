@@ -6,7 +6,7 @@
   "license": "MIT",
   "scripts": {
     "postinstall": "bower i --silent",
-    "clean": "rm -rf bower_components node_modules output",
+    "clean": "rm -rf bower_components output",
     "build": "pulp build",
     "watch": "pulp -w build",
     "test": "pulp test",

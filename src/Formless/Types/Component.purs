@@ -3,10 +3,12 @@ module Formless.Types.Component where
 import Prelude
 
 import Data.Const (Const)
+import Data.Functor.Variant (VariantF, FProxy)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype)
+import Data.Tuple (Tuple)
 import Data.Variant (Variant)
 import Effect.Aff (Fiber, Milliseconds)
 import Effect.Aff.AVar (AVar)
@@ -17,63 +19,121 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.Query.ChildQuery (ChildQueryBox)
 
--- | The private component action type. To embed a parent query into Formless
--- | via the render function, see `Query` and the helpers in Formless.Query,
--- | specifically `embed`.
-data Action form query ps m
-  = Initialize
-  | Receive (form Record (Validation form m))
-  | SyncFormData
-  | AsAction (Query form query ps Unit)
+-- | A type representing the various functions that can be provided to extend 
+-- | the Formless component. Usually only the `render` function is required,
+-- | but you may also provide others. For example, if you have child components,
+-- | you can tell Formless how to manage those child components by adding a
+-- | handler action and `handleAction` case.
+type Spec form st query act ps msg m =
+  { render :: PublicState form st -> ComponentHTML form act ps m
+  , handleAction :: act -> HalogenM form st act ps msg m Unit
+  , handleQuery :: forall a. query a -> HalogenM form st act ps msg m (Maybe a)
+  , handleMessage :: Message form st -> HalogenM form st act ps msg m Unit
+  , receive :: Input form st m -> Maybe act
+  , initialize :: Maybe act
+  , finalize :: Maybe act
+  }
 
--- | The component query type. See Formless.Query for helpers related
--- | to constructing and using these queries.
-data Query form query ps a
+-- | The private component action type. While actions are typically considered
+-- | internal to a component, in Formless you write the render function and will
+-- | need to be able to use these directly. Many of these are shared with queries
+-- | of the same name so they can be used either as queries or as actions. See
+-- | `Formless.Action` and `Formless.Query`.
+-- |
+-- | You can freely extend this type with your own actions using `injAction`.
+type Action form act = Variant
+  ( initialize :: Maybe act
+  , syncFormData :: Unit
+  , userAction :: act
+  , modify :: form Variant InputFunction
+  , validate :: form Variant U
+  , modifyValidate :: Tuple (Maybe Milliseconds) (form Variant InputFunction)
+  , reset :: form Variant InputFunction
+  , setAll :: Tuple (form Record InputField) Boolean
+  , modifyAll :: Tuple (form Record InputFunction) Boolean
+  , validateAll :: Unit
+  , resetAll :: Unit
+  , submit :: Unit
+  , loadForm :: form Record InputField
+  )
+
+-- | A simple action type when the component does not need extension
+type Action' form = Action form Void
+
+-- | The internals of the public component query type. Many of these are shared 
+-- | with actions of the same name so they can be used in rendering. See 
+-- | `Formless.Action` and `Formless.Query` for more.
+data QueryF form ps a
   = Modify (form Variant InputFunction) a
   | Validate (form Variant U) a
   | ModifyValidate (Maybe Milliseconds) (form Variant InputFunction) a
   | Reset (form Variant InputFunction) a
-  | SetAll (form Record InputField) a
-  | ModifyAll (form Record InputFunction) a
+  | SetAll (form Record InputField) Boolean a
+  | ModifyAll (form Record InputFunction) Boolean a
   | ValidateAll a
   | ResetAll a
   | Submit a
   | SubmitReply (Maybe (form Record OutputField) -> a)
-  | GetState (PublicState form -> a)
   | LoadForm (form Record InputField) a
-  | AndThen (Query form query ps Unit) (Query form query ps Unit) a
   | SendQuery (ChildQueryBox ps (Maybe a))
-  | Embed (query a)
+
+derive instance functorQueryF :: Functor (QueryF form ps)
+
+-- | The component query type, which you can freely extend with your own queries
+-- | using `injQuery` from `Formless.Query`.
+type Query form query ps = VariantF
+  ( query :: FProxy (QueryF form ps) 
+  , userQuery :: FProxy query
+  )
+
+-- | A simple query type when the component does not need extension
+type Query' form = Query form (Const Void) ()
 
 -- | The component type
 type Component form st query ps msg m = 
-  H.Component HH.HTML (Query form query ps) (Input form st m) (Message form msg) m
+  H.Component HH.HTML (Query form query ps) (Input form st m) msg m
+
+-- | A simple component type when the component does not need extension
+type Component' form m =
+  Component form () (Const Void) () Void m
 
 -- | The component's HTML type, the result of the render function.
-type ComponentHTML form query ps m = 
-  H.ComponentHTML (Action form query ps m) ps m
+type ComponentHTML form act ps m = 
+  H.ComponentHTML (Action form act) ps m
+
+-- | A simple component HTML type when the component does not need extension
+type ComponentHTML' form m =
+  ComponentHTML form Void () m
 
 -- | The component's eval type
-type HalogenM form st query ps msg m =
-  H.HalogenM (State form st m) (Action form query ps m) ps (Message form msg) m
+type HalogenM form st act ps msg m =
+  H.HalogenM (State form st m) (Action form act) ps msg m
+
+-- | A simple component eval type when the component does not need extension
+type HalogenM' form m =
+  HalogenM form () Void () Void m
 
 -- | The component local state
 type State form st m = 
   {| StateRow form (internal :: InternalState form m | st) }
 
--- | The component's public state
-type PublicState form = 
-  {| StateRow form () }
+-- | A simple state type when the component does not need extension
+type State' form m =
+  State form () m
 
 -- | The component's public state
-type StateRow form r =
+type PublicState form st = 
+  {| StateRow form st }
+
+-- | The component's public state, as an extensible row
+type StateRow form st =
   ( validity :: ValidStatus
   , dirty :: Boolean
   , submitting :: Boolean
   , errors :: Int
   , submitAttempts :: Int
   , form :: form Record FormField
-  | r
+  | st
   )
 
 -- | A newtype to make easier type errors for end users to
@@ -114,29 +174,20 @@ type Input form st m =
   | st
   }
 
--- | The component tries to require as few messages to be handled as possible. You
--- | can always use the *Reply variants of queries to perform actions and receive
--- | a result out the other end or extend these messages.
-data Message form msg
-  = Submitted (form Record OutputField)
-  | Changed (PublicState form)
-  | Raised msg
-
--- | A slot type that can be used in the ChildSlots definition for your parent
--- | component
-type Slot form query ps msg = H.Slot (Query form query ps) (Message form msg)
-
--- | A simple query type when the component does not need extension
-type Query' form = Query form (Const Void) ()
-
--- | A simple HTML type when the component does not need extension
-type HTML' form m = ComponentHTML form (Const Void) () m
-
--- | A simple Message type when the component does not need extension
-type Message' form = Message form Void
-
 -- | A simple Input type when the component does not need extension
 type Input' form m = Input form () m
 
+-- | The component tries to require as few messages to be handled as possible. You
+-- | can always use the *Reply variants of queries to perform actions and receive
+-- | a result out the other end, or extend these messages.
+data Message form st
+  = Submitted (form Record OutputField)
+  | Changed (PublicState form st)
+
+-- | A slot type that can be used in the ChildSlots definition for your parent
+-- | component
+type Slot form query ps msg = H.Slot (Query form query ps) msg
+
 -- | A simple Slot type when the component does not need extension
-type Slot' form = H.Slot (Query' form) (Message' form)
+type Slot' form = H.Slot (Query' form) Void
+

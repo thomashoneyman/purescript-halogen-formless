@@ -51,17 +51,15 @@ component =
     UI.section_
     [ UI.h1_ [ HH.text "Formless" ]
     , UI.h2_ [ HH.text "A complex form inspired by real-world use cases." ]
-    , UI.p_ $
-        "This component demonstrates building a large form with complex rendering and validation "
-        <> "requirements. Notice how both tabs end up unifying to a single output type after the "
-        <> "two forms are combined, how various dropdowns determine the contents (and visibility) "
-        <> "of other form elements, the assorted external components, and how validation for many "
-        <> "fields depends on the values of other fields in the form."
+    , UI.p_ 
+        """
+        This component demonstrates building a large form with complex rendering and validation requirements. Notice how both tabs end up unifying to a single output type after the two forms are combined, how various dropdowns determine the contents (and visibility) of other form elements, the assorted external components, and how validation for many fields depends on the values of other fields in the form.
+        """ 
     , HH.br_
-    , UI.p_ $
-        "Next, review the source code. You'll notice that all of the complex types and state necessary "
-        <> "to run this form can be generated from a pair of row types. All that's left for you to handle "
-        <> "is to write the validation (with helper functions) and the render function."
+    , UI.p_
+        """
+        Next, review the source code. You'll notice that all of the complex types and state necessary to run this form can be generated from a pair of row types. All that's left for you to handle is to write the validation (with helper functions) and the render function.
+        """
     , HH.br_
     , UI.grouped_
       [ UI.button
@@ -101,7 +99,6 @@ component =
       [ HH.slot' CP.cp2 unit F.component
           { initialInputs: defaultInputs
           , validators: optionsFormValidators
-          --  , submitter: pure <<< O.Options <<< F.unwrapOutputFields
           , render: OptionsForm.render
           } (HE.input OptionsForm)
       ]
