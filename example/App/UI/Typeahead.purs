@@ -16,12 +16,24 @@ import Halogen.HTML.Properties as HP
 import Select as Select
 import Select.Setters as Setters
 
+type Slot f item =
+  H.Slot (Select.Query (Query item) ()) (Message f item)
+
 data Query item a
   = GetAvailableItems (Array item -> a)
   | Clear a
 
+getAvailableItems :: forall item a. (Array item -> a) -> Select.Query (Query item) () a
+getAvailableItems = Select.Query <<< GetAvailableItems
+
+clear :: forall item. Select.Query (Query item) () Unit
+clear = Select.Query (Clear unit)
+
 data Action item
   = Remove item 
+
+remove :: forall item. item -> Select.Action (Action item)
+remove = Select.Action <<< Remove 
 
 type State f item =
   ( items :: Array item
@@ -72,7 +84,7 @@ single = spec' (\i av -> const (av !! i)) (const $ const Nothing) filter' render
             then class_ "dropdown is-active" 
             else class_ "dropdown is-flex" ]
         [ Dropdown.toggle 
-            [ HE.onClick \_ -> Just $ Select.Action $ Remove item ] 
+            [ HE.onClick \_ -> Just $ remove item ] 
             st
         , Dropdown.menu st
         ]
@@ -113,7 +125,7 @@ multi = spec' selectByIndex (filter <<< (/=)) difference render
         (st.selected <#> \i ->
           HH.div
             [ class_ "panel-block has-background-white"
-            , HE.onClick \_ -> Just $ Select.Action $ Remove i
+            , HE.onClick \_ -> Just $ remove i
             ]
             [ HH.text $ toText i ]
         )

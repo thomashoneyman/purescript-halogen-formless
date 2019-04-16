@@ -8,6 +8,7 @@ import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype)
+import Data.Symbol (SProxy(..))
 import Data.Tuple (Tuple)
 import Data.Variant (Variant)
 import Effect.Aff (Fiber, Milliseconds)
@@ -33,6 +34,10 @@ type Spec form st query act ps msg m =
   , initialize :: Maybe act
   , finalize :: Maybe act
   }
+
+-- | A simplified type when the component has only a form spec, some output, and runs
+-- | in some monad `m`
+type Spec' form msg m = Spec form () (Const Void) Void () msg m
 
 -- | The private component action type. While actions are typically considered
 -- | internal to a component, in Formless you write the render function and will
@@ -184,10 +189,21 @@ data Message form st
   = Submitted (form Record OutputField)
   | Changed (PublicState form st)
 
+type Message' form = Message form ()
+
 -- | A slot type that can be used in the ChildSlots definition for your parent
 -- | component
 type Slot form query ps msg = H.Slot (Query form query ps) msg
 
 -- | A simple Slot type when the component does not need extension
 type Slot' form = H.Slot (Query' form) Void
+
+-- | A convenience export of formless as a symbol for use when mounting Formless
+-- | as a child component
+-- |
+-- | ```purescript
+-- | type ChildSlots = (formless :: F.Slot' Form)
+-- | HH.slot F._formless unit (F.component spec) input handler
+-- | ```
+_formless = SProxy :: SProxy "formless"
 

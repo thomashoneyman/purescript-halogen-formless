@@ -170,7 +170,7 @@ formlessField
        -> F.ComponentHTML form act ps m
      )
   -> FieldConfig sym
-  -> F.State form st m
+  -> F.PublicState form st
   -> F.ComponentHTML form act ps m
 formlessField fieldType config state = fieldType (Builder.build config' config) props
   where

@@ -2,8 +2,7 @@ module Example.App.Home where
 
 import Prelude
 
-import Data.Const (Const(..))
-import Data.Maybe (Maybe(..))
+import Data.Const (Const)
 import Effect.Aff (Aff)
 import Example.App.UI.Element as UI
 import Halogen as H
