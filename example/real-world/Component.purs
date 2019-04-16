@@ -20,7 +20,6 @@ import Example.RealWorld.Spec.OptionsForm (optionsFormInputs, optionsFormValidat
 import Example.RealWorld.Types (ChildQuery, ChildSlot, GroupTASlot(..), Query(..), State, Tab(..))
 import Formless as F
 import Halogen as H
-import Halogen.Component.ChildPath as CP
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP

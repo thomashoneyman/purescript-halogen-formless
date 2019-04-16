@@ -12,7 +12,6 @@ import Example.RealWorld.Data.Group as G
 import Example.RealWorld.Types (GroupCQ, GroupCS, GroupTASlot(..), Query(..))
 import Formless as F
 import Halogen as H
-import Halogen.Component.ChildPath as CP
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties (value) as HP

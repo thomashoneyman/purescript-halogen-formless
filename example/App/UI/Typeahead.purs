@@ -2,42 +2,53 @@ module Example.App.UI.Typeahead where
 
 import Prelude
 
-import Data.Array (difference, filter, length, (:))
+import Data.Array (difference, filter, length, (:), (!!))
 import Data.Maybe (Maybe(..))
 import Data.String as String
 import Effect.Aff.Class (class MonadAff)
 import Example.App.UI.Dropdown as Dropdown
-import Example.App.UI.Element (css)
+import Example.App.UI.Element (class_)
 import Example.App.Validation (class ToText, toText)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Select as Select
-import Select.Utils.Setters as Setters
+import Select.Setters as Setters
 
 data Query item a
-  = HandleSelect (Select.Message (Query item) item) a
-  | GetItems (Array item -> a)
-  | Remove item a
+  = GetAvailableItems (Array item -> a)
   | Clear a
 
+data Action item
+  = Remove item 
+
 type State f item =
-  { items :: Array item
+  ( items :: Array item
+  , available :: Array item
   , selected :: f item
   , placeholder :: String
-  }
+  )
 
 type Input item =
   { items  :: Array item
   , placeholder :: String
   }
 
+input :: forall f item. Monoid (f item) => Input item -> Select.Input (State f item)
+input { items, placeholder } =
+  { inputType: Select.Text
+  , search: Nothing
+  , debounceTime: Nothing
+  , getItemCount: length <<< _.items
+  , selected: mempty
+  , available: []
+  , items
+  , placeholder
+  }
+
 data Message f item
   = SelectionsChanged (f item)
-
-type ChildSlot = Unit
-type ChildQuery item = Select.Query (Query item) item
 
 ----------
 -- Premade
@@ -48,137 +59,140 @@ single
   => ToText item
   => Eq item
   => Semigroup item
-  => H.Component HH.HTML (Query item) (Input item) (Message Maybe item) m
-single = component' (const <<< Just) (const $ const Nothing) filter' render
+  => Select.Spec (State Maybe item) (Query item) (Action item) () (Message Maybe item) m
+single = spec' (\i av -> const (av !! i)) (const $ const Nothing) filter' render
   where
   filter' items Nothing = items
   filter' items (Just item) = filter (_ == item) items
 
-  render st selectState = case st.selected of
+  render st = case st.selected of
     Just item ->
       HH.div
-      [ if selectState.visibility == Select.On then css "dropdown is-active" else css "dropdown is-flex" ]
-      [ Dropdown.toggle [ HE.onClick $ Select.always $ Select.raise $ H.action $ Remove item ] st
-      , Dropdown.menu selectState
-      ]
+        [ if st.visibility == Select.On 
+            then class_ "dropdown is-active" 
+            else class_ "dropdown is-flex" ]
+        [ Dropdown.toggle 
+            [ HE.onClick \_ -> Just $ Select.Action $ Remove item ] 
+            st
+        , Dropdown.menu st
+        ]
     Nothing ->
       HH.div
-      [ if selectState.visibility == Select.On then css "dropdown is-flex is-active" else css "dropdown is-flex" ]
-      [ HH.input
-        ( Setters.setInputProps
-          [ HP.placeholder st.placeholder
-          , HP.value selectState.search
-          , css "input"
-          ]
-        )
-      , Dropdown.menu selectState
-      ]
-
+        [ if st.visibility == Select.On 
+            then class_ "dropdown is-flex is-active" 
+            else class_ "dropdown is-flex" ]
+        [ HH.input
+          ( Setters.setInputProps
+              [ HP.placeholder st.placeholder
+              , HP.value st.search
+              , class_ "input"
+              ]
+          )
+        , Dropdown.menu st
+        ]
 
 multi
   :: ∀ item m
    . MonadAff m
   => ToText item
   => Eq item
-  => H.Component HH.HTML (Query item) (Input item) (Message Array item) m
-multi = component' ((:)) (filter <<< (/=)) difference render
+  => Select.Spec (State Array item) (Query item) (Action item) () (Message Array item) m
+multi = spec' selectByIndex (filter <<< (/=)) difference render
   where
-  render st selectState =
+  selectByIndex ix available selected = case available !! ix of
+    Nothing -> selected
+    Just item -> item : selected
+
+  render st =
     HH.div_
-    [ HH.div
-      [ if length st.selected > 0 then css "panel is-marginless" else css "panel is-hidden" ]
-      ( (\i ->
+      [ HH.div
+        [ if length st.selected > 0 
+            then class_ "panel is-marginless" 
+            else class_ "panel is-hidden" 
+        ]
+        (st.selected <#> \i ->
           HH.div
-          [ css "panel-block has-background-white"
-          , HE.onClick $ Select.always $ Select.raise $ H.action $ Remove i
-          ]
-          [ HH.text $ toText i ]
-        ) <$> st.selected
-      )
-    , HH.div
-      [ if selectState.visibility == Select.On then css "dropdown is-flex is-active" else css "dropdown is-flex" ]
-      [ HH.input
-        ( Setters.setInputProps [ css "input", HP.placeholder st.placeholder, HP.value selectState.search ] )
-      , Dropdown.menu selectState
+            [ class_ "panel-block has-background-white"
+            , HE.onClick \_ -> Just $ Select.Action $ Remove i
+            ]
+            [ HH.text $ toText i ]
+        )
+      , HH.div
+        [ if st.visibility == Select.On 
+            then class_ "dropdown is-flex is-active" 
+            else class_ "dropdown is-flex" 
+        ]
+        [ HH.input
+            (Setters.setInputProps 
+              [ class_ "input"
+              , HP.placeholder st.placeholder
+              , HP.value st.search 
+              ]
+            )
+        , Dropdown.menu st
+        ]
       ]
-    ]
 
 ----------
 -- Base component
 
-component'
+spec'
   :: ∀ item f m
    . MonadAff m
   => Functor f
   => Monoid (f item)
   => ToText item
   => Eq item
-  => (item -> f item -> f item)
+  => (Int -> Array item -> f item -> f item)
   -> (item -> f item -> f item)
   -> (Array item -> f item -> Array item)
-  -> (State f item -> Select.State item -> Select.ComponentHTML (Query item) item)
-  -> H.Component HH.HTML (Query item) (Input item) (Message f item) m
-component' select' remove' filter' render' =
-  H.parentComponent
-    { initialState
-    , render
-    , eval
-    , receiver: const Nothing
-    }
+  -> (Select.State (State f item) 
+       -> H.ComponentHTML (Select.Action (Action item)) () m
+     )
+  -> Select.Spec (State f item) (Query item) (Action item) () (Message f item) m
+spec' select' remove' filter' render' = Select.defaultSpec
+  { render = render' 
+  , handleMessage = handleMessage 
+  , handleQuery = handleQuery
+  , handleAction = handleAction
+  }
   where
-
-  initialState :: Input item -> State f item
-  initialState { items, placeholder } =
-    { items
-    , placeholder
-    , selected: mempty
-    }
-
-  render :: State f item -> H.ParentHTML (Query item) (ChildQuery item) ChildSlot m
-  render st =
-    HH.slot unit Select.component selectInput (HE.input HandleSelect)
-
-    where
-
-    selectInput =
-      { inputType: Select.TextInput
-      , items: st.items
-      , initialSearch: Nothing
-      , debounceTime: Nothing
-      , render: render' st
-      }
-
-  eval :: Query item ~> H.ParentDSL (State f item) (Query item) (ChildQuery item) ChildSlot (Message f item) m
-  eval = case _ of
-    Clear next -> do
-      st <- H.modify _ { selected = mempty :: f item }
-      _ <- H.query unit $ Select.replaceItems st.items
-      H.raise (SelectionsChanged st.selected)
-      pure next
-
-    Remove item next -> do
-      st <- H.modify \st -> st { selected = remove' item st.selected }
-      _ <- H.query unit $ Select.replaceItems $ filter' st.items st.selected
-      H.raise (SelectionsChanged st.selected)
-      pure next
-
-    GetItems f -> do
+  handleMessage = case _ of
+    Select.Searched string -> do
       st <- H.get
-      pure $ f st.items
+      let items = filter (String.contains (String.Pattern string) <<< toText) st.items
+      H.modify_ _ { available = filter' items st.selected }
 
-    HandleSelect message next -> case message of
-      Select.Emit q -> eval q $> next
-      Select.Searched string -> do
-        st <- H.get
-        let items = filter (String.contains (String.Pattern string) <<< toText) st.items
-        _ <- H.query unit $ Select.replaceItems $ filter' items st.selected
-        pure next
+    Select.Selected ix -> do
+      st <- H.get
+      let selected' = select' ix st.available st.selected
+      H.modify_ _ 
+        { selected = selected'
+        , available = filter' st.available selected'
+        , visibility = Select.Off
+        }
+      H.raise $ SelectionsChanged selected'
 
-      Select.Selected item -> do
-        st <- H.modify \st -> st { selected = select' item st.selected }
-        _ <- H.query unit $ Select.setVisibility Select.Off
-        _ <- H.query unit $ Select.replaceItems $ filter' st.items st.selected
-        H.raise (SelectionsChanged st.selected)
-        pure next
+    _ -> pure unit
 
-      _ -> pure next
+  handleQuery :: forall a. Query item a -> H.HalogenM _ _ _ _ _ (Maybe a)
+  handleQuery = case _ of
+    Clear a -> do
+      st <- H.modify \st -> st { selected = mempty :: f item, available = st.items }
+      H.raise (SelectionsChanged st.selected)
+      pure (Just a)
+
+    GetAvailableItems f -> do
+      st <- H.get
+      pure $ Just $ f st.available
+
+  handleAction = case _ of
+    Remove item -> do
+      st <- H.get
+      let selected' = remove' item st.selected
+      H.modify_ _
+        { selected = selected'
+        , available = filter' st.items selected' 
+        }
+      H.raise (SelectionsChanged selected')
+

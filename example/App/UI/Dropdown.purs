@@ -3,132 +3,126 @@ module Example.App.UI.Dropdown where
 import Prelude
 
 import DOM.HTML.Indexed (HTMLbutton)
-import Data.Array (difference, mapWithIndex)
+import Data.Array (difference, mapWithIndex, length, (!!))
 import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Traversable (for_)
 import Effect.Aff.Class (class MonadAff)
-import Example.App.UI.Element (css)
+import Example.App.UI.Element (class_)
 import Example.App.UI.Element as UI
 import Example.App.Validation (class ToText, toText)
 import Halogen as H
 import Halogen.HTML as HH
-import Halogen.HTML.Events as HE
 import Select as Select
-import Select.Utils.Setters as Setters
+import Select.Setters as Setters
 
-data Query item a
-  = HandleSelect (Select.Message (Query item) item) a
-  | Clear a
+type Slot item =
+  H.Slot (Select.Query Query ()) (Message item)
+
+data Query a 
+  = Clear a
 
 type State item =
-  { selected :: Maybe item
+  ( selected :: Maybe item
+  , available :: Array item
   , items :: Array item
   , placeholder :: String
-  }
+  )
 
 type Input item =
   { items :: Array item
   , placeholder :: String
   }
 
+input :: forall item. Input item -> Select.Input (State item)
+input { items, placeholder } =
+  { inputType: Select.Toggle
+  , search: Nothing
+  , debounceTime: Nothing
+  , getItemCount: length <<< _.items
+  , selected: Nothing
+  , available: []
+  , items
+  , placeholder
+  }
+
 data Message item
   = Selected item
   | Cleared
 
-type ChildSlot = Unit
-type ChildQuery item = Select.Query (Query item) item
-
-component
-  :: ∀ item m
-   . MonadAff m
+spec 
+  :: forall item m
+   . MonadAff m 
   => ToText item
   => Eq item
-  => H.Component HH.HTML (Query item) (Input item) (Message item) m
-component =
-  H.parentComponent
-    { initialState
-    , render
-    , eval
-    , receiver: const Nothing
-    }
+  => Select.Spec (State item) Query Void () (Message item) m
+spec = Select.defaultSpec
+  { render = render 
+  , handleQuery = handleQuery 
+  , handleMessage = handleMessage
+  }
   where
+  render st =
+    HH.div
+      [ if st.visibility == Select.On then class_ "dropdown is-active" else class_ "dropdown" ]
+      [ toggle [] st, menu st ]
 
-  initialState :: Input item -> State item
-  initialState { items, placeholder } =
-    { selected: Nothing
-    , items
-    , placeholder
-    }
+  handleQuery :: forall a. Query a -> H.HalogenM _ _ _ _ _ (Maybe a)
+  handleQuery = case _ of
+    Clear a -> do
+      H.modify_ \st -> st { selected = Nothing, available = st.items }
+      H.raise Cleared
+      pure (Just a)
 
-  render :: State item -> H.ParentHTML (Query item) (ChildQuery item) ChildSlot m
-  render parentState =
-    HH.slot unit Select.component selectInput (HE.input HandleSelect)
-    where
-      selectInput =
-        { inputType: Select.Toggle
-        , items: parentState.items
-        , initialSearch: Nothing
-        , debounceTime: Nothing
-        , render: dropdown
-        }
-
-      dropdown childState =
-        HH.div
-          [ if childState.visibility == Select.On then css "dropdown is-active" else css "dropdown" ]
-          [ toggle [] parentState
-          , menu childState
-          ]
-
-  eval :: Query item ~> H.ParentDSL (State item) (Query item) (ChildQuery item) ChildSlot (Message item) m
-  eval = case _ of
-    Clear next -> do
-      st <- H.modify _ { selected = Nothing }
-      _ <- H.query unit $ Select.replaceItems st.items
-      pure next
-
-    HandleSelect message next -> case message of
-      Select.Selected item -> do
-        st <- H.get
-        _ <- H.query unit $ Select.setVisibility Select.Off
-        _ <- H.query unit $ Select.replaceItems $ difference st.items [ item ]
-        H.modify_ _ { selected = Just item }
+  handleMessage = case _ of
+    Select.Selected ix -> do
+      st <- H.get
+      let mbItem = st.available !! ix
+      for_ mbItem \item -> do
+        H.modify_ _
+          { selected = Just item
+          , available = difference st.items [ item ]
+          , visibility = Select.Off 
+          }
         H.raise (Selected item)
-        pure next
-      _ -> pure next
+    _ -> pure unit
 
 toggle
-  :: ∀ item q r
+  :: forall item act ps m r
    . ToText item
-  => Array (HH.IProp HTMLbutton (Select.Query q item Unit))
+  => Array (HH.IProp HTMLbutton (Select.Action act))
   -> { placeholder :: String, selected :: Maybe item | r }
-  -> Select.ComponentHTML q item
-toggle props parentState =
+  -> H.ComponentHTML (Select.Action act) ps m
+toggle props st =
   HH.div
-  [ css "dropdown-trigger" ]
+  [ class_ "dropdown-trigger" ]
   [ UI.button
     ( Setters.setToggleProps props )
-    [ HH.text $ fromMaybe parentState.placeholder (toText <$> parentState.selected) ]
+    [ HH.text $ fromMaybe st.placeholder (toText <$> st.selected) ]
   ]
 
 menu
-  :: ∀ item q
+  :: forall item st act ps m
    . ToText item
-  => Select.State item
-  -> Select.ComponentHTML q item
-menu selectState =
+  => Select.State (available :: Array item | st)
+  -> H.ComponentHTML (Select.Action act) ps m
+menu st =
   HH.div
-  [ css "dropdown-menu" ]
-  [ if selectState.visibility == Select.Off then HH.text "" else
+  [ class_ "dropdown-menu" ]
+  [ if st.visibility == Select.Off then HH.text "" else
     HH.div
-    ( Setters.setContainerProps [ css "dropdown-content" ] )
-    ( mapWithIndex (\ix item ->
-        HH.span
-          ( Setters.setItemProps ix
-            $ case Just ix == selectState.highlightedIndex of
-                true -> [ css "dropdown-item has-background-link has-text-white-bis" ]
-                _ -> [ css "dropdown-item" ]
-          )
-          [ HH.text (toText item) ]
+      (Setters.setContainerProps [ class_ "dropdown-content" ])
+      (mapWithIndex 
+        (\ix item ->
+          HH.span
+            (Setters.setItemProps ix case Just ix == st.highlightedIndex of
+              true -> 
+                [ class_ "dropdown-item has-background-link has-text-white-bis" ]
+              _ -> 
+                [ class_ "dropdown-item" ]
+            )
+            [ HH.text (toText item) ]
         )
-      selectState.items
-    )
+        st.available
+      )
   ]
+
