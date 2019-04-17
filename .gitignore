@@ -13,3 +13,4 @@ dist/*
 !dist/cn-tailwind.min.css
 !dist/storybook.css
 *.lock
+*.swp
