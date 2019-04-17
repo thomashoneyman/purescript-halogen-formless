@@ -16,6 +16,7 @@ import Effect.Aff.AVar (AVar)
 import Effect.Ref (Ref)
 import Formless.Types.Form (FormField, InputField, InputFunction, OutputField, U)
 import Formless.Validation (Validation)
+import Type.Row (type (+))
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.Query.ChildQuery (ChildQueryBox)
@@ -39,18 +40,21 @@ type Spec form st query act ps msg m =
 -- | in some monad `m`
 type Spec' form msg m = Spec form () (Const Void) Void () msg m
 
--- | The private component action type. While actions are typically considered
+-- | The component action type. While actions are typically considered
 -- | internal to a component, in Formless you write the render function and will
 -- | need to be able to use these directly. Many of these are shared with queries
 -- | of the same name so they can be used either as queries or as actions. See
 -- | `Formless.Action` and `Formless.Query`.
 -- |
 -- | You can freely extend this type with your own actions using `injAction`.
-type Action form act = Variant
-  ( initialize :: Maybe act
-  , syncFormData :: Unit
-  , userAction :: act
-  , modify :: form Variant InputFunction
+type Action form act = Variant 
+  ( userAction :: act
+  | PublicAction form 
+  + InternalAction act 
+  )
+
+type PublicAction form r =
+  ( modify :: form Variant InputFunction
   , validate :: form Variant U
   , modifyValidate :: Tuple (Maybe Milliseconds) (form Variant InputFunction)
   , reset :: form Variant InputFunction
@@ -60,6 +64,12 @@ type Action form act = Variant
   , resetAll :: Unit
   , submit :: Unit
   , loadForm :: form Record InputField
+  | r
+  )
+
+type InternalAction act =
+  ( initialize :: Maybe act
+  , syncFormData :: Unit
   )
 
 -- | A simple action type when the component does not need extension
@@ -69,18 +79,11 @@ type Action' form = Action form Void
 -- | with actions of the same name so they can be used in rendering. See 
 -- | `Formless.Action` and `Formless.Query` for more.
 data QueryF form ps a
-  = Modify (form Variant InputFunction) a
-  | Validate (form Variant U) a
-  | ModifyValidate (Maybe Milliseconds) (form Variant InputFunction) a
-  | Reset (form Variant InputFunction) a
-  | SetAll (form Record InputField) Boolean a
-  | ModifyAll (form Record InputFunction) Boolean a
-  | ValidateAll a
-  | ResetAll a
-  | Submit a
-  | SubmitReply (Maybe (form Record OutputField) -> a)
-  | LoadForm (form Record InputField) a
+  = SubmitReply (Maybe (form Record OutputField) -> a)
+  -- Query a child component of Formless through Formless
   | SendQuery (ChildQueryBox ps (Maybe a))
+  -- Run a Formless action as a query
+  | AsQuery (Variant (PublicAction form ())) a
 
 derive instance functorQueryF :: Functor (QueryF form ps)
 

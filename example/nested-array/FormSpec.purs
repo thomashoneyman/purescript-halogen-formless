@@ -25,7 +25,7 @@ import Halogen.HTML.Properties as HP
 
 -- Form types
 
-type Event = Record (EventRow F.OutputType)
+type Event = { | EventRow F.OutputType }
 
 newtype EventForm r f = EventForm (r (EventRow f))
 derive instance newtypeEventForm :: Newtype (EventForm r f) _
@@ -91,8 +91,8 @@ eventFormSpec = F.defaultSpec
       st <- H.get
       res <- H.queryAll _memberForm $ H.request F.submitReply
       case map F.unwrapOutputFields $ catMaybes $ toUnfoldable $ M.values res of
-        [] -> eval F.submit_
-        members -> eval (F.set_ _members (Just members)) *> eval F.submit_
+        [] -> eval F.submit
+        members -> eval (F.set _members (Just members)) *> eval F.submit
 
     where
     eval act = F.handleAction handleAction handleMessage act
@@ -128,7 +128,7 @@ eventFormSpec = F.defaultSpec
           , placeholder: "My Event"
           }
           [ HP.value $ F.getInput _name st.form
-          , HE.onValueInput $ Just <<< F.setValidate_ _name
+          , HE.onValueInput $ Just <<< F.setValidate _name
           ]
       , UI.input
           { label: "Event Location"
@@ -137,7 +137,7 @@ eventFormSpec = F.defaultSpec
           , placeholder: "Los Angeles, CA"
           }
           [ HP.value $ F.getInput _location st.form
-          , HE.onValueInput $ Just <<< F.setValidate_ _location
+          , HE.onValueInput $ Just <<< F.setValidate _location
           ]
       , HH.div_
           (mkMemberForm <$> st.formIds)
@@ -158,7 +158,7 @@ eventFormSpec = F.defaultSpec
 
 -- Form types
 
-type MemberInfo = Record (MemberRow F.OutputType)
+type MemberInfo = { | MemberRow F.OutputType }
 
 newtype MemberForm r f = MemberForm (r (MemberRow f))
 derive instance newtypeMemberForm :: Newtype (MemberForm r f) _
@@ -194,15 +194,15 @@ memberFormInput =
   }
 
 memberFormSpec :: Int -> F.Spec MemberForm () (Const Void) MFAction () MFMessage Aff
-memberFormSpec index = F.defaultSpec 
-  { render = render index
+memberFormSpec ix = F.defaultSpec 
+  { render = render
   , handleAction = handleAction 
   }
   where
   handleAction = case _ of
     RemoveMe -> H.raise Destroy
 
-  render ix st =
+  render st =
    UI.formContent_
      [ HH.div
          [ class_ "field" ]
@@ -217,7 +217,7 @@ memberFormSpec index = F.defaultSpec
          , placeholder: "Dale Cooper"
          }
          [ HP.value $ F.getInput _name st.form
-         , HE.onValueInput $ Just <<< F.setValidate_ _name
+         , HE.onValueInput $ Just <<< F.setValidate _name
          ]
      , UI.input
          { label: "Member Email"
@@ -226,7 +226,7 @@ memberFormSpec index = F.defaultSpec
          , placeholder: "dalecooper@fbi.gov"
          }
          [ HP.value $ F.getInput _email st.form
-         , HE.onValueInput $ Just <<< F.setValidate_ _email
+         , HE.onValueInput $ Just <<< F.setValidate _email
          ]
      , UI.input
          { label: "Additional Notes"
@@ -234,7 +234,7 @@ memberFormSpec index = F.defaultSpec
          , placeholder: "Fond of Tibetan traditions"
          }
          [ HP.value $ F.getInput _notes st.form
-         , HE.onValueInput $ Just <<< F.set_ _notes
+         , HE.onValueInput $ Just <<< F.set _notes
          ]
     ]
     where

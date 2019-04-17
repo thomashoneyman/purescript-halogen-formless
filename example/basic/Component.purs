@@ -2,7 +2,7 @@ module Example.Basic.Component where
 
 import Prelude
 
-import Data.Const (Const(..))
+import Data.Const (Const)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
@@ -27,9 +27,9 @@ newtype ContactForm r f = ContactForm (r
   ))
 derive instance newtypeContactForm :: Newtype (ContactForm r f) _
 
+
 -- A page component, holding the form
 
--- We'll modify Formless to only raise our parsed output as its message on success
 data Action
   = HandleFormless Contact
 
@@ -60,7 +60,6 @@ component = H.mkComponent
 
   -----
   -- Formless
-  -----
 
   input = 
     { initialInputs: F.wrapInputFields { name: "", text: "" }
@@ -82,7 +81,7 @@ component = H.mkComponent
            , placeholder: "Dale"
            }
            [ HP.value $ F.getInput _name st.form
-           , HE.onValueInput (Just <<< F.setValidate_ _name)
+           , HE.onValueInput (Just <<< F.setValidate _name)
            ]
        , UI.textarea
            { label: "Message"
@@ -90,10 +89,10 @@ component = H.mkComponent
            , placeholder: "We prefer nice messages, but have at it."
            }
            [ HP.value $ F.getInput _text st.form
-           , HE.onValueInput (Just <<< F.set_ _text)
+           , HE.onValueInput (Just <<< F.set _text)
            ]
        , UI.buttonPrimary
-           [ HE.onClick \_ -> Just F.submit_ ]
+           [ HE.onClick \_ -> Just F.submit ]
            [ HH.text "Submit" ]
        ]
      where

@@ -10,7 +10,7 @@ import Data.Newtype (class Newtype, over, unwrap)
 import Data.Symbol (SProxy(..))
 import Data.Traversable (traverse_)
 import Data.Tuple (Tuple(..))
-import Data.Variant (Variant, match, inj)
+import Data.Variant (Variant, match, inj, expand)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Ref as Ref
 import Formless.Action as FA
@@ -237,7 +237,7 @@ handleAction handleAction' handleMessage = match
         { form = Internal.replaceFormFieldInputs formInputs st.form }
       handleMessage $ Changed $ getPublicState new
       case shouldValidate of
-        true -> handle FA.validateAll_
+        true -> handle FA.validateAll
         _ -> handleSyncFormData
 
   , modifyAll: \(Tuple formInputs shouldValidate) -> do
@@ -245,7 +245,7 @@ handleAction handleAction' handleMessage = match
         { form = Internal.modifyAll formInputs st.form }
       handleMessage $ Changed $ getPublicState new
       case shouldValidate of
-        true -> handle FA.validateAll_
+        true -> handle FA.validateAll
         _ -> handleSyncFormData
 
   , validateAll: \_ -> do
@@ -320,42 +320,15 @@ handleQuery
   -> HalogenM form st act ps msg m (Maybe a)
 handleQuery handleQuery' handleAction' handleMessage = VF.match
   { query: case _ of
-      Modify variant a -> Just a <$ 
-        handleA (inj (SProxy :: _ "modify") variant)
-
-      Validate variant a -> Just a <$
-        handleA (inj (SProxy :: _ "validate") variant)
-
-      ModifyValidate milliseconds variant a -> Just a <$
-        handleA (inj (SProxy :: _ "modifyValidate") (Tuple milliseconds variant))
-
-      Reset variant a -> Just a <$
-        handleA (inj (SProxy :: _ "reset") variant)
-
-      SetAll formInputs bool a -> Just a <$
-        handleA (inj (SProxy :: _ "setAll") (Tuple formInputs bool))
-
-      ModifyAll formInputs bool a -> Just a <$ 
-        handleA (inj (SProxy :: _ "modifyAll") (Tuple formInputs bool))
-
-      ValidateAll a -> Just a <$
-        handleA FA.validateAll_
-
-      ResetAll a -> Just a <$
-        handleA FA.resetAll_
-
-      LoadForm formInputs a -> Just a <$
-        handleA (FA.loadForm_ formInputs)
-
-      Submit a -> Just a <$
-        handleA FA.submit_
-
       SubmitReply reply -> do
         mbForm <- runSubmit handleA 
         pure $ Just $ reply mbForm
 
       SendQuery box -> 
         H.HalogenM $ liftF $ H.ChildQuery box
+
+      AsQuery act a -> Just a <$ 
+        handleA (expand act)
 
   , userQuery: \q ->
       handleQuery' q
@@ -373,7 +346,6 @@ getPublicState
   => State form st m 
   -> PublicState form st
 getPublicState = Builder.build (Builder.delete (SProxy :: SProxy "internal"))
-
 
 runSubmit 
   :: forall form st act ps msg m fs fxs os vs
@@ -404,7 +376,7 @@ runSubmit handle = do
       }
 
   -- Necessary to validate after fields are touched, but before parsing
-  _ <- handle FA.validateAll_
+  _ <- handle FA.validateAll
 
   -- For performance purposes, only attempt to submit if the form is valid
   validated <- H.get

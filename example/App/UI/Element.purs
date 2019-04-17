@@ -148,7 +148,9 @@ textarea config props =
   field
     { label: config.label, help: config.help }
     [ HH.textarea $
-        [ either (const $ class_ "textarea is-danger") (const $ class_ "textarea") config.help
+        [ config.help # either 
+            (const $ class_ "textarea is-danger") 
+            (const $ class_ "textarea")
         , HP.placeholder config.placeholder
         ] <> props
     ]
@@ -178,10 +180,11 @@ formlessField fieldType config state = fieldType (Builder.build config' config) 
       Builder.delete (SProxy :: SProxy "sym")
         >>> Builder.modify (SProxy :: SProxy "help") (const help')
 
-    help' = maybe (Right config.help) (Left <<< toText) (F.getError config.sym state.form)
+    help' = 
+      maybe (Right config.help) (Left <<< toText) (F.getError config.sym state.form)
 
     props =
       [ HP.value (F.getInput config.sym state.form)
-      , HE.onValueInput (Just <<< F.setValidate_ config.sym)
+      , HE.onValueInput (Just <<< F.setValidate config.sym)
       ]
 

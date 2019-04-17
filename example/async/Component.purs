@@ -34,6 +34,7 @@ type FormRow f =
   , balance :: f V.FieldError String Int
   )
 
+
 -- Page component
 
 -- We'll modify Formless' messages to only raise the successful parsed result
@@ -67,10 +68,9 @@ component = H.mkComponent
 
   -----
   -- Formless
-  -----
 
   input = 
-    { initialInputs: F.mkInputFields (F.FormProxy :: F.FormProxy Form) -- easily generate inputs 
+    { initialInputs: F.mkInputFields (F.FormProxy :: _ Form) -- easily generate inputs 
     , validators: Form
         { name: V.minLength 5
         , email: V.emailFormat >>> V.emailIsUsed
@@ -85,6 +85,8 @@ component = H.mkComponent
         _ -> pure unit
     }
     where
+    prx = F.mkSProxies (F.FormProxy :: _ Form)
+
     renderForm { form } =
       UI.formContent_
         [ UI.input
@@ -93,28 +95,30 @@ component = H.mkComponent
             , placeholder: "Frank Ocean"
             }
             [ HP.value $ F.getInput prx.name form
-            , HE.onValueInput (Just <<< F.setValidate_ prx.name)
+            , HE.onValueInput (Just <<< F.setValidate prx.name)
             ]
         , UI.input
             { label: "Email"
-            , help: UI.resultToHelp "Provide your email address" $ F.getResult prx.email form
+            , help: F.getResult prx.email form # UI.resultToHelp 
+                "Provide your email address"
             , placeholder: "john@hamm.com"
             }
             [ HP.value $ F.getInput prx.email form
-            , HE.onValueInput (Just <<< F.asyncSetValidate_ (Milliseconds 300.0) prx.email)
+            , HE.onValueInput $
+                Just <<< F.asyncSetValidate (Milliseconds 300.0) prx.email
             ]
         , UI.input
             { label: "Donation"
-            , help: UI.resultToHelp "How many dollas do you want to spend?" $ F.getResult prx.balance form
+            , help: F.getResult prx.balance form # UI.resultToHelp 
+                "How many dollas do you want to spend?"
             , placeholder: "1000"
             }
             [ HP.value $ F.getInput prx.balance form
-            , HE.onValueInput (Just <<< F.asyncSetValidate_ (Milliseconds 500.0) prx.balance)
+            , HE.onValueInput $ 
+                Just <<< F.asyncSetValidate (Milliseconds 500.0) prx.balance
             ]
         , UI.buttonPrimary
-            [ HE.onClick \_ -> Just F.submit_ ]
+            [ HE.onClick \_ -> Just F.submit ]
             [ HH.text "Submit" ]
         ]
-
-    prx = F.mkSProxies (F.FormProxy :: F.FormProxy Form)
 

@@ -21,8 +21,8 @@ import Select as Select
 
 -- Form spec
 
--- { name :: String, email :: V.Email, ... }
-type User = Record (UserFormRow F.OutputType)
+-- equivalent to { name :: String, email :: V.Email, ... }
+type User = { | UserFormRow F.OutputType }
 
 newtype UserForm r f = UserForm (r (UserFormRow f))
 derive instance newtypeUserForm' :: Newtype (UserForm r f) _
@@ -87,23 +87,25 @@ spec = F.defaultSpec
   handleAction = case _ of
     HandleTypeahead slot (TA.SelectionsChanged new) -> case slot of
       Email ->
-        handleAction' $ F.setValidate_ prx.email new
+        handleAction' $ F.setValidate prx.email new
 
       Whiskey -> do
-        handleAction' $ F.setValidate_ prx.whiskey new
-        handleAction' $ F.reset_ prx.email
+        handleAction' $ F.setValidate prx.whiskey new
+        handleAction' $ F.reset prx.email
         void $ H.query _typeahead Email TA.clear
 
       Language -> do
-        handleAction' $ F.setValidate_ prx.language new
+        handleAction' $ F.setValidate prx.language new
 
     Reset -> do
       items <- H.query _typeahead Email $ H.request TA.getAvailableItems
       logShow $ fromMaybe [] items
       _ <- H.queryAll _typeahead TA.clear
-      handleAction' F.resetAll_
+      handleAction' F.resetAll
 
     where
+    -- you will usually want to define this pre-applied function if you
+    -- are recursively evaluating Formless actions.
     handleAction' act = F.handleAction handleAction handleMessage act
 
   render :: F.PublicState UserForm () -> F.ComponentHTML UserForm Action ChildSlots m
@@ -122,7 +124,7 @@ spec = F.defaultSpec
           [ UI.buttonPrimary
               [ if st.submitting || st.validity /= F.Valid
                   then HP.disabled true
-                  else HE.onClick \_ -> Just F.submit_
+                  else HE.onClick \_ -> Just F.submit
               ]
               [ HH.text "Submit" ]
           , UI.button
@@ -204,3 +206,4 @@ spec = F.defaultSpec
       HH.slot _typeahead slot (Select.component TA.single) (TA.input input) handler
       where
       handler = Just <<< F.injAction <<< HandleTypeahead slot
+
