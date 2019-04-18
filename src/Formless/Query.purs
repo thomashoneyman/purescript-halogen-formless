@@ -11,7 +11,7 @@ import Data.Functor.Variant as VF
 import Data.Maybe (Maybe(..), maybe)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Data.Variant (Variant)
-import Formless.Types.Component (Message, QueryF(..), Query, PublicAction)
+import Formless.Types.Component (QueryF(..), Query, PublicAction)
 import Formless.Types.Form (OutputField)
 import Halogen as H
 import Halogen.Data.Slot as Slot
@@ -26,11 +26,12 @@ import Prim.Row as Row
 -- | derive instance functorMyQuery :: Functor MyQuery
 -- | ```
 injQuery :: forall form q ps a. Functor q => q a -> Query form q ps a
-injQuery = VF.inj (SProxy :: _ "userQuery")
+injQuery = VF.inj (SProxy :: SProxy "userQuery")
 
--- | Convert a Formless action to an action-style query 
-asQuery :: forall form q ps. Variant (PublicAction form ()) -> Query form q ps Unit
-asQuery = VF.inj (SProxy :: _ "query") <<< H.tell <<< AsQuery
+-- | Convert a Formless public action to an action-style query. Any action from
+-- | Formless.Action will work, but no others.
+asQuery :: forall form q ps. Variant (PublicAction form) -> Query form q ps Unit
+asQuery = VF.inj (SProxy :: SProxy "query") <<< H.tell <<< AsQuery
 
 -- | Submit the form, returning the output of validation if successful
 -- | and `Nothing` otherwise.
@@ -38,7 +39,7 @@ submitReply
   :: forall form query ps a
    . (Maybe (form Record OutputField) -> a)
   -> Query form query ps a
-submitReply = VF.inj (SProxy :: _ "query") <<< SubmitReply
+submitReply = VF.inj (SProxy :: SProxy "query") <<< SubmitReply
 
 -- | When you have specified a child component within Formless and need to query it,
 -- | you can do so in two ways. 
@@ -65,17 +66,17 @@ submitReply = VF.inj (SProxy :: _ "query") <<< SubmitReply
 -- |     result <- F.sendQuery _formless unit _dropdown 10 dropdownQuery
 -- | ```
 sendQuery
-  :: forall outS outL inS inL form msg q ps cq cm pps r0 r1 st act pmsg m a
-   . IsSymbol outS
-  => IsSymbol inS
-  => Row.Cons outS (Slot.Slot (Query form q ps) (Message form msg) outL) r0 pps
-  => Row.Cons inS (Slot.Slot cq cm inL) r1 ps
-  => Ord outL
-  => Ord inL
-  => SProxy outS
-  -> outL 
-  -> SProxy inS 
-  -> inL
+  :: forall outS outL inS inL form msg q ps cq cm pps r0 r1 st pmsg act m a
+   . IsSymbol outL
+  => IsSymbol inL
+  => Row.Cons outL (Slot.Slot (Query form q ps) msg outS) r0 pps
+  => Row.Cons inL (Slot.Slot cq cm inS) r1 ps
+  => Ord outS
+  => Ord inS
+  => SProxy outL
+  -> outS
+  -> SProxy inL
+  -> inS
   -> cq a
   -> H.HalogenM st act pps pmsg m (Maybe a)
 sendQuery ol os il is cq =

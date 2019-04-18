@@ -10,6 +10,7 @@ import Data.Symbol (SProxy(..))
 import Data.Traversable (traverse)
 import Effect.Aff (Aff)
 import Effect.Console as Console
+import Example.App.UI.Dropdown as DD
 import Example.App.UI.Element (class_)
 import Example.App.UI.Element as UI
 import Example.RealWorld.GroupForm as GF
@@ -90,18 +91,14 @@ component = H.mkComponent
       H.modify_ _ { focus = tab }
 
     Reset -> do
-      -- TODO: Obscure errors here
-      {-
-
-      -- we'll clear the group form using a new query
-      _ <- H.query _groupForm unit (F.injQuery $ H.tell GF.ClearComponents)
+      -- we'll clear the group form using the query we used to extend it
       _ <- H.query _groupForm unit (F.asQuery F.resetAll)
+      _ <- H.query _groupForm unit (F.injQuery $ H.tell GF.ClearComponents)
 
       -- but we'll manually clear the options form dropdown through Formless
       _ <- F.sendQuery _optionsForm unit DD._dropdown unit DD.clear
       _ <- H.query _optionsForm unit $ F.asQuery F.resetAll
 
-      -}
       pure unit
 
     -- On submit, we need to make sure both forms are run. We can use the 

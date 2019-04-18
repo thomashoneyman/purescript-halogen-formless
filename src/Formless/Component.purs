@@ -17,7 +17,7 @@ import Formless.Action as FA
 import Formless.Data.FormFieldResult (FormFieldResult(..))
 import Formless.Internal.Transform as Internal
 import Formless.Internal.Debounce (debounceForm)
-import Formless.Types.Component (Action, Component, HalogenM, Input, InternalState(..), Message(..), PublicState, QueryF(..), Query, Spec, State, ValidStatus(..))
+import Formless.Types.Component (Action, Component, HalogenM, Input, InternalState(..), Message(..), PublicAction, PublicState, QueryF(..), Query, Spec, State, ValidStatus(..))
 import Formless.Types.Form (FormField, InputField, InputFunction, OutputField, U)
 import Formless.Validation (Validation)
 import Halogen as H
@@ -28,7 +28,11 @@ import Record.Builder as Builder
 import Unsafe.Coerce (unsafeCoerce)
 
 -- | The default spec, which can be overridden by whatever functions you need 
--- | to extend the component.
+-- | to extend the component. For example:
+-- |
+-- | ```purescript
+-- | mySpec = F.defaultSpec { render = myRender }
+-- | ```
 defaultSpec :: forall form st query act ps msg m. Spec form st query act ps msg m
 defaultSpec = 
   { render: const (HH.text mempty)
@@ -57,11 +61,11 @@ component
   => Internal.ModifyAll ifs fxs fs fs
   => Internal.ValidateAll vs fxs fs fs m
   => Internal.FormFieldToMaybeOutput fxs fs os
-  => Newtype (form Record InputField) {| is }
-  => Newtype (form Record InputFunction) {| ifs }
-  => Newtype (form Record FormField) {| fs }
-  => Newtype (form Record OutputField) {| os }
-  => Newtype (form Record (Validation form m)) {| vs }
+  => Newtype (form Record InputField) { | is }
+  => Newtype (form Record InputFunction) { | ifs }
+  => Newtype (form Record FormField) { | fs }
+  => Newtype (form Record OutputField) { | os }
+  => Newtype (form Record (Validation form m)) { | vs }
   => Newtype (form Variant InputField) (Variant ivs)
   => Newtype (form Variant InputFunction) (Variant ivfs)
   => Newtype (form Variant U) (Variant us)
@@ -127,11 +131,11 @@ handleAction
   => Internal.ModifyAll ifs fxs fs fs
   => Internal.ValidateAll vs fxs fs fs m
   => Internal.FormFieldToMaybeOutput fxs fs os
-  => Newtype (form Record InputField) {| is }
-  => Newtype (form Record InputFunction) {| ifs }
-  => Newtype (form Record FormField) {| fs }
-  => Newtype (form Record OutputField) {| os }
-  => Newtype (form Record (Validation form m)) {| vs }
+  => Newtype (form Record InputField) { | is }
+  => Newtype (form Record InputFunction) { | ifs }
+  => Newtype (form Record FormField) { | fs }
+  => Newtype (form Record OutputField) { | os }
+  => Newtype (form Record (Validation form m)) { | vs }
   => Newtype (form Variant InputField) (Variant ivs)
   => Newtype (form Variant InputFunction) (Variant ivfs)
   => Newtype (form Variant U) (Variant us)
@@ -304,11 +308,11 @@ handleQuery
   => Internal.ModifyAll ifs fxs fs fs
   => Internal.ValidateAll vs fxs fs fs m
   => Internal.FormFieldToMaybeOutput fxs fs os
-  => Newtype (form Record InputField) {| is }
-  => Newtype (form Record InputFunction) {| ifs }
-  => Newtype (form Record FormField) {| fs }
-  => Newtype (form Record OutputField) {| os }
-  => Newtype (form Record (Validation form m)) {| vs }
+  => Newtype (form Record InputField) { | is }
+  => Newtype (form Record InputFunction) { | ifs }
+  => Newtype (form Record FormField) { | fs }
+  => Newtype (form Record OutputField) { | os }
+  => Newtype (form Record (Validation form m)) { | vs }
   => Newtype (form Variant InputField) (Variant ivs)
   => Newtype (form Variant InputFunction) (Variant ivfs)
   => Newtype (form Variant U) (Variant us)
@@ -327,11 +331,10 @@ handleQuery handleQuery' handleAction' handleMessage = VF.match
       SendQuery box -> 
         H.HalogenM $ liftF $ H.ChildQuery box
 
-      AsQuery act a -> Just a <$ 
-        handleA (expand act)
+      AsQuery (act :: Variant (PublicAction form)) a -> Just a <$ 
+        handleA ((expand act) :: Action form act)
 
-  , userQuery: \q ->
-      handleQuery' q
+  , userQuery: \q -> handleQuery' q
   }
   where
   handleA act = handleAction handleAction' handleMessage act
@@ -356,9 +359,9 @@ runSubmit
   => Internal.ValidateAll vs fxs fs fs m
   => Internal.FormFieldToMaybeOutput fxs fs os
   => Internal.ValidateAll vs fxs fs fs m
-  => Newtype (form Record FormField) {| fs }
-  => Newtype (form Record OutputField) {| os }
-  => Newtype (form Record (Validation form m)) {| vs }
+  => Newtype (form Record FormField) { | fs }
+  => Newtype (form Record OutputField) { | os }
+  => Newtype (form Record (Validation form m)) { | vs }
   => (Action form act -> HalogenM form st act ps msg m Unit)
   -> HalogenM form st act ps msg m (Maybe (form Record OutputField))
 runSubmit handle = do

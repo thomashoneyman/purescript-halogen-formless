@@ -47,13 +47,13 @@ type Spec' form msg m = Spec form () (Const Void) Void () msg m
 -- | `Formless.Action` and `Formless.Query`.
 -- |
 -- | You can freely extend this type with your own actions using `injAction`.
-type Action form act = Variant 
+type Action form act = Variant
   ( userAction :: act
-  | PublicAction form 
-  + InternalAction act 
+  | InternalAction act 
+  + PublicAction form 
   )
 
-type PublicAction form r =
+type PublicAction form =
   ( modify :: form Variant InputFunction
   , validate :: form Variant U
   , modifyValidate :: Tuple (Maybe Milliseconds) (form Variant InputFunction)
@@ -64,12 +64,12 @@ type PublicAction form r =
   , resetAll :: Unit
   , submit :: Unit
   , loadForm :: form Record InputField
-  | r
   )
 
-type InternalAction act =
+type InternalAction act r =
   ( initialize :: Maybe act
   , syncFormData :: Unit
+  | r
   )
 
 -- | A simple action type when the component does not need extension
@@ -83,7 +83,7 @@ data QueryF form ps a
   -- Query a child component of Formless through Formless
   | SendQuery (ChildQueryBox ps (Maybe a))
   -- Run a Formless action as a query
-  | AsQuery (Variant (PublicAction form ())) a
+  | AsQuery (Variant (PublicAction form)) a
 
 derive instance functorQueryF :: Functor (QueryF form ps)
 

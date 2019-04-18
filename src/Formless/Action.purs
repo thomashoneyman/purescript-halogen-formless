@@ -23,66 +23,85 @@ import Prim.Row as Row
 injAction :: forall form act. act -> Action form act
 injAction = inj (SProxy :: _ "userAction")
 
--- | Set the input value of a form field at the specified label
+-- | Set the input value of a form field at the specified label.
+-- |
+-- | ```purescript
+-- | [ HE.onValueInput $ Just <<< F.set _name ]
+-- | ```
 set
-  :: forall form act sym inputs r e i o
+  :: forall form v sym inputs r e i o
    . IsSymbol sym
   => Newtype (form Variant InputFunction) (Variant inputs)
   => Row.Cons sym (InputFunction e i o) r inputs
   => SProxy sym
   -> i
-  -> Action form act
+  -> Variant (modify :: form Variant InputFunction | v)
 set sym i = 
   inj (SProxy :: _ "modify") (wrap (inj sym (wrap (const i))))
 
 -- | Modify the input value of a form field at the specified label with the
 -- | provided function.
+-- |
+-- | ```purescript
+-- | [ HE.onChange \_ -> Just $ F.modify _enabled not ]
+-- | ```
 modify
-  :: forall form act sym inputs r e i o
+  :: forall form v sym inputs r e i o
    . IsSymbol sym
   => Newtype (form Variant InputFunction) (Variant inputs)
   => Row.Cons sym (InputFunction e i o) r inputs
   => SProxy sym
   -> (i -> i)
-  -> Action form act
+  -> Variant (modify :: form Variant InputFunction | v)
 modify sym f = 
   inj (SProxy :: _ "modify") (wrap (inj sym (wrap f)))
 
--- | A helper to create the correct `Validate` query for Formless, given
--- | a label
+-- | Trigger validation on a form field
+-- |
+-- | ```purescript
+-- | [ HE.onBlur \_ -> Just $ F.validate _name ]
+-- | ```
 validate
-  :: forall form act sym us r e i o
+  :: forall form v sym us r e i o
    . IsSymbol sym
   => Newtype (form Variant U) (Variant us)
   => Row.Cons sym (U e i o) r us
   => SProxy sym
-  -> Action form act
+  -> Variant (validate :: form Variant U | v)
 validate sym = 
   inj (SProxy :: _ "validate") (wrap (inj sym U))
 
 -- | Set the input value of a form field at the specified label, also triggering
 -- | validation to run on the field.
+-- |
+-- | ```purescript
+-- | [ HE.onValueInput $ Just <<< F.setValidate _name ]
+-- | ```
 setValidate
-  :: forall form act sym inputs r e i o
+  :: forall form v sym inputs r e i o
    . IsSymbol sym
   => Newtype (form Variant InputFunction) (Variant inputs)
   => Row.Cons sym (InputFunction e i o) r inputs
   => SProxy sym
   -> i
-  -> Action form act
+  -> Variant (modifyValidate :: Tuple (Maybe Milliseconds) (form Variant InputFunction) | v)
 setValidate sym i = 
   inj (SProxy :: _ "modifyValidate") (Tuple Nothing (wrap (inj sym (wrap (const i)))))
 
 -- | Modify the input value of a form field at the specified label, also triggering
 -- | validation to run on the field, with the provided function.
+-- |
+-- | ```purescript
+-- | [ HE.onChange \_ -> Just $ F.modifyValidate _enabled not ]
+-- | ```
 modifyValidate
-  :: forall form act sym inputs r e i o
+  :: forall form v sym inputs r e i o
    . IsSymbol sym
   => Newtype (form Variant InputFunction) (Variant inputs)
   => Row.Cons sym (InputFunction e i o) r inputs
   => SProxy sym
   -> (i -> i)
-  -> Action form act
+  -> Variant (modifyValidate :: Tuple (Maybe Milliseconds) (form Variant InputFunction) | v)
 modifyValidate sym f = 
   inj (SProxy :: _ "modifyValidate") (Tuple Nothing (wrap (inj sym (wrap f))))
 
@@ -90,15 +109,19 @@ modifyValidate sym f =
 -- | validation so that it only runs after the specified amount of time has elapsed
 -- | since the last modification. Useful when you need to avoid expensive validation
 -- | but do not want to wait for a blur event to validate.
+-- |
+-- | ```purescript
+-- | [ HE.onValueInput $ Just <<< F.asncSetValidate (Milliseconds 300.0) _name ]
+-- | ```
 asyncSetValidate
-  :: forall form act sym inputs r e i o
+  :: forall form v sym inputs r e i o
    . IsSymbol sym
   => Newtype (form Variant InputFunction) (Variant inputs)
   => Row.Cons sym (InputFunction e i o) r inputs
   => Milliseconds
   -> SProxy sym
   -> i
-  -> Action form act
+  -> Variant (modifyValidate :: Tuple (Maybe Milliseconds) (form Variant InputFunction) | v)
 asyncSetValidate ms sym i = 
   inj (SProxy :: _ "modifyValidate") (Tuple (Just ms) (wrap (inj sym (wrap (const i)))))
 
@@ -106,28 +129,36 @@ asyncSetValidate ms sym i =
 -- | validation so that it only runs after the specified amount of time has elapsed
 -- | since the last modification. Useful when you need to avoid expensive validation
 -- | but do not want to wait for a blur event to validate.
+-- |
+-- | ```purescript
+-- | [ HE.onChange \_ -> Just $ F.asncModifyValidate (Milliseconds 300.0) _enabled not ]
+-- | ```
 asyncModifyValidate
-  :: forall form act sym inputs r e i o
+  :: forall form v sym inputs r e i o
    . IsSymbol sym
   => Newtype (form Variant InputFunction) (Variant inputs)
   => Row.Cons sym (InputFunction e i o) r inputs
   => Milliseconds
   -> SProxy sym
   -> (i -> i)
-  -> Action form act
+  -> Variant (modifyValidate :: Tuple (Maybe Milliseconds) (form Variant InputFunction) | v)
 asyncModifyValidate ms s f = 
   inj (SProxy :: _ "modifyValidate") (Tuple (Just ms) (wrap (inj s (wrap f))))
 
 -- | Reset the value of the specified form field to its default value
 -- | according to the `Initial` type class.
+-- |
+-- | ```purescript
+-- | [ HE.onClick \_ -> Just $ F.reset _name ]
+-- | ```
 reset
-  :: forall form act sym inputs r e i o
+  :: forall form v sym inputs r e i o
    . IsSymbol sym
   => Initial i
   => Newtype (form Variant InputFunction) (Variant inputs)
   => Row.Cons sym (InputFunction e i o) r inputs
   => SProxy sym
-  -> Action form act
+  -> Variant (reset :: form Variant InputFunction | v)
 reset sym = 
   inj (SProxy :: _ "reset") (wrap (inj sym (wrap (const initial))))
 
@@ -135,29 +166,49 @@ reset sym =
 -- | inputs. Unlike `loadForm`, this does not otherwise reset
 -- | the form as if it were new. Similar to calling `set` on every
 -- | field in the form. Does not run validation.
+-- |
+-- | ```purescript
+-- | [ HE.onClick \_ -> Just $ F.setAll
+-- |     { name: "Default Name"
+-- |     , enabled: false 
+-- |     } 
+-- | ]
+-- | ```
 setAll
-  :: forall form act is is'
-   . Newtype (form Record InputField) {| is' }
-  => HM.HMap WrapField {| is } {| is' }
-  => {| is } 
-  -> Action form act
+  :: forall form v is is'
+   . Newtype (form Record InputField) { | is' }
+  => HM.HMap WrapField { | is } { | is' }
+  => { | is } 
+  -> Variant (setAll :: Tuple (form Record InputField) Boolean | v)
 setAll is = 
   inj (SProxy :: _ "setAll") (Tuple (wrapInputFields is) false)
 
 -- | Provide a record of input functions to modify all current
 -- | inputs. Similar to calling `modify` on every field in the form.
 -- | Does not run validation.
+-- |
+-- | ```purescript
+-- | [ HE.onClick \_ -> Just $ F.modifyAll
+-- |     { name: \str -> "User: " <> str
+-- |     , enabled: \bool -> not bool 
+-- |     } 
+-- | ]
+-- | ```
 modifyAll
-  :: forall form act ifs' ifs
-   . Newtype (form Record InputFunction) {| ifs' }
-  => HM.HMap WrapField {| ifs } {| ifs' }
-  => {| ifs }
-  -> Action form act
+  :: forall form v ifs' ifs
+   . Newtype (form Record InputFunction) { | ifs' }
+  => HM.HMap WrapField { | ifs } { | ifs' }
+  => { | ifs }
+  -> Variant (modifyAll :: Tuple (form Record InputFunction) Boolean | v)
 modifyAll fs = 
   inj (SProxy :: _ "modifyAll") (Tuple (wrapInputFunctions fs) false)
 
 -- | Validate all fields in the form, collecting errors
-validateAll :: forall form act. Action form act
+-- |
+-- | ```purescript
+-- | [ HE.onClick \_ -> Just F.validateAll ]
+-- | ```
+validateAll :: forall v. Variant (validateAll :: Unit | v)
 validateAll = 
   inj (SProxy :: _ "validateAll") unit
 
@@ -165,42 +216,77 @@ validateAll =
 -- | resetting the form (as `loadForm` does), and then validate the
 -- | entire new set of fields. Similar to calling `setValidate` on every
 -- | field in the form.
+-- |
+-- | ```purescript
+-- | [ HE.onClick \_ -> Just $ F.setValidateAll
+-- |     { name: "Default Name"
+-- |     , enabled: false 
+-- |     } 
+-- | ]
+-- | ```
 setValidateAll
-  :: forall form act is' is
-   . Newtype (form Record InputField) {| is' }
-  => HM.HMap WrapField {| is } {| is' }
-  => {| is }
-  -> Action form act
+  :: forall form v is' is
+   . Newtype (form Record InputField) { | is' }
+  => HM.HMap WrapField { | is } { | is' }
+  => { | is }
+  -> Variant (setAll :: Tuple (form Record InputField) Boolean | v)
 setValidateAll is = 
   inj (SProxy :: _ "setAll") (Tuple (wrapInputFields is) true)
 
 -- | Provide a record of input functions to modify all current
 -- | inputs, and then validate all fields.  Similar to calling
 -- | `modifyValidate` on every field in the form.
+-- |
+-- | ```purescript
+-- | [ HE.onClick \_ -> Just $ F.modifyValidateAll
+-- |     { name: \str -> "User: " <> str
+-- |     , enabled: \bool -> not bool 
+-- |     } 
+-- | ]
+-- | ```
 modifyValidateAll
-  :: forall form act ifs' ifs
-   . Newtype (form Record InputFunction) {| ifs' }
-  => HM.HMap WrapField {| ifs } {| ifs' }
-  => {| ifs }
-  -> Action form act
+  :: forall form v ifs' ifs
+   . Newtype (form Record InputFunction) { | ifs' }
+  => HM.HMap WrapField { | ifs } { | ifs' }
+  => { | ifs }
+  -> Variant (modifyAll :: Tuple (form Record InputFunction) Boolean | v)
 modifyValidateAll ifs = 
   inj (SProxy :: _ "modifyAll") (Tuple (wrapInputFunctions ifs) true)
 
 -- | Reset all fields to their initial values, and reset the form
 -- | to its initial pristine state, no touched fields.
-resetAll :: forall form act. Action form act
+-- |
+-- | ```purescript
+-- | [ HE.onClick \_ -> Just F.resetAll ]
+-- | ```
+resetAll :: forall v. Variant (resetAll :: Unit | v)
 resetAll = 
   inj (SProxy :: _ "resetAll") unit
 
 -- | Submit the form, which will trigger a `Submitted` result if the
 -- | form validates successfully.
-submit :: forall form act. Action form act
+-- |
+-- | ```purescript
+-- | [ HE.onClick \_ -> Just F.submit ]
+-- | ```
+submit :: forall v. Variant (submit :: Unit | v)
 submit = 
   inj (SProxy :: _ "submit") unit
 
 -- | Load a form from a set of existing inputs. Useful for when you need to mount
 -- | Formless, perform some other actions like request data from the server, and 
 -- | then load an existing set of inputs. 
-loadForm :: forall form act. form Record InputField -> Action form act
+-- |
+-- | ```purescript
+-- | [ HE.onClick \_ -> Just $ F.loadForm $ F.wrapInputFields 
+-- |     { name: ""
+-- |     , enabled: false
+-- |     }
+-- | ]
+-- | ```
+loadForm 
+  :: forall form v
+   . form Record InputField 
+  -> Variant (loadForm :: form Record InputField | v)
 loadForm = inj (SProxy :: _ "loadForm")
 
