@@ -55,9 +55,6 @@ data Typeahead
 derive instance eqTypeahead :: Eq Typeahead
 derive instance ordTypeahead :: Ord Typeahead
 
-_typeahead = SProxy :: SProxy "typeahead"
-
-
 -- Component spec 
 
 defaultInput :: forall m. MonadAff m => F.Input' UserForm m
@@ -92,15 +89,15 @@ spec = F.defaultSpec
       Whiskey -> do
         handleAction' $ F.setValidate prx.whiskey new
         handleAction' $ F.reset prx.email
-        void $ H.query _typeahead Email TA.clear
+        void $ H.query TA._typeahead Email TA.clear
 
       Language -> do
         handleAction' $ F.setValidate prx.language new
 
     Reset -> do
-      items <- H.query _typeahead Email $ H.request TA.getAvailableItems
+      items <- H.query TA._typeahead Email $ H.request TA.getAvailableItems
       logShow $ fromMaybe [] items
-      _ <- H.queryAll _typeahead TA.clear
+      _ <- H.queryAll TA._typeahead TA.clear
       handleAction' F.resetAll
 
     where
@@ -203,7 +200,7 @@ spec = F.defaultSpec
       ]
 
     singleTypeahead slot input = 
-      HH.slot _typeahead slot (Select.component TA.single) (TA.input input) handler
+      HH.slot TA._typeahead slot (Select.component TA.single) (TA.input input) handler
       where
       handler = Just <<< F.injAction <<< HandleTypeahead slot
 

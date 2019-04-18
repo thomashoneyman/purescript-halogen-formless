@@ -2,38 +2,65 @@ module Example.RealWorld.Component where
 
 import Prelude
 
+import Data.Const (Const)
 import Data.Maybe (Maybe(..))
+import Data.Monoid (guard)
 import Data.Newtype (over, unwrap)
+import Data.Symbol (SProxy(..))
 import Data.Traversable (traverse)
 import Effect.Aff (Aff)
 import Effect.Console as Console
-import Example.App.UI.Dropdown as DD
-import Example.App.UI.Element (css)
+import Example.App.UI.Element (class_)
 import Example.App.UI.Element as UI
-import Example.App.UI.Typeahead as TA
-import Example.RealWorld.Data.Group as G
-import Example.RealWorld.Data.Options as O
-import Example.RealWorld.Render.GroupForm as GroupForm
-import Example.RealWorld.Render.OptionsForm as OptionsForm
-import Example.RealWorld.Spec.GroupForm (groupInputs, groupValidators, groupFormSubmit)
-import Example.RealWorld.Spec.OptionsForm (optionsFormInputs, optionsFormValidators, defaultInputs)
-import Example.RealWorld.Types (ChildQuery, ChildSlot, GroupTASlot(..), Query(..), State, Tab(..))
+import Example.RealWorld.GroupForm as GF
+import Example.RealWorld.OptionsForm as OF
 import Formless as F
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Record as Record
 
-component :: H.Component HH.HTML Query Unit Void Aff
-component =
-  H.parentComponent
-    { initialState: const initialState
-    , render
-    , eval
-    , receiver: const Nothing
-    }
+-- Component types
+
+data Action
+  = HandleGroupForm GF.Message
+  | HandleOptionsForm OF.Message
+  | Select Tab
+  | Reset
+  | Submit
+
+data Tab = GroupTab | OptionsTab
+derive instance eqTab :: Eq Tab
+derive instance ordTab :: Ord Tab
+
+-- We'll keep track of both form errors so we can show them in tabs. Our 
+-- ultimate goal is to result in a Group.
+type State =
+  { focus :: Tab                 -- Which tab is the user on?
+  , groupFormErrors :: Int       -- Count of the group form errors
+  , groupFormDirty :: Boolean    -- Is the group form in a dirty state?
+  , optionsFormErrors :: Int     -- Count of the options form errors
+  , optionsFormDirty :: Boolean  -- Is the options form in a dirty state?
+  , optionsEnabled :: Boolean    -- Is the options form enabled?
+  , group :: Maybe GF.Group      -- Our ideal result type from form submission
+  }
+
+type ChildSlots = 
+  ( groupForm :: GF.Slot Unit
+  , optionsForm :: OF.Slot Unit
+  )
+
+_groupForm = SProxy :: SProxy "groupForm"
+_optionsForm = SProxy :: SProxy "optionsForm"
+
+component :: H.Component HH.HTML (Const Void) Unit Void Aff
+component = H.mkComponent
+  { initialState: \_ -> initialState
+  , render
+  , eval: H.mkEval $ H.defaultEval { handleAction = handleAction }
+  }
   where
-
   initialState :: State
   initialState =
     { focus: GroupTab
@@ -45,157 +72,115 @@ component =
     , group: Nothing
     }
 
-  render :: State -> H.ParentHTML Query ChildQuery ChildSlot Aff
-  render st =
-    UI.section_
-    [ UI.h1_ [ HH.text "Formless" ]
-    , UI.h2_ [ HH.text "A complex form inspired by real-world use cases." ]
-    , UI.p_ 
-        """
-        This component demonstrates building a large form with complex rendering and validation requirements. Notice how both tabs end up unifying to a single output type after the two forms are combined, how various dropdowns determine the contents (and visibility) of other form elements, the assorted external components, and how validation for many fields depends on the values of other fields in the form.
-        """ 
-    , HH.br_
-    , UI.p_
-        """
-        Next, review the source code. You'll notice that all of the complex types and state necessary to run this form can be generated from a pair of row types. All that's left for you to handle is to write the validation (with helper functions) and the render function.
-        """
-    , HH.br_
-    , UI.grouped_
-      [ UI.button
-        [ HE.onClick $ HE.input_ $ Select GroupTab ]
-        [ UI.p_ $ "Group Form" <>
-            if st.groupFormErrors > 0
-              then " (" <> show st.groupFormErrors  <> ")"
-              else ""
-        ]
-      , UI.button
-        [ HE.onClick $ HE.input_ $ Select OptionsTab ]
-        [ UI.p_ $ "Options Form" <>
-            if st.optionsFormErrors > 0
-              then " (" <> show st.optionsFormErrors  <> ")"
-              else ""
-        ]
-      , UI.buttonPrimary
-        [ HE.onClick $ HE.input_ Submit ]
-        [ HH.text "Submit Form" ]
-      , UI.button
-        [ if st.groupFormDirty || st.optionsFormDirty
-            then HE.onClick $ HE.input_ Reset
-            else HP.disabled true
-        ]
-        [ HH.text "Reset All" ]
-      ]
-    , HH.div
-      [ if st.focus == GroupTab then css "" else css "is-hidden" ]
-      [ HH.slot' CP.cp1 unit F.component
-          { initialInputs: groupInputs
-          , validators: groupValidators
-          , render: GroupForm.render
-          } (HE.input GroupForm)
-      ]
-    , HH.div
-      [ if st.focus == OptionsTab then css "" else css "is-hidden" ]
-      [ HH.slot' CP.cp2 unit F.component
-          { initialInputs: defaultInputs
-          , validators: optionsFormValidators
-          , render: OptionsForm.render
-          } (HE.input OptionsForm)
-      ]
-    ]
+  handleAction = case _ of
+    HandleGroupForm { errors, dirty } ->
+      H.modify_ _
+        { groupFormErrors = errors
+        , groupFormDirty = dirty
+        }
 
-  eval :: Query ~> H.ParentDSL State Query ChildQuery ChildSlot Void Aff
-  eval = case _ of
-    Select tab a -> do
+    HandleOptionsForm { errors, dirty, enabled } ->
+      H.modify_ _ 
+        { optionsFormErrors = errors
+        , optionsFormDirty = dirty
+        , optionsEnabled = enabled
+        }
+
+    Select tab -> 
       H.modify_ _ { focus = tab }
-      pure a
 
-    Reset a -> do
-      -- To send a query through to a child component when Formless has multiple, use send'
-      _ <- H.query' CP.cp1 unit $ F.send' CP.cp1 Applications (H.action TA.Clear)
-      _ <- H.query' CP.cp1 unit $ F.send' CP.cp1 Pixels (H.action TA.Clear)
-      _ <- H.query' CP.cp1 unit $ F.send' CP.cp2 unit (H.action TA.Clear)
-      _ <- H.query' CP.cp1 unit $ F.send' CP.cp3 unit (H.action DD.Clear)
-      -- If there is only one child type, use Send
-      _ <- H.query' CP.cp2 unit $ F.send unit (H.action DD.Clear)
-      _ <- H.query' CP.cp1 unit F.resetAll_
-      _ <- H.query' CP.cp2 unit F.resetAll_
-      pure a
+    Reset -> do
+      -- TODO: Obscure errors here
+      {-
 
-    -- On submit, we need to make sure both forms are run. We
-    -- can use the `SubmitReply` query to have submission return
-    -- the result directly, rather than via independent messages.
-    Submit a -> do
-      mbGroupForm <- H.query' CP.cp1 unit $ H.request F.SubmitReply
-      mbOptionsForm <- H.query' CP.cp2 unit $ H.request F.SubmitReply
-      -- Here, we'll construct our new group from the two form outputs.
+      -- we'll clear the group form using a new query
+      _ <- H.query _groupForm unit (F.injQuery $ H.tell GF.ClearComponents)
+      _ <- H.query _groupForm unit (F.asQuery F.resetAll)
+
+      -- but we'll manually clear the options form dropdown through Formless
+      _ <- F.sendQuery _optionsForm unit DD._dropdown unit DD.clear
+      _ <- H.query _optionsForm unit $ F.asQuery F.resetAll
+
+      -}
+      pure unit
+
+    -- On submit, we need to make sure both forms are run. We can use the 
+    -- `SubmitReply` query to have submission return the result directly, 
+    -- rather than via independent messages.
+    Submit -> do
+      mbGroupForm <- H.query _groupForm unit (H.request F.submitReply)
+      mbOptionsForm <- H.query _optionsForm unit (H.request F.submitReply)
+      -- Now, we'll construct our new group from the two form outputs.
       case mbGroupForm, mbOptionsForm of
          Just g, Just o -> do
-           -- We can run our monadic submission function here
-           group :: Maybe G.Group <- traverse groupFormSubmit g
-           -- We can unwrap our options purely
-           let options :: Maybe O.Options
-               options = O.Options <<< F.unwrapOutputFields <$> o
-           H.modify_ _ { group = map (over G.Group (_ { options = options })) group }
+           group <- traverse groupFormSubmit g
+           let 
+             options = map (OF.Options <<< F.unwrapOutputFields) o
+           H.modify_ _ { group = map (over GF.Group (_ { options = options })) group }
          _, _ -> H.liftEffect (Console.error "Forms did not validate.")
       st <- H.get
-      H.liftEffect $ Console.log $ show st.group
-      pure a
+      H.liftEffect $ Console.logShow st.group
 
-    -----
-    -- Group Form
+  groupFormSubmit form = do
+    -- This could be a server call or something else that is necessary
+    -- to collect the information to complete your output type.
+    groupId <- pure (GF.GroupId 10)
+    pure 
+      $ GF.Group
+      $ Record.delete (SProxy :: SProxy "secretKey2")
+      $ Record.rename (SProxy :: SProxy "secretKey1") (SProxy :: SProxy "secretKey")
+      $ Record.insert (SProxy :: SProxy "id") groupId
+      $ Record.insert (SProxy :: SProxy "options") Nothing
+      $ F.unwrapRecord
+      $ unwrap form
 
-    GroupForm m a -> case m of
-      F.Emit q -> eval q $> a
-      F.Submitted _ -> pure a
-      F.Changed fstate -> do
-        H.modify_ \st -> st { groupFormErrors = fstate.errors, groupFormDirty = fstate.dirty }
-        pure a
-
-    TASingle (TA.SelectionsChanged new) a -> a <$ do
-      H.query' CP.cp1 unit $ F.setValidate_ G.prx.whiskey new
-
-    TAMulti slot (TA.SelectionsChanged new) a -> a <$ case slot of
-      Applications ->
-        H.query' CP.cp1 unit $ F.setValidate_ G.prx.applications new
-      Pixels ->
-        H.query' CP.cp1 unit $ F.setValidate_ G.prx.pixels new
-
-    AdminDropdown m a -> a <$ do
-      _ <- H.query' CP.cp1 unit $ F.reset_ G.prx.secretKey1
-      _ <- H.query' CP.cp1 unit $ F.reset_ G.prx.secretKey2
-      case m of
-        DD.Selected x -> do
-          H.query' CP.cp1 unit $ F.setValidate_ G.prx.admin (Just x)
-        DD.Cleared -> do
-          H.query' CP.cp1 unit $ F.setValidate_ G.prx.admin Nothing
-
-    -----
-    -- Options Form
-
-    OptionsForm m a -> case m of
-      F.Emit q -> eval q $> a
-      F.Submitted _ -> pure a
-      F.Changed fstate -> do
-        st <- H.get
-        st' <- H.modify _
-          { optionsFormErrors = fstate.errors
-          , optionsFormDirty = fstate.dirty
-          , optionsEnabled = F.getInput O.prx.enable fstate.form
-          }
-
-        -- The generated spec will set enabled to false, but we'll want it to be true before
-        -- sending a new spec in to the component.
-        when (st.optionsEnabled /= st'.optionsEnabled) do
-          case st'.optionsEnabled of
-            true -> do
-              let spec' = O.OptionsForm $ _ { enable = F.InputField true } $ unwrap optionsFormInputs
-              void $ H.query' CP.cp2 unit $ F.loadForm_ spec'
-            _ -> do
-              void $ H.query' CP.cp2 unit $ F.loadForm_ defaultInputs
-        pure a
-
-    MetricDropdown m a -> a <$ case m of
-      DD.Selected x -> do
-        H.query' CP.cp2 unit $ F.setValidate_ O.prx.metric (Just x)
-      DD.Cleared -> do
-        H.query' CP.cp2 unit $ F.setValidate_ O.prx.metric Nothing
+  render :: State -> H.ComponentHTML Action ChildSlots Aff
+  render st =
+    UI.section_
+      [ UI.h1_ [ HH.text "Formless" ]
+      , UI.h2_ [ HH.text "A complex form inspired by real-world use cases." ]
+      , UI.p_ 
+          """
+          This component demonstrates building a large form with complex rendering and validation requirements. Notice how both tabs end up unifying to a single output type after the two forms are combined, how various dropdowns determine the contents (and visibility) of other form elements, the assorted external components, and how validation for many fields depends on the values of other fields in the form.
+          """ 
+      , HH.br_
+      , UI.p_
+          """
+          Next, review the source code. You'll notice that all of the complex types and state necessary to run this form can be generated from a pair of row types. All that's left for you to handle is to write the validation (with helper functions) and the render function.
+          """
+      , HH.br_
+      , UI.grouped_
+          [ UI.button
+            [ HE.onClick \_ -> Just $ Select GroupTab ]
+              [ UI.p_ $ "Group Form" <>
+                  if st.groupFormErrors > 0
+                    then " (" <> show st.groupFormErrors  <> ")"
+                    else ""
+              ]
+          , UI.button
+              [ HE.onClick \_ -> Just $ Select OptionsTab ]
+              [ UI.p_ $ "Options Form" <>
+                  if st.optionsFormErrors > 0
+                    then " (" <> show st.optionsFormErrors  <> ")"
+                    else ""
+              ]
+          , UI.buttonPrimary
+              [ HE.onClick \_ -> Just Submit ]
+              [ HH.text "Submit Form" ]
+          , UI.button
+              [ if st.groupFormDirty || st.optionsFormDirty
+                  then HE.onClick \_ -> Just Reset
+                  else HP.disabled true
+              ]
+              [ HH.text "Reset All" ]
+          ]
+      , HH.div
+          [ class_ $ "is-hidden" # guard (st.focus == GroupTab) ]
+          [ HH.slot _groupForm unit (F.component GF.spec) GF.input handleG ]
+      , HH.div
+          [ class_ $ "is-hidden" # guard (st.focus == OptionsTab) ]
+          [ HH.slot _optionsForm unit (F.component OF.spec) OF.input handleO ]
+      ]
+    where
+    handleG = Just <<< HandleGroupForm
+    handleO = Just <<< HandleOptionsForm

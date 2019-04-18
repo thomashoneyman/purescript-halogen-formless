@@ -5,6 +5,7 @@ import Prelude
 import Data.Array (difference, filter, length, (:), (!!))
 import Data.Maybe (Maybe(..))
 import Data.String as String
+import Data.Symbol (SProxy(..))
 import Effect.Aff.Class (class MonadAff)
 import Example.App.UI.Dropdown as Dropdown
 import Example.App.UI.Element (class_)
@@ -18,6 +19,10 @@ import Select.Setters as Setters
 
 type Slot f item =
   H.Slot (Select.Query (Query item) ()) (Message f item)
+
+_typeahead = SProxy :: SProxy "typeahead"
+_typeaheadSingle = SProxy :: SProxy "typeaheadSingle"
+_typeaheadMulti = SProxy :: SProxy "typeaheadMulti"
 
 data Query item a
   = GetAvailableItems (Array item -> a)

@@ -5,6 +5,7 @@ import Prelude
 import DOM.HTML.Indexed (HTMLbutton)
 import Data.Array (difference, mapWithIndex, length, (!!))
 import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Symbol (SProxy(..))
 import Data.Traversable (for_)
 import Effect.Aff.Class (class MonadAff)
 import Example.App.UI.Element (class_)
@@ -18,8 +19,13 @@ import Select.Setters as Setters
 type Slot item =
   H.Slot (Select.Query Query ()) (Message item)
 
+_dropdown = SProxy :: SProxy "dropdown"
+
 data Query a 
   = Clear a
+
+clear :: Select.Query Query () Unit
+clear = Select.Query (H.tell Clear)
 
 type State item =
   ( selected :: Maybe item
