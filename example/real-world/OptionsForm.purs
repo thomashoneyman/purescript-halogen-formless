@@ -11,6 +11,7 @@ import Data.Int as Int
 import Data.Maybe (Maybe(..))
 import Data.Monoid (guard)
 import Data.Newtype (class Newtype, over)
+import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Example.App.UI.Dropdown as DD
 import Example.App.UI.Element (class_)
@@ -88,6 +89,8 @@ type OptionsRow f =
 type Slot =
   H.Slot (F.Query OptionsForm (Const Void) ChildSlots) Message
 
+_optionsForm = SProxy :: SProxy "optionsForm"
+
 -- We'll maintain a flag so we can check if the enabled state has changed
 type State =
   ( prevEnabled :: Boolean ) 
@@ -96,8 +99,7 @@ data Action
   = HandleDropdown (DD.Message Metric)
 
 type Message = 
-  { enabled :: Boolean
-  , errors :: Int
+  { errors :: Int
   , dirty :: Boolean 
   }
 
@@ -156,7 +158,7 @@ spec = F.defaultSpec
     F.Changed form -> do
       st <- H.get
       let enabled = F.getInput prx.enable form.form
-      H.raise { enabled, errors: form.errors, dirty: form.dirty }
+      H.raise { errors: form.errors, dirty: form.dirty }
       H.modify_ _ { prevEnabled = enabled }
       when (st.prevEnabled /= enabled) case enabled of
         true -> do

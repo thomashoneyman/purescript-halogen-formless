@@ -2,21 +2,26 @@ module Example.RealWorld.GroupForm where
 
 import Prelude
 
+import Data.Const (Const)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
+import Data.Monoid (guard)
 import Data.Newtype (class Newtype)
+import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Example.App.Validation (class ToText, FieldError)
 import Example.App.Validation as V
 import Example.App.UI.Dropdown as DD
+import Example.App.UI.Element (class_)
 import Example.App.UI.Element as UI
 import Example.App.UI.Typeahead as TA
-import Example.RealWorld.OptionsForm (Options)
+import Example.RealWorld.OptionsForm as OF
 import Formless as F
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Record as Record
 import Select as Select
 
 -- Supporting types
@@ -50,11 +55,15 @@ newtype Group = Group
   , whiskey :: String
   , id :: GroupId
   , secretKey :: String
-  , options :: Maybe Options
+  , options :: Maybe OF.Options
   }
 derive instance newtypeGroup :: Newtype Group _
 derive newtype instance eqGroup :: Eq Group
 derive newtype instance showGroup :: Show Group
+
+data Tab = GroupTab | OptionsTab
+derive instance eqTab :: Eq Tab
+derive instance ordTab :: Ord Tab
 
 
 -- Form types
@@ -75,27 +84,31 @@ type GroupFormRow f =
 -- Form component types
 
 type Slot =
-  H.Slot (F.Query GroupForm Query ChildSlots) Message
+  H.Slot (F.Query GroupForm (Const Void) ChildSlots) Group
+
+_groupForm = SProxy :: SProxy "groupForm"
+
+type State =
+  ( selectedTab :: Tab        -- which tab the user is viewing
+  , optionsErrors :: Int      -- count of errors in the options form 
+  , optionsDirty :: Boolean   -- whether the options form has been edited
+  )
 
 data Action 
-  = UpdateKey1 String
+  = Select Tab
+  | UpdateKey1 String
   | UpdateKey2 String
   | HandleDropdown (DD.Message Admin)
   | HandleTASingle (TA.Message Maybe String)
   | HandleTAMulti TASlot (TA.Message Array String)
-
--- We'll write a new query which can be used from a parent component to manage 
--- clearing all components within this form
-data Query a
-  = ClearComponents a
-derive instance functorQuery :: Functor Query
-
-type Message = { errors :: Int, dirty :: Boolean }
+  | HandleOptionsForm OF.Message
+  | ResetForm
 
 type ChildSlots =
   ( dropdown :: DD.Slot Admin Unit
   , typeaheadSingle :: TA.Slot Maybe String Unit
   , typeaheadMulti :: TA.Slot Array String TASlot
+  , optionsForm :: OF.Slot Unit
   )
 
 data TASlot = Applications | Pixels
@@ -108,7 +121,7 @@ derive instance ordTASlot :: Ord TASlot
 prx :: F.SProxies GroupForm
 prx = F.mkSProxies $ F.FormProxy :: _ GroupForm
 
-input :: forall m. Monad m => F.Input' GroupForm m
+input :: forall m. Monad m => F.Input GroupForm State m
 input =
   { initialInputs: F.mkInputFields $ F.FormProxy :: _ GroupForm
   , validators: GroupForm
@@ -120,6 +133,9 @@ input =
       , secretKey1: V.nonEmptyStr >>> V.minLength 5 >>> equalsSecretKey2
       , secretKey2: V.nonEmptyStr >>> V.minLength 5 >>> equalsSecretKey1
       }
+  , selectedTab: GroupTab
+  , optionsErrors: 0
+  , optionsDirty: false
   }
   where
   equalsSecretKey2 = F.hoistFnE \form secretKey1 -> do
@@ -134,28 +150,53 @@ input =
       then Right secretKey2
       else Left $ V.NotEqual secretKey1 secretKey2
 
-spec :: F.Spec GroupForm () Query Action ChildSlots Message Aff
+spec :: F.Spec GroupForm State (Const Void) Action ChildSlots Group Aff
 spec = F.defaultSpec
   { render = render 
   , handleAction = handleAction
-  , handleQuery = handleQuery
   , handleMessage = handleMessage
   }
   where
   handleMessage = case _ of
-    F.Changed form -> H.raise { errors: form.errors, dirty: form.dirty }
+    F.Submitted form -> do 
+      -- first, we'll submit the options form
+      mbOptionsForm <- H.query OF._optionsForm unit (H.request F.submitReply)
+      let options = map (OF.Options <<< F.unwrapOutputFields) (join mbOptionsForm)
+      -- next, we'll fetch a new group id (in the real world this might be a server call) 
+      groupId <- pure $ GroupId 10 
+     -- then, we'll produce a new Group by transforming our form outputs and raise it
+     -- as a message.
+      H.raise
+        $ Group
+        $ Record.delete (SProxy :: _ "secretKey2")
+        $ Record.rename (SProxy :: _ "secretKey1") (SProxy :: _ "secretKey")
+        $ Record.insert (SProxy :: _ "id") groupId
+        $ Record.insert (SProxy :: _ "options") options
+        $ F.unwrapOutputFields form
     _ -> pure unit
 
-  handleQuery :: forall a. Query a -> H.HalogenM _ _ _ _ _ (Maybe a)
-  handleQuery = case _ of
-    ClearComponents a -> do
+  handleAction = case _ of
+    Select tab -> 
+      H.modify_ _ { selectedTab = tab }
+
+    ResetForm -> do
+      -- first, we'll reset this form's components
       _ <- H.query TA._typeaheadMulti Applications TA.clear
       _ <- H.query TA._typeaheadMulti Pixels TA.clear
       _ <- H.query TA._typeaheadSingle unit TA.clear
       _ <- H.query DD._dropdown unit DD.clear
-      pure (Just a)
+      -- then, we'll reset the options form's components 
+      _ <- F.sendQuery OF._optionsForm unit DD._dropdown unit DD.clear
+      -- and then we'll reset the forms
+      _ <- H.query OF._optionsForm unit (F.asQuery F.resetAll)
+      eval F.resetAll
 
-  handleAction = case _ of
+    HandleOptionsForm { errors, dirty } ->
+      H.modify_ _
+        { optionsErrors = errors
+        , optionsDirty = dirty
+        }
+
     UpdateKey1 key -> do
       eval $ F.setValidate prx.secretKey1 key
       eval $ F.validate prx.secretKey2
@@ -184,16 +225,51 @@ spec = F.defaultSpec
     eval act = F.handleAction handleAction handleMessage act
          
   render st@{ form } =
-    UI.formContent_
-      [ renderName
-      , renderAdmin
-      , renderSecretKey1
-      , renderSecretKey2
-      , renderApplications
-      , renderPixels
-      , renderWhiskey 
+    HH.div_
+      [ UI.grouped_
+          [ UI.button
+              [ HE.onClick \_ -> Just $ F.injAction $ Select GroupTab ]
+                [ UI.p_ $ "Group Form" <>
+                    if st.errors > 0
+                      then " (" <> show st.errors  <> ")"
+                      else ""
+                ]
+          , UI.button
+              [ HE.onClick \_ -> Just $ F.injAction $ Select OptionsTab ]
+              [ UI.p_ $ "Options Form" <>
+                  if st.optionsErrors > 0
+                    then " (" <> show st.optionsErrors  <> ")"
+                    else ""
+              ]
+          , UI.buttonPrimary
+              [ HE.onClick \_ -> Just F.submit ]
+              [ HH.text "Submit Form" ]
+          , UI.button
+              [ if st.dirty || st.optionsDirty
+                  then HE.onClick \_ -> Just $ F.injAction ResetForm
+                  else HP.disabled true
+              ]
+              [ HH.text "Reset All" ]
+          ]
+      , HH.div 
+         [ class_ $ "is-hidden" # guard (st.selectedTab == GroupTab) ]
+         [ UI.formContent_
+             [ renderName
+             , renderAdmin
+             , renderSecretKey1
+             , renderSecretKey2
+             , renderApplications
+             , renderPixels
+             , renderWhiskey 
+             ]
+        ]
+      , HH.div
+          [ class_ $ "is-hidden" # guard (st.selectedTab == OptionsTab) ]
+          [ HH.slot OF._optionsForm unit (F.component OF.spec) OF.input handleOF ]
       ]
     where
+    handleOF = Just <<< F.injAction <<< HandleOptionsForm
+
     renderName = st # UI.formlessField UI.input
       { label: "Name"
       , help: "Give the group a name."
