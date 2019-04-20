@@ -7,7 +7,6 @@
 Formless is a flexible, extensible, type-safe Halogen component for building forms without boilerplate. 
 
 - [Examples & documentation site](https://thomashoneyman.github.io/purescript-halogen-formless/)
-
 - [Source code for examples](https://github.com/thomashoneyman/purescript-halogen-formless/tree/master/example)
 
 ## Quick Start
@@ -39,7 +38,7 @@ import Formless as F
 
 input :: forall m. Monad m => F.Input' DogForm m
 input = 
-  { initialInputs: F.mkInputFields { name: "", age: "" }
+  { initialInputs: F.wrapInputFields { name: "", age: "" }
   , validators: DogForm
       { name: F.hoistFn_ identity -- no validation
       , age: F.hoistFnE_ \str -> case fromString str of 
@@ -122,7 +121,6 @@ page = H.mkComponent
 Ready to move past this simple example? Check out the examples, which vary in their complexity:
 
 - [Live examples / docs site](https://thomashoneyman.github.io/purescript-halogen-formless/)
-
 - [Source code for examples](https://github.com/thomashoneyman/purescript-halogen-formless/tree/master/example)
 
 Have any comments about the library or any ideas to improve it for your use case? Please file an issue or reach out on the [PureScript user group](https://discourse.purescript.org).
