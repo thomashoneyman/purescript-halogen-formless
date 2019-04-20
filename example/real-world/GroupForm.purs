@@ -252,7 +252,7 @@ spec = F.defaultSpec
               [ HH.text "Reset All" ]
           ]
       , HH.div 
-         [ class_ $ "is-hidden" # guard (st.selectedTab == GroupTab) ]
+         [ class_ $ "is-hidden" # guard (st.selectedTab /= GroupTab) ]
          [ UI.formContent_
              [ renderName
              , renderAdmin
@@ -264,7 +264,7 @@ spec = F.defaultSpec
              ]
         ]
       , HH.div
-          [ class_ $ "is-hidden" # guard (st.selectedTab == OptionsTab) ]
+          [ class_ $ "is-hidden" # guard (st.selectedTab /= OptionsTab) ]
           [ HH.slot OF._optionsForm unit (F.component OF.spec) OF.input handleOF ]
       ]
     where

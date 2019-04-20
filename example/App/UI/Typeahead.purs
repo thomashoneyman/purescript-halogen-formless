@@ -59,7 +59,7 @@ input { items, placeholder } =
   , debounceTime: Nothing
   , getItemCount: length <<< _.items
   , selected: mempty
-  , available: []
+  , available: items
   , items
   , placeholder
   }
@@ -195,7 +195,7 @@ spec' select' remove' filter' render' = Select.defaultSpec
   handleQuery :: forall a. Query item a -> H.HalogenM _ _ _ _ _ (Maybe a)
   handleQuery = case _ of
     Clear a -> do
-      st <- H.modify \st -> st { selected = mempty :: f item, available = st.items }
+      st <- H.modify \st -> st { selected = mempty :: f item, available = st.items, search = "" }
       H.raise (SelectionsChanged st.selected)
       pure (Just a)
 
@@ -212,4 +212,3 @@ spec' select' remove' filter' render' = Select.defaultSpec
         , available = filter' st.items selected' 
         }
       H.raise (SelectionsChanged selected')
-

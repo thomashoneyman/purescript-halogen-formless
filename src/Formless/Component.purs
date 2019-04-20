@@ -84,8 +84,8 @@ component spec = H.mkComponent
   { initialState
   , render: getPublicState >>> spec.render
   , eval: H.mkEval $ H.defaultEval
-      { handleQuery = handleQuery spec.handleQuery spec.handleAction spec.handleMessage
-      , handleAction = handleAction spec.handleAction spec.handleMessage
+      { handleQuery = \q -> handleQuery spec.handleQuery spec.handleMessage q
+      , handleAction = \act -> handleAction spec.handleAction spec.handleMessage act
       , initialize = Just (inj (SProxy :: _ "initialize") spec.initialize)
       , receive = map (map FA.injAction) spec.receive
       , finalize = map FA.injAction spec.finalize
@@ -144,7 +144,7 @@ handleAction
   -> (Message form st -> HalogenM form st act ps msg m Unit)
   -> Action form act
   -> HalogenM form st act ps msg m Unit
-handleAction handleAction' handleMessage = match 
+handleAction handleAction' handleMessage action = flip match action 
   { initialize: \mbAction -> do
       dr <- H.liftEffect $ Ref.new Nothing
       vr <- H.liftEffect $ Ref.new Nothing
@@ -163,7 +163,7 @@ handleAction handleAction' handleMessage = match
       -- Need to verify the validity status of the form.
       newState <- case (unwrap st.internal).allTouched of
         true -> H.modify _
-          { validity = if not (st.errors == 0) then Invalid else Valid
+          { validity = if errors == 0 then Valid else Invalid
           , errors = errors
           , dirty = dirty
           }
@@ -174,7 +174,7 @@ handleAction handleAction' handleMessage = match
 
           -- The sync revealed all fields really have been touched
           true -> H.modify _
-            { validity = if not (st.errors == 0) then Invalid else Valid
+            { validity = if errors == 0 then Valid else Invalid
             , internal = over InternalState (_ { allTouched = true }) st.internal
             , errors = errors
             , dirty = dirty
@@ -191,7 +191,7 @@ handleAction handleAction' handleMessage = match
   , modify: \variant ->  do
       H.modify_ \st -> st
         { form = Internal.unsafeModifyInputVariant identity variant st.form }
-      handleSyncFormData
+      handleAction handleAction' handleMessage sync
 
   , validate: \variant -> do
       st <- H.get
@@ -199,7 +199,7 @@ handleAction handleAction' handleMessage = match
       form <- H.lift do
         Internal.unsafeRunValidationVariant variant validators st.form
       H.modify_ _ { form = form }
-      handleSyncFormData
+      handleAction handleAction' handleMessage sync
 
   , modifyValidate: \(Tuple milliseconds variant) -> do
       let
@@ -221,42 +221,42 @@ handleAction handleAction' handleMessage = match
 
       case milliseconds of
         Nothing -> 
-          modifyWith identity *> validate *> handleSyncFormData
+          modifyWith identity *> validate *> handleAction handleAction' handleMessage sync
         Just ms ->
           debounceForm
             ms
             (modifyWith identity)
             (modifyWith (const Validating) *> validate)
-            handleSyncFormData
+            (handleAction handleAction' handleMessage sync)
 
   , reset: \variant -> do
       H.modify_ \st -> st
         { form = Internal.unsafeModifyInputVariant identity variant st.form
         , internal = over InternalState (_ { allTouched = false }) st.internal
         }
-      handleSyncFormData
+      handleAction handleAction' handleMessage sync
 
   , setAll: \(Tuple formInputs shouldValidate) -> do
       new <- H.modify \st -> st
         { form = Internal.replaceFormFieldInputs formInputs st.form }
       handleMessage $ Changed $ getPublicState new
       case shouldValidate of
-        true -> handle FA.validateAll
-        _ -> handleSyncFormData
+        true -> handleAction handleAction' handleMessage FA.validateAll
+        _ -> handleAction handleAction' handleMessage sync
 
   , modifyAll: \(Tuple formInputs shouldValidate) -> do
       new <- H.modify \st -> st
         { form = Internal.modifyAll formInputs st.form }
       handleMessage $ Changed $ getPublicState new
       case shouldValidate of
-        true -> handle FA.validateAll
-        _ -> handleSyncFormData
+        true -> handleAction handleAction' handleMessage FA.validateAll
+        _ -> handleAction handleAction' handleMessage sync
 
   , validateAll: \_ -> do
       st <- H.get
       form <- H.lift $ Internal.validateAll (unwrap st.internal).validators st.form
       H.modify_ _ { form = form }
-      handleSyncFormData
+      handleAction handleAction' handleMessage sync
 
   , resetAll: \_ -> do
       new <- H.modify \st -> st
@@ -273,7 +273,9 @@ handleAction handleAction' handleMessage = match
       handleMessage $ Changed $ getPublicState new
 
   , submit: \_ -> do
-      runSubmit handle >>= traverse_ (Submitted >>> handleMessage)
+      _ <- preSubmit 
+      _ <- handleAction handleAction' handleMessage FA.validateAll 
+      submit >>= traverse_ (Submitted >>> handleMessage)
 
   , loadForm: \formInputs -> do
       let setFields rec = rec { allTouched = false, initialInputs = formInputs }
@@ -290,8 +292,8 @@ handleAction handleAction' handleMessage = match
       handleMessage $ Changed $ getPublicState new
   }
   where
-  handle act = handleAction handleAction' handleMessage act
-  handleSyncFormData = handle (inj (SProxy :: SProxy "syncFormData") unit)
+  sync :: Action form act 
+  sync = inj (SProxy :: SProxy "syncFormData") unit
 
 handleQuery 
   :: forall form st query act ps msg m a is ixs ivs fs fxs us vs os ifs ivfs
@@ -318,26 +320,28 @@ handleQuery
   => Newtype (form Variant U) (Variant us)
   => Row.Lacks "internal" st
   => (forall b. query b -> HalogenM form st act ps msg m (Maybe b))
-  -> (act -> HalogenM form st act ps msg m Unit)
   -> (Message form st -> HalogenM form st act ps msg m Unit)
   -> Query form query ps a 
   -> HalogenM form st act ps msg m (Maybe a)
-handleQuery handleQuery' handleAction' handleMessage = VF.match
+handleQuery handleQuery' handleMessage = VF.match
   { query: case _ of
       SubmitReply reply -> do
-        mbForm <- runSubmit handleA 
+        _ <- preSubmit 
+        _ <- handleAction (const (pure unit)) handleMessage FA.validateAll 
+        mbForm <- submit 
         pure $ Just $ reply mbForm
 
       SendQuery box -> 
         H.HalogenM $ liftF $ H.ChildQuery box
 
       AsQuery (act :: Variant (PublicAction form)) a -> Just a <$ 
-        handleA ((expand act) :: Action form act)
+        handleAction 
+          (const (pure unit)) 
+          handleMessage
+          ((expand act) :: Action form act)
 
   , userQuery: \q -> handleQuery' q
   }
-  where
-  handleA act = handleAction handleAction' handleMessage act
 
 
 -- INTERNAL
@@ -350,7 +354,7 @@ getPublicState
   -> PublicState form st
 getPublicState = Builder.build (Builder.delete (SProxy :: SProxy "internal"))
 
-runSubmit 
+preSubmit 
   :: forall form st act ps msg m fs fxs os vs
    . MonadAff m
   => RL.RowToList fs fxs
@@ -362,9 +366,8 @@ runSubmit
   => Newtype (form Record FormField) { | fs }
   => Newtype (form Record OutputField) { | os }
   => Newtype (form Record (Validation form m)) { | vs }
-  => (Action form act -> HalogenM form st act ps msg m Unit)
-  -> HalogenM form st act ps msg m (Maybe (form Record OutputField))
-runSubmit handle = do
+  => HalogenM form st act ps msg m Unit
+preSubmit = do
   init <- H.modify \st -> st
     { submitAttempts = st.submitAttempts + 1
     , submitting = true
@@ -378,9 +381,20 @@ runSubmit handle = do
       , internal = over InternalState (_ { allTouched = true }) init.internal
       }
 
-  -- Necessary to validate after fields are touched, but before parsing
-  _ <- handle FA.validateAll
-
+submit 
+  :: forall form st act ps msg m fs fxs os vs
+   . MonadAff m
+  => RL.RowToList fs fxs
+  => Internal.AllTouched fxs fs
+  => Internal.SetFormFieldsTouched fxs fs fs
+  => Internal.ValidateAll vs fxs fs fs m
+  => Internal.FormFieldToMaybeOutput fxs fs os
+  => Internal.ValidateAll vs fxs fs fs m
+  => Newtype (form Record FormField) { | fs }
+  => Newtype (form Record OutputField) { | os }
+  => Newtype (form Record (Validation form m)) { | vs }
+  => HalogenM form st act ps msg m (Maybe (form Record OutputField))
+submit = do
   -- For performance purposes, only attempt to submit if the form is valid
   validated <- H.get
   H.modify_ _ { submitting = false }
@@ -388,4 +402,3 @@ runSubmit handle = do
   pure case validated.validity of
     Valid -> Internal.formFieldsToMaybeOutputFields validated.form
     _ -> Nothing
-

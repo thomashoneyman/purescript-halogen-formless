@@ -136,7 +136,7 @@ defaultInputFields :: OptionsForm Record F.InputField
 defaultInputFields = F.wrapInputFields 
   { enable: false
   , metric: Just ViewCost
-  , viewCost: ""
+  , viewCost: "10"
   , clickCost: ""
   , installCost: ""
   , size: "21"
@@ -178,7 +178,7 @@ spec = F.defaultSpec
   render st@{ form } = UI.formContent_
     [ renderEnabled
     , HH.div
-        [ class_ ("is-hidden" # guard (F.getInput prx.enable form)) ]
+        [ class_ ("is-hidden" # guard (not $ F.getInput prx.enable form)) ]
         [ renderMetric
         , case F.getInput prx.metric form of
             Just ViewCost -> renderViewCost

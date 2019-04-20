@@ -20,7 +20,7 @@ render =
     , UI.content_
         [ UI.p_
             """
-            Formless allows you to write a small, simple spec for your form and receive state updates, validation, dirty states, submission handling, and more for free. You are responsible for providing an initial value and a validation function for every field in your form, but beyond that, Formless will take care of things behind the scenes without ever imposing on how you'd like to render and display your form. You can freely use external Halogen components, add new form behaviors on top (like dependent validation or clearing sets of fields), and more.\n
+            Formless allows you to write a small, simple spec for your form and receive state updates, validation, dirty states, submission handling, and more for free. You are responsible for providing an initial value and a validation function for every field in your form, but beyond that, Formless will take care of things behind the scenes without ever imposing on how you'd like to render and display your form. You can freely use external Halogen components, add new form behaviors on top (like dependent validation or clearing sets of fields), and more.
             """
         , UI.a
             [ HP.href "https://github.com/thomashoneyman/purescript-halogen-formless" ]

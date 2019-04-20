@@ -46,7 +46,7 @@ input { items, placeholder } =
   , debounceTime: Nothing
   , getItemCount: length <<< _.items
   , selected: Nothing
-  , available: []
+  , available: items
   , items
   , placeholder
   }

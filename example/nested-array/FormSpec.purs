@@ -7,12 +7,12 @@ import Data.Const (Const)
 import Data.Either (Either(..))
 import Data.List (toUnfoldable)
 import Data.Map as M
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
-import Example.App.UI.Element as UI
 import Example.App.UI.Element (class_)
+import Example.App.UI.Element as UI
 import Example.App.Validation as V
 import Formless as F
 import Halogen as H
@@ -61,7 +61,7 @@ eventFormInput =
   { validators: EventForm
       { name: V.minLength 3
       , location: V.minLength 3
-      , members: V.exists
+      , members: F.hoistFn_ (fromMaybe [])
       }
   , initialInputs: F.wrapInputFields 
       { name: ""
@@ -80,8 +80,9 @@ eventFormSpec = F.defaultSpec
   }
   where
   handleAction = case _ of
-    HandleMemberForm ix Destroy ->
+    HandleMemberForm ix Destroy -> do
       H.modify_ \st -> st { formIds = filter (_ /= ix) st.formIds }
+      eval $ F.set _members Nothing
 
     AddMemberForm ->
       H.modify_ \st -> st 

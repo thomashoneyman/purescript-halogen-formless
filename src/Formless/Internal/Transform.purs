@@ -170,7 +170,10 @@ unsafeModifyInputVariant f var rec = wrap $ unsafeSet (fst rep) val (unwrap rec)
     val :: ∀ e i o. FormField e i o
     val = case unsafeGet (fst rep) (unwrap rec) of
       FormField x -> FormField $ x 
-        { input = unwrap (snd rep) $ x.input, result = f x.result }
+        { input = unwrap (snd rep) $ x.input
+        , touched = true
+        , result = f x.result 
+        }
 
 unsafeRunValidationVariant
   :: ∀ form x y z m

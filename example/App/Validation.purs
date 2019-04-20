@@ -110,13 +110,13 @@ emailIsUsed = Validation \_ e@(Email e') -> do
   -- Perhaps we hit the server to  if the email is in use
   _ <- liftAff $ delay $ Milliseconds 1000.0
   pure $ if (contains (Pattern "t") e')
-    then pure e
-    else Left EmailInUse
+    then Left EmailInUse
+    else pure e
 
 enoughMoney :: ∀ form m. MonadAff m => Validation form m FieldError Int Int
 enoughMoney = Validation \_ i -> do
   -- Let's check if we have enough money...
   _ <- liftAff $ delay $ Milliseconds 5000.0
   pure $ if (i > 1000)
-    then pure i
-    else Left NotEnoughMoney
+    then Left NotEnoughMoney
+    else pure i

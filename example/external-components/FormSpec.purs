@@ -84,26 +84,26 @@ spec = F.defaultSpec
   handleAction = case _ of
     HandleTypeahead slot (TA.SelectionsChanged new) -> case slot of
       Email ->
-        handleAction' $ F.setValidate prx.email new
+        eval $ F.setValidate prx.email new
 
       Whiskey -> do
-        handleAction' $ F.setValidate prx.whiskey new
-        handleAction' $ F.reset prx.email
+        eval $ F.setValidate prx.whiskey new
+        eval $ F.reset prx.email
         void $ H.query TA._typeahead Email TA.clear
 
       Language -> do
-        handleAction' $ F.setValidate prx.language new
+        eval $ F.setValidate prx.language new
 
     Reset -> do
       items <- H.query TA._typeahead Email $ H.request TA.getAvailableItems
       logShow $ fromMaybe [] items
       _ <- H.queryAll TA._typeahead TA.clear
-      handleAction' F.resetAll
+      eval F.resetAll
 
     where
     -- you will usually want to define this pre-applied function if you
     -- are recursively evaluating Formless actions.
-    handleAction' act = F.handleAction handleAction handleMessage act
+    eval act = F.handleAction handleAction handleMessage act
 
   render :: F.PublicState UserForm () -> F.ComponentHTML UserForm Action ChildSlots m
   render st = 

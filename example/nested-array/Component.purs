@@ -33,8 +33,8 @@ component = H.mkComponent
       , UI.p_
           """
           It is possible to nest sub-forms within Formless like any other external component. This allows you to create an arbitrary number of forms within other forms while preserving the type safety provided by the Formless library. Try submitting the form with no sub-forms, and review the output in the console. Next, try adding one or more sub-forms and submitting them when valid or invalid.
-
           """
+      , HH.br_
       , HH.slot _event unit (F.component FS.eventFormSpec) FS.eventFormInput handler
       ]
     where

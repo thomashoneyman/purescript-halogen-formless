@@ -52,7 +52,7 @@ component = H.mkComponent
           You can create a full Halogen contact form like this in 20 lines of Formless, excluding the render function.  It's type-safe, supports complex types, has validation, and parses to the output type of your choice."
           """
       , HH.br_
-      , HH.slot F._formless unit (F.component spec) input (const Nothing)
+      , HH.slot F._formless unit (F.component spec) input (Just <<< HandleFormless)
       ]
 
   handleAction = case _ of
