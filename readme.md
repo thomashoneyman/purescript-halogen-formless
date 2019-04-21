@@ -9,6 +9,8 @@ Formless is a flexible, extensible, type-safe Halogen component for building for
 - [Examples & documentation site](https://thomashoneyman.github.io/purescript-halogen-formless/)
 - [Source code for examples](https://github.com/thomashoneyman/purescript-halogen-formless/tree/master/example)
 
+> You're viewing the readme for the upcoming 1.0 release, based on Halogen 5. If you're using Halogen 4, you should browse the [v0.5.2 release instead](https://github.com/thomashoneyman/purescript-halogen-formless/tree/v0.5.2).
+
 ## Quick Start
 
 You can write a basic Formless form in just a few lines of code. You are responsible for providing just a few pieces of information.
