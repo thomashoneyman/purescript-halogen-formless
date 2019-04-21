@@ -42,8 +42,7 @@ import Formless as F
 
 input :: forall m. Monad m => F.Input' DogForm m
 input = 
-  { initialInputs: F.Defaults
-  , validators: DogForm
+  { validators: DogForm
       { name: F.noValidation
       , age: F.hoistFnE_ \str -> case fromString str of 
           Nothing -> Left InvalidInt
@@ -52,6 +51,8 @@ input =
             | n > 30 -> Left TooHigh
             | otherwise -> Right (Age n)
       }
+    -- identital: F.Custom $ F.wrapInputFields { name: "", age: "" }
+  , initialInputs: F.Defaults
   }
 ```
 
