@@ -114,16 +114,16 @@ prx = F.mkSProxies $ F.FormProxy :: _ OptionsForm
 input :: forall m. Monad m => F.Input OptionsForm State m
 input = 
   { prevEnabled: false
-  , initialInputs: defaultInputFields
+  , initialInputs: F.Custom defaultInputFields
   , validators: OptionsForm
-      { enable: F.hoistFn_ identity
+      { enable: F.noValidation
       , metric: V.exists
       , viewCost: validateMetric ViewCost
       , clickCost: validateMetric ClickCost
       , installCost: validateMetric InstallCost
       , size: Int.toNumber <$> V.strIsInt
       , dimensions: Int.toNumber <$> V.strIsInt
-      , speed: F.hoistFn_ identity
+      , speed: F.noValidation
       }
   }
   where

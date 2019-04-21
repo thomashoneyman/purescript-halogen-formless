@@ -59,7 +59,7 @@ derive instance ordTypeahead :: Ord Typeahead
 
 defaultInput :: forall m. MonadAff m => F.Input' UserForm m
 defaultInput =
-  { initialInputs: F.mkInputFields (F.FormProxy :: _ UserForm)
+  { initialInputs: F.Defaults
   , validators: UserForm
       { name: V.minLength 7
       , email: V.exists >>> V.emailFormat

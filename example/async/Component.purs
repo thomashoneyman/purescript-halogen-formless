@@ -70,7 +70,7 @@ component = H.mkComponent
   -- Formless
 
   input = 
-    { initialInputs: F.mkInputFields (F.FormProxy :: _ Form) -- easily generate inputs 
+    { initialInputs: F.Defaults
     , validators: Form
         { name: V.minLength 5
         , email: V.emailFormat >>> V.emailIsUsed

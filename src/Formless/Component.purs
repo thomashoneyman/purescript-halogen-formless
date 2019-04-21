@@ -17,8 +17,9 @@ import Formless.Action as FA
 import Formless.Data.FormFieldResult (FormFieldResult(..))
 import Formless.Internal.Transform as Internal
 import Formless.Internal.Debounce (debounceForm)
-import Formless.Types.Component (Action, Component, HalogenM, Input, InternalState(..), Message(..), PublicAction, PublicState, QueryF(..), Query, Spec, State, ValidStatus(..))
-import Formless.Types.Form (FormField, InputField, InputFunction, OutputField, U)
+import Formless.Types.Component (Action, Component, HalogenM, Input, InternalState(..), Message(..), PublicAction, PublicState, QueryF(..), Query, Spec, State, ValidStatus(..), InitialInputs(..))
+import Formless.Types.Form (FormField, InputField, InputFunction, OutputField, U, FormProxy(..))
+import Formless.Transform.Row (mkInputFields, class MakeInputFieldsFromRow)
 import Formless.Validation (Validation)
 import Halogen as H
 import Halogen.HTML as HH
@@ -61,6 +62,7 @@ component
   => Internal.ModifyAll ifs fxs fs fs
   => Internal.ValidateAll vs fxs fs fs m
   => Internal.FormFieldToMaybeOutput fxs fs os
+  => MakeInputFieldsFromRow ixs is is
   => Newtype (form Record InputField) { | is }
   => Newtype (form Record InputFunction) { | ifs }
   => Newtype (form Record FormField) { | fs }
@@ -97,10 +99,13 @@ component spec = H.mkComponent
   initialState :: Input form st m -> State form st m
   initialState input = Builder.build pipeline input
     where
-    initialForm = Internal.inputFieldsToFormFields input.initialInputs
+    initialInputs = case input.initialInputs of
+      Defaults -> mkInputFields (FormProxy :: FormProxy form)
+      Custom inputs -> inputs
+    initialForm = Internal.inputFieldsToFormFields initialInputs
     internalState = InternalState
       { allTouched: false
-      , initialInputs: input.initialInputs
+      , initialInputs
       , validators: input.validators
       , debounceRef: Nothing
       , validationRef: Nothing

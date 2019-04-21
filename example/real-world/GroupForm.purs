@@ -123,7 +123,7 @@ prx = F.mkSProxies $ F.FormProxy :: _ GroupForm
 
 input :: forall m. Monad m => F.Input GroupForm State m
 input =
-  { initialInputs: F.mkInputFields $ F.FormProxy :: _ GroupForm
+  { initialInputs: F.Defaults
   , validators: GroupForm
       { name: V.nonEmptyStr
       , admin: V.exists
