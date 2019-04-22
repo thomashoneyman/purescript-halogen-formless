@@ -35,14 +35,15 @@ derive instance newtypeDogForm :: Newtype (DogForm r f) _
 
 Next, the component input, which is made up of initial values and validation functions for each field in your form.  Note: with your form type complete, the compiler will verify that your inputs are of the right type, that your validation takes the right input type, produces the right error type, and parses to the right output type, that fields exist at these proper keys, and more. There's no loss in type safety here! Plus, your validation functions can easily reference the value of other fields in the form, perform monadic effects, get debounced before running, and more. 
 
-You can generate sensible defaults for all input fields in your form by setting `initialInputs` to `Defaults`. However, if you want to manually provide starting values, then you can set `initialInputs` to `Custom` and provide a record of input values.
+You can generate sensible defaults for all input fields in your form by setting `initialInputs` to `Nothing`, or you can manually provide the starting value for each field in your form.
 
 ```purescript
 import Formless as F
 
 input :: forall m. Monad m => F.Input' DogForm m
 input = 
-  { validators: DogForm
+  { initialInputs: Nothing -- same as: Just (F.wrapInputFields { name: "", age: "" })
+  , validators: DogForm
       { name: F.noValidation
       , age: F.hoistFnE_ \str -> case fromString str of 
           Nothing -> Left InvalidInt
@@ -51,8 +52,6 @@ input =
             | n > 30 -> Left TooHigh
             | otherwise -> Right (Age n)
       }
-    -- identital: F.Custom $ F.wrapInputFields { name: "", age: "" }
-  , initialInputs: F.Defaults
   }
 ```
 

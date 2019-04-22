@@ -175,19 +175,13 @@ derive instance ordValidStatus :: Ord ValidStatus
 instance showValidStatus :: Show ValidStatus where
   show = genericShow
 
--- | A type to represent whether inputs should be generated from default `Initial`
--- | values or whether they will be provided manually.
-data InitialInputs form 
-  = Defaults
-  | Custom (form Record InputField) 
-
 -- | The component's input type. If you provide `Nothing` as your `initialInputs`
 -- | then the form will fill in values based on the `Initial` type class for the
 -- | field's input type. Otherwise, the form will contain the values you provide.
 -- |
 -- | Validators can be created using the Formless.Validation module.
 type Input form st m =
-  { initialInputs :: InitialInputs form
+  { initialInputs :: Maybe (form Record InputField)
   , validators :: form Record (Validation form m)
   | st
   }

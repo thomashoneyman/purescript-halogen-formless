@@ -62,8 +62,8 @@ component = H.mkComponent
   -- Formless
 
   input = 
-    { initialInputs: F.Defaults
-    , validators: ContactForm { name: V.minLength 5, text: F.noValidation }
+    { validators: ContactForm { name: V.minLength 5, text: F.noValidation }
+    , initialInputs: Nothing
     }
 
   spec = F.defaultSpec

@@ -17,7 +17,7 @@ import Formless.Action as FA
 import Formless.Data.FormFieldResult (FormFieldResult(..))
 import Formless.Internal.Transform as Internal
 import Formless.Internal.Debounce (debounceForm)
-import Formless.Types.Component (Action, Component, HalogenM, Input, InternalState(..), Message(..), PublicAction, PublicState, QueryF(..), Query, Spec, State, ValidStatus(..), InitialInputs(..))
+import Formless.Types.Component (Action, Component, HalogenM, Input, InternalState(..), Message(..), PublicAction, PublicState, QueryF(..), Query, Spec, State, ValidStatus(..))
 import Formless.Types.Form (FormField, InputField, InputFunction, OutputField, U, FormProxy(..))
 import Formless.Transform.Row (mkInputFields, class MakeInputFieldsFromRow)
 import Formless.Validation (Validation)
@@ -100,8 +100,8 @@ component spec = H.mkComponent
   initialState input = Builder.build pipeline input
     where
     initialInputs = case input.initialInputs of
-      Defaults -> mkInputFields (FormProxy :: FormProxy form)
-      Custom inputs -> inputs
+      Nothing -> mkInputFields (FormProxy :: FormProxy form)
+      Just inputs -> inputs
     initialForm = Internal.inputFieldsToFormFields initialInputs
     internalState = InternalState
       { allTouched: false

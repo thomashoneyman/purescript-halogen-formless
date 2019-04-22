@@ -123,8 +123,7 @@ prx = F.mkSProxies $ F.FormProxy :: _ GroupForm
 
 input :: forall m. Monad m => F.Input GroupForm State m
 input =
-  { initialInputs: F.Defaults
-  , validators: GroupForm
+  { validators: GroupForm
       { name: V.nonEmptyStr
       , admin: V.exists
       , applications: V.nonEmptyArray
@@ -133,6 +132,7 @@ input =
       , secretKey1: V.nonEmptyStr >>> V.minLength 5 >>> equalsSecretKey2
       , secretKey2: V.nonEmptyStr >>> V.minLength 5 >>> equalsSecretKey1
       }
+  , initialInputs: Nothing
   , selectedTab: GroupTab
   , optionsErrors: 0
   , optionsDirty: false

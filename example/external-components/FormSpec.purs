@@ -59,13 +59,13 @@ derive instance ordTypeahead :: Ord Typeahead
 
 defaultInput :: forall m. MonadAff m => F.Input' UserForm m
 defaultInput =
-  { initialInputs: F.Defaults
-  , validators: UserForm
+  { validators: UserForm
       { name: V.minLength 7
       , email: V.exists >>> V.emailFormat
       , whiskey: V.exists
       , language: V.exists
       }
+  , initialInputs: Nothing
   }
 
 spec :: forall m. MonadAff m => F.Spec UserForm () (Const Void) Action ChildSlots User m

@@ -63,7 +63,7 @@ eventFormInput =
       , location: V.minLength 3
       , members: F.hoistFn_ (fromMaybe [])
       }
-  , initialInputs: F.Defaults
+  , initialInputs: Nothing
   , formIds: []
   , nextId: 0
   }
@@ -183,7 +183,7 @@ memberFormInput =
       , email: V.emailFormat >>> V.emailIsUsed
       , notes: F.noValidation
       }
-  , initialInputs: F.Defaults
+  , initialInputs: Nothing
   }
 
 memberFormSpec :: Int -> F.Spec MemberForm () (Const Void) MFAction () MFMessage Aff

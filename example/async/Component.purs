@@ -70,12 +70,12 @@ component = H.mkComponent
   -- Formless
 
   input = 
-    { initialInputs: F.Defaults
-    , validators: Form
+    { validators: Form
         { name: V.minLength 5
         , email: V.emailFormat >>> V.emailIsUsed
         , balance: V.strIsInt >>> V.enoughMoney
         }
+    , initialInputs: Nothing
     }
 
   spec = F.defaultSpec 
