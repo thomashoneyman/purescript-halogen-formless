@@ -18,12 +18,14 @@ import Formless.Data.FormFieldResult (FormFieldResult(..))
 import Formless.Internal.Component as IC
 import Formless.Internal.Debounce (debounceForm)
 import Formless.Internal.Transform as IT
+import Formless.Transform.Record (UnwrapField, unwrapOutputFields)
 import Formless.Transform.Row (mkInputFields, class MakeInputFieldsFromRow)
 import Formless.Types.Component (Action, Component, HalogenM, Input, InternalState(..), Message(..), PublicAction, Query, QueryF(..), Spec, State, ValidStatus(..))
 import Formless.Types.Form (FormField, InputField, InputFunction, OutputField, U, FormProxy(..))
 import Formless.Validation (Validation)
 import Halogen as H
 import Halogen.HTML as HH
+import Heterogeneous.Mapping as HM
 import Prim.Row as Row
 import Prim.RowList as RL
 import Record.Builder as Builder
@@ -35,7 +37,7 @@ import Unsafe.Coerce (unsafeCoerce)
 -- | ```purescript
 -- | mySpec = F.defaultSpec { render = myRender }
 -- | ```
-defaultSpec :: forall form st query act ps msg m. Spec form st query act ps msg m
+defaultSpec :: forall form st query act slots msg m. Spec form st query act slots msg m
 defaultSpec = 
   { render: const (HH.text mempty)
   , handleAction: const (pure unit)
@@ -46,10 +48,42 @@ defaultSpec =
   , finalize: Nothing
   }
 
+-- | A convenience function for raising a form's validated and unwrapped outputs 
+-- | as its only message to a parent component. Useful when you only want to be 
+-- | notified with a form's successfully-parsed data. For example:
+-- |
+-- | ```purescript
+-- | type User = { name :: String, email :: Email }
+-- |
+-- | newtype UserForm r f = UserForm (r 
+-- |   ( name :: f Void String String
+-- |   , email :: f EmailError String Email
+-- |   ))
+-- | derive instance newtypeUserForm :: Newtype (UserForm r f) _
+-- | 
+-- | -- we only want to handle our `User` type on successful submission; we can 
+-- | -- use `raiseResult` as our `handleMessage` function to do this conveniently.
+-- | formSpec = F.defaultSpec { handleMessage = raiseResult }
+-- |
+-- | -- the parent can now just handle the `User` output
+-- | data ParentAction = HandleForm User
+-- |
+-- | type ChildSlots = ( formless :: F.Slot' UserForm User Unit )
+-- | ```
+raiseResult 
+  :: forall form st act slots wrappedOutput output m
+   . Newtype (form Record OutputField) { | wrappedOutput }
+  => HM.HMap UnwrapField { | wrappedOutput } { | output }
+  => Message form slots 
+  -> HalogenM form st act slots { | output } m Unit
+raiseResult = case _ of
+  Submitted out -> H.raise (unwrapOutputFields out)
+  _ -> pure unit
+
 -- | The Formless component, which takes a `spec` and provides a running form
 -- | component from it.
 component
-  :: forall form st query act ps msg m is ixs ivs fs fxs us vs os ifs ivfs
+  :: forall form st query act slots msg m is ixs ivs fs fxs us vs os ifs ivfs
    . MonadAff m
   => RL.RowToList is ixs
   => RL.RowToList fs fxs
@@ -81,8 +115,8 @@ component
   => Row.Lacks "submitting" st
   => Row.Lacks "form" st
   => Row.Lacks "internal" st
-  => Spec form st query act ps msg m
-  -> Component form st query ps msg m
+  => Spec form st query act slots msg m
+  -> Component form st query slots msg m
 component spec = H.mkComponent
   { initialState
   , render: IC.getPublicState >>> spec.render
@@ -123,7 +157,7 @@ component spec = H.mkComponent
         >>> Builder.insert (SProxy :: _ "internal") internalState
 
 handleAction
-  :: forall form st act ps msg m is ixs ivs fs fxs us vs os ifs ivfs
+  :: forall form st act slots msg m is ixs ivs fs fxs us vs os ifs ivfs
    . MonadAff m
   => RL.RowToList is ixs
   => RL.RowToList fs fxs
@@ -146,10 +180,10 @@ handleAction
   => Newtype (form Variant InputFunction) (Variant ivfs)
   => Newtype (form Variant U) (Variant us)
   => Row.Lacks "internal" st
-  => (act -> HalogenM form st act ps msg m Unit)
-  -> (Message form st -> HalogenM form st act ps msg m Unit)
+  => (act -> HalogenM form st act slots msg m Unit)
+  -> (Message form st -> HalogenM form st act slots msg m Unit)
   -> Action form act
-  -> HalogenM form st act ps msg m Unit
+  -> HalogenM form st act slots msg m Unit
 handleAction handleAction' handleMessage action = flip match action 
   { initialize: \mbAction -> do
       dr <- H.liftEffect $ Ref.new Nothing
@@ -211,7 +245,7 @@ handleAction handleAction' handleMessage action = flip match action
       let
         modifyWith
           :: (forall e o. FormFieldResult e o -> FormFieldResult e o)
-          -> HalogenM form st act ps msg m (form Record FormField)
+          -> HalogenM form st act slots msg m (form Record FormField)
         modifyWith f = do
           st <- H.modify \s -> s
             { form = IT.unsafeModifyInputVariant f variant s.form }
@@ -302,7 +336,7 @@ handleAction handleAction' handleMessage action = flip match action
   sync = inj (SProxy :: SProxy "syncFormData") unit
 
 handleQuery 
-  :: forall form st query act ps msg m a is ixs ivs fs fxs us vs os ifs ivfs
+  :: forall form st query act slots msg m a is ixs ivs fs fxs us vs os ifs ivfs
    . MonadAff m
   => RL.RowToList is ixs
   => RL.RowToList fs fxs
@@ -325,10 +359,10 @@ handleQuery
   => Newtype (form Variant InputFunction) (Variant ivfs)
   => Newtype (form Variant U) (Variant us)
   => Row.Lacks "internal" st
-  => (forall b. query b -> HalogenM form st act ps msg m (Maybe b))
-  -> (Message form st -> HalogenM form st act ps msg m Unit)
-  -> Query form query ps a 
-  -> HalogenM form st act ps msg m (Maybe a)
+  => (forall b. query b -> HalogenM form st act slots msg m (Maybe b))
+  -> (Message form st -> HalogenM form st act slots msg m Unit)
+  -> Query form query slots a 
+  -> HalogenM form st act slots msg m (Maybe a)
 handleQuery handleQuery' handleMessage = VF.match
   { query: case _ of
       SubmitReply reply -> do

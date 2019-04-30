@@ -15,15 +15,11 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 
--- Output type
-
 type BankUser =
   { name :: String
   , email :: V.Email
   , balance :: Int
   }
-
--- Form 
 
 newtype Form r f = Form (r (FormRow f))
 derive instance newtypeForm :: Newtype (Form r f) _
@@ -34,15 +30,7 @@ type FormRow f =
   , balance :: f V.FieldError String Int
   )
 
-
--- Page component
-
--- We'll modify Formless' messages to only raise the successful parsed result
-data Action
-  = HandleFormless BankUser
-
-type ChildSlot = 
-  ( formless :: F.Slot' Form BankUser )
+data Action = HandleForm BankUser
 
 component :: H.Component HH.HTML (Const Void) Unit Void Aff
 component = H.mkComponent
@@ -52,7 +40,7 @@ component = H.mkComponent
   }
   where
   handleAction = case _ of 
-    HandleFormless bankUser -> H.liftEffect $ logShow (bankUser :: BankUser)
+    HandleForm bankUser -> H.liftEffect $ logShow (bankUser :: BankUser)
 
   render _ =
     UI.section_
@@ -63,13 +51,10 @@ component = H.mkComponent
           If you have fields with expensive validation, you can debounce modifications to the field with the async versions of setValidate and modifyValidate query functions. The result type of the form field lets you know whether the field has not been validated, is currently validating, or has produced an error or result.
           """
       , HH.br_
-      , HH.slot F._formless unit (F.component spec) input (Just <<< HandleFormless)
+      , HH.slot F._formless unit (F.component formSpec) formInput (Just <<< HandleForm)
       ]
 
-  -----
-  -- Formless
-
-  input = 
+  formInput = 
     { validators: Form
         { name: V.minLength 5
         , email: V.emailFormat >>> V.emailIsUsed
@@ -78,15 +63,9 @@ component = H.mkComponent
     , initialInputs: Nothing
     }
 
-  spec = F.defaultSpec 
-    { render = renderForm
-    , handleMessage = case _ of
-        F.Submitted outputs -> H.raise (F.unwrapOutputFields outputs)
-        _ -> pure unit
-    }
+  formSpec :: F.Spec' Form BankUser Aff
+  formSpec = F.defaultSpec { render = renderForm, handleMessage = F.raiseResult }
     where
-    prx = F.mkSProxies (F.FormProxy :: _ Form)
-
     renderForm { form } =
       UI.formContent_
         [ UI.input
@@ -121,4 +100,5 @@ component = H.mkComponent
             [ HE.onClick \_ -> Just F.submit ]
             [ HH.text "Submit" ]
         ]
-
+      where 
+      prx = F.mkSProxies (F.FormProxy :: _ Form)

@@ -22,7 +22,7 @@ module Formless
 
 import Formless.Action (asyncModifyValidate, asyncSetValidate, injAction, loadForm, modify, modifyAll, modifyValidate, modifyValidateAll, reset, resetAll, set, setAll, setValidate, setValidateAll, submit, validate, validateAll)
 import Formless.Class.Initial (class Initial, initial) 
-import Formless.Component (component, defaultSpec, handleAction, handleQuery)
+import Formless.Component (component, defaultSpec, handleAction, handleQuery, raiseResult) 
 import Formless.Data.FormFieldResult (FormFieldResult(..), _Error, _Success, fromEither, toMaybe)
 import Formless.Query (asQuery, injQuery, sendQuery, submitReply)
 import Formless.Retrieve (FormFieldGet, FormFieldLens, GetAll, GetError(..), GetInputField(..), GetOutput(..), GetResultField(..), GetTouchedField(..), _Field, _FieldError, _FieldInput, _FieldOutput, _FieldResult, _FieldTouched, getError, getErrorAll, getField, getInput, getInputAll, getOutput, getOutputAll, getResult, getResultAll, getTouched, getTouchedAll) 

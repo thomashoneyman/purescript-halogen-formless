@@ -133,12 +133,12 @@ spec = F.defaultSpec
           ]
       ]
     where
-    name = UI.formlessField UI.input
+    name = st # UI.formlessField UI.input
       { label: "Name"
       , help: "Write your name"
       , placeholder: "Dale"
       , sym: prx.name
-      } st
+      }
     
     email = UI.field
       { label: "Email"

@@ -25,6 +25,9 @@ component = H.mkComponent
   , eval: H.mkEval $ H.defaultEval { handleAction = handleAction }
   }
   where
+  handleAction = case _ of
+    HandleFormless user -> logShow (user :: User)
+
   render st =
     UI.section_
       [ UI.h1_ [ HH.text "Formless" ]
@@ -38,6 +41,3 @@ component = H.mkComponent
           """
       , HH.slot F._formless unit (F.component spec) defaultInput (Just <<< HandleFormless)
       ]
-
-  handleAction = case _ of
-    HandleFormless user -> logShow (user :: User)

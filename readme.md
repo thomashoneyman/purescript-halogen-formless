@@ -59,6 +59,8 @@ Finally, the component spec, which is made up of a number of optional functions 
 
 For our small form, we'll do two things: we'll provide a render function, and when the form is submitted, we'll output a `Dog` to parent components. Along the way we'll wire things up so that input fields display their current value from form state; typing into an input field updates its value in state, also running the correct validation function; we'll display the validation error for `age` if there is one; and we'll wire up a submit button.
 
+Note: If you would like to have your form raise no messages (rare), do not supply a `handleMessage` function. If you would like to raise the usual Formless messages (`Changed`, `Submitted`), then provide `H.raise` as your `handleMessage` function. If you would like to simply raise your form's validated output type (`Dog`, in this example), then provide `F.raiseResult` as your `handleMessage` function. Finally, if you want to do something else, you can write a custom function that does whatever you would like.
+
 ```purescript
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -66,13 +68,7 @@ import Halogen.HTML.Properties as HP
 import Formless as F
 
 spec :: forall m. Monad m => F.Spec' DogForm Dog m
-spec = F.defaultSpec
-  { render
-  , handleMessage = case _ of
-      F.Submitted output ->
-        H.raise (F.unwrapOutputFields output :: Dog)
-      _ -> pure unit
-  }
+spec = F.defaultSpec { render, handleMessage = F.raiseResult }
   where
   render st@{ form } =
     HH.form_
@@ -105,7 +101,6 @@ import Halogen as H
 import Formless as F
 
 data Action = HandleDogForm Dog
-type ChildSlots = ( formless :: F.Slot' DogForm Dog )
 
 page = H.mkComponent
   { initialState: const unit
