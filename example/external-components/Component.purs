@@ -16,7 +16,7 @@ data Action
   = HandleFormless User
 
 type ChildSlot =
-  ( formless :: F.Slot UserForm (Const Void) ChildSlots Unit )
+  ( formless :: F.Slot UserForm (Const Void) ChildSlots User Unit )
 
 component :: H.Component HH.HTML (Const Void) Unit Void Aff
 component = H.mkComponent

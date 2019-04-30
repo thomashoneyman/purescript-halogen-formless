@@ -34,7 +34,7 @@ data Action
   = HandleFormless Contact
 
 type ChildSlot = 
-  ( formless :: F.Slot' ContactForm )
+  ( formless :: F.Slot' ContactForm Contact )
 
 component :: H.Component HH.HTML (Const Void) Unit Void Aff
 component = H.mkComponent
@@ -98,4 +98,3 @@ component = H.mkComponent
      where
      _name = SProxy :: SProxy "name"
      _text = SProxy :: SProxy "text"
-

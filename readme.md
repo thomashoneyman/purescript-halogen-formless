@@ -4,7 +4,7 @@
 [![Latest release](http://img.shields.io/github/release/thomashoneyman/purescript-halogen-formless.svg)](https://github.com/thomashoneyman/purescript-halogen-formless/releases)
 [![Maintainer: thomashoneyman](https://img.shields.io/badge/maintainer-thomashoneyman-lightgrey.svg)](http://github.com/thomashoneyman)
 
-Formless is a flexible, extensible, type-safe Halogen component for building forms without boilerplate. 
+Formless is a flexible, extensible, type-safe Halogen component for building forms without boilerplate.
 
 - [Examples & documentation site](https://thomashoneyman.github.io/purescript-halogen-formless/)
 - [Source code for examples](https://github.com/thomashoneyman/purescript-halogen-formless/tree/master/example)
@@ -18,13 +18,13 @@ You can write a basic Formless form in just a few lines of code. You are respons
 First, a form type that describes the fields in your form, along with their validation error type, user input type, and validated output type. Note: you can provide whatever custom error types you'd like, use `Void` to represent no possible errors, parse to whatever type you want, and none of your fields need to share any types.
 
 ```purescript
-type Dog = { name :: String, age :: Age } 
+type Dog = { name :: String, age :: Age }
 
 newtype Age = Age Int
 
 data AgeError = TooLow | TooHigh | InvalidInt
 
-newtype DogForm r f = DogForm (r 
+newtype DogForm r f = DogForm (r
   --          error    input  output
   ( name :: f Void     String String
   , age  :: f AgeError String Age
@@ -33,7 +33,7 @@ newtype DogForm r f = DogForm (r
 derive instance newtypeDogForm :: Newtype (DogForm r f) _
 ```
 
-Next, the component input, which is made up of initial values and validation functions for each field in your form.  Note: with your form type complete, the compiler will verify that your inputs are of the right type, that your validation takes the right input type, produces the right error type, and parses to the right output type, that fields exist at these proper keys, and more. There's no loss in type safety here! Plus, your validation functions can easily reference the value of other fields in the form, perform monadic effects, get debounced before running, and more. 
+Next, the component input, which is made up of initial values and validation functions for each field in your form. Note: with your form type complete, the compiler will verify that your inputs are of the right type, that your validation takes the right input type, produces the right error type, and parses to the right output type, that fields exist at these proper keys, and more. There's no loss in type safety here! Plus, your validation functions can easily reference the value of other fields in the form, perform monadic effects, get debounced before running, and more.
 
 You can generate sensible defaults for all input fields in your form by setting `initialInputs` to `Nothing`, or you can manually provide the starting value for each field in your form.
 
@@ -41,11 +41,11 @@ You can generate sensible defaults for all input fields in your form by setting 
 import Formless as F
 
 input :: forall m. Monad m => F.Input' DogForm m
-input = 
+input =
   { initialInputs: Nothing -- same as: Just (F.wrapInputFields { name: "", age: "" })
   , validators: DogForm
       { name: F.noValidation
-      , age: F.hoistFnE_ \str -> case fromString str of 
+      , age: F.hoistFnE_ \str -> case fromString str of
           Nothing -> Left InvalidInt
           Just n
             | n < 0 -> Left TooLow
@@ -66,7 +66,7 @@ import Halogen.HTML.Properties as HP
 import Formless as F
 
 spec :: forall m. Monad m => F.Spec' DogForm Dog m
-spec = F.defaultSpec 
+spec = F.defaultSpec
   { render
   , handleMessage = case _ of
       F.Submitted output ->
@@ -74,8 +74,8 @@ spec = F.defaultSpec
       _ -> pure unit
   }
   where
-  render st@{ form } = 
-    HH.form_ 
+  render st@{ form } =
+    HH.form_
       [ HH.input
           [ HP.value $ F.getInput _name form
           , HE.onValueInput $ Just <<< F.set _name
@@ -105,7 +105,7 @@ import Halogen as H
 import Formless as F
 
 data Action = HandleDogForm Dog
-type ChildSlots = ( formless :: F.Slot' DogForm )
+type ChildSlots = ( formless :: F.Slot' DogForm Dog )
 
 page = H.mkComponent
   { initialState: const unit

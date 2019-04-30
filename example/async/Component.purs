@@ -42,7 +42,7 @@ data Action
   = HandleFormless BankUser
 
 type ChildSlot = 
-  ( formless :: F.Slot' Form )
+  ( formless :: F.Slot' Form BankUser )
 
 component :: H.Component HH.HTML (Const Void) Unit Void Aff
 component = H.mkComponent

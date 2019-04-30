@@ -15,11 +15,12 @@ import Effect.Aff.Class (class MonadAff)
 import Effect.Ref as Ref
 import Formless.Action as FA
 import Formless.Data.FormFieldResult (FormFieldResult(..))
-import Formless.Internal.Transform as Internal
+import Formless.Internal.Component as IC
 import Formless.Internal.Debounce (debounceForm)
-import Formless.Types.Component (Action, Component, HalogenM, Input, InternalState(..), Message(..), PublicAction, PublicState, QueryF(..), Query, Spec, State, ValidStatus(..))
-import Formless.Types.Form (FormField, InputField, InputFunction, OutputField, U, FormProxy(..))
+import Formless.Internal.Transform as IT
 import Formless.Transform.Row (mkInputFields, class MakeInputFieldsFromRow)
+import Formless.Types.Component (Action, Component, HalogenM, Input, InternalState(..), Message(..), PublicAction, Query, QueryF(..), Spec, State, ValidStatus(..))
+import Formless.Types.Form (FormField, InputField, InputFunction, OutputField, U, FormProxy(..))
 import Formless.Validation (Validation)
 import Halogen as H
 import Halogen.HTML as HH
@@ -53,15 +54,15 @@ component
   => RL.RowToList is ixs
   => RL.RowToList fs fxs
   => EqRecord ixs is
-  => Internal.InputFieldsToFormFields ixs is fs
-  => Internal.FormFieldsToInputFields fxs fs is
-  => Internal.CountErrors fxs fs
-  => Internal.AllTouched fxs fs
-  => Internal.SetFormFieldsTouched fxs fs fs
-  => Internal.ReplaceFormFieldInputs is fxs fs fs
-  => Internal.ModifyAll ifs fxs fs fs
-  => Internal.ValidateAll vs fxs fs fs m
-  => Internal.FormFieldToMaybeOutput fxs fs os
+  => IT.InputFieldsToFormFields ixs is fs
+  => IT.FormFieldsToInputFields fxs fs is
+  => IT.CountErrors fxs fs
+  => IT.AllTouched fxs fs
+  => IT.SetFormFieldsTouched fxs fs fs
+  => IT.ReplaceFormFieldInputs is fxs fs fs
+  => IT.ModifyAll ifs fxs fs fs
+  => IT.ValidateAll vs fxs fs fs m
+  => IT.FormFieldToMaybeOutput fxs fs os
   => MakeInputFieldsFromRow ixs is is
   => Newtype (form Record InputField) { | is }
   => Newtype (form Record InputFunction) { | ifs }
@@ -84,7 +85,7 @@ component
   -> Component form st query ps msg m
 component spec = H.mkComponent
   { initialState
-  , render: getPublicState >>> spec.render
+  , render: IC.getPublicState >>> spec.render
   , eval: H.mkEval $ H.defaultEval
       { handleQuery = \q -> handleQuery spec.handleQuery spec.handleMessage q
       , handleAction = \act -> handleAction spec.handleAction spec.handleMessage act
@@ -102,7 +103,7 @@ component spec = H.mkComponent
     initialInputs = case input.initialInputs of
       Nothing -> mkInputFields (FormProxy :: FormProxy form)
       Just inputs -> inputs
-    initialForm = Internal.inputFieldsToFormFields initialInputs
+    initialForm = IT.inputFieldsToFormFields initialInputs
     internalState = InternalState
       { allTouched: false
       , initialInputs
@@ -127,15 +128,15 @@ handleAction
   => RL.RowToList is ixs
   => RL.RowToList fs fxs
   => EqRecord ixs is
-  => Internal.InputFieldsToFormFields ixs is fs
-  => Internal.FormFieldsToInputFields fxs fs is
-  => Internal.CountErrors fxs fs
-  => Internal.AllTouched fxs fs
-  => Internal.SetFormFieldsTouched fxs fs fs
-  => Internal.ReplaceFormFieldInputs is fxs fs fs
-  => Internal.ModifyAll ifs fxs fs fs
-  => Internal.ValidateAll vs fxs fs fs m
-  => Internal.FormFieldToMaybeOutput fxs fs os
+  => IT.InputFieldsToFormFields ixs is fs
+  => IT.FormFieldsToInputFields fxs fs is
+  => IT.CountErrors fxs fs
+  => IT.AllTouched fxs fs
+  => IT.SetFormFieldsTouched fxs fs fs
+  => IT.ReplaceFormFieldInputs is fxs fs fs
+  => IT.ModifyAll ifs fxs fs fs
+  => IT.ValidateAll vs fxs fs fs m
+  => IT.FormFieldToMaybeOutput fxs fs os
   => Newtype (form Record InputField) { | is }
   => Newtype (form Record InputFunction) { | ifs }
   => Newtype (form Record FormField) { | fs }
@@ -160,9 +161,9 @@ handleAction handleAction' handleMessage action = flip match action
   , syncFormData: \_ -> do
       st <- H.get
       let 
-        errors = Internal.countErrors st.form
+        errors = IT.countErrors st.form
         dirty = not $ eq
-          (unwrap (Internal.formFieldsToInputFields st.form))
+          (unwrap (IT.formFieldsToInputFields st.form))
           (unwrap (unwrap st.internal).initialInputs)
 
       -- Need to verify the validity status of the form.
@@ -175,7 +176,7 @@ handleAction handleAction' handleMessage action = flip match action
 
         -- If not all fields are touched, then we need to quickly sync the form state
         -- to verify this is actually the case.
-        _ -> case Internal.allTouched st.form of
+        _ -> case IT.allTouched st.form of
 
           -- The sync revealed all fields really have been touched
           true -> H.modify _
@@ -188,21 +189,21 @@ handleAction handleAction' handleMessage action = flip match action
           -- The sync revealed that not all fields have been touched
           _ -> H.modify _ { validity = Incomplete, errors = errors, dirty = dirty }
 
-      handleMessage $ Changed $ getPublicState newState
+      handleMessage $ Changed $ IC.getPublicState newState
 
   , userAction: \act -> 
       handleAction' act
 
   , modify: \variant ->  do
       H.modify_ \st -> st
-        { form = Internal.unsafeModifyInputVariant identity variant st.form }
+        { form = IT.unsafeModifyInputVariant identity variant st.form }
       handleAction handleAction' handleMessage sync
 
   , validate: \variant -> do
       st <- H.get
       let validators = (unwrap st.internal).validators
       form <- H.lift do
-        Internal.unsafeRunValidationVariant variant validators st.form
+        IT.unsafeRunValidationVariant variant validators st.form
       H.modify_ _ { form = form }
       handleAction handleAction' handleMessage sync
 
@@ -213,14 +214,14 @@ handleAction handleAction' handleMessage action = flip match action
           -> HalogenM form st act ps msg m (form Record FormField)
         modifyWith f = do
           st <- H.modify \s -> s
-            { form = Internal.unsafeModifyInputVariant f variant s.form }
+            { form = IT.unsafeModifyInputVariant f variant s.form }
           pure st.form
 
         validate = do
           st <- H.get
           let vs = (unwrap st.internal).validators
           form <- H.lift do 
-            Internal.unsafeRunValidationVariant (unsafeCoerce variant) vs st.form
+            IT.unsafeRunValidationVariant (unsafeCoerce variant) vs st.form
           H.modify_ _ { form = form }
           pure form
 
@@ -236,30 +237,30 @@ handleAction handleAction' handleMessage action = flip match action
 
   , reset: \variant -> do
       H.modify_ \st -> st
-        { form = Internal.unsafeModifyInputVariant identity variant st.form
+        { form = IT.unsafeModifyInputVariant identity variant st.form
         , internal = over InternalState (_ { allTouched = false }) st.internal
         }
       handleAction handleAction' handleMessage sync
 
   , setAll: \(Tuple formInputs shouldValidate) -> do
       new <- H.modify \st -> st
-        { form = Internal.replaceFormFieldInputs formInputs st.form }
-      handleMessage $ Changed $ getPublicState new
+        { form = IT.replaceFormFieldInputs formInputs st.form }
+      handleMessage $ Changed $ IC.getPublicState new
       case shouldValidate of
         true -> handleAction handleAction' handleMessage FA.validateAll
         _ -> handleAction handleAction' handleMessage sync
 
   , modifyAll: \(Tuple formInputs shouldValidate) -> do
       new <- H.modify \st -> st
-        { form = Internal.modifyAll formInputs st.form }
-      handleMessage $ Changed $ getPublicState new
+        { form = IT.modifyAll formInputs st.form }
+      handleMessage $ Changed $ IC.getPublicState new
       case shouldValidate of
         true -> handleAction handleAction' handleMessage FA.validateAll
         _ -> handleAction handleAction' handleMessage sync
 
   , validateAll: \_ -> do
       st <- H.get
-      form <- H.lift $ Internal.validateAll (unwrap st.internal).validators st.form
+      form <- H.lift $ IT.validateAll (unwrap st.internal).validators st.form
       H.modify_ _ { form = form }
       handleAction handleAction' handleMessage sync
 
@@ -271,16 +272,16 @@ handleAction handleAction' handleMessage action = flip match action
         , submitAttempts = 0
         , submitting = false
         , form = 
-            Internal.replaceFormFieldInputs (unwrap st.internal).initialInputs st.form
+            IT.replaceFormFieldInputs (unwrap st.internal).initialInputs st.form
         , internal = 
             over InternalState (_ { allTouched = false }) st.internal
         }
-      handleMessage $ Changed $ getPublicState new
+      handleMessage $ Changed $ IC.getPublicState new
 
   , submit: \_ -> do
-      _ <- preSubmit 
+      _ <- IC.preSubmit 
       _ <- handleAction handleAction' handleMessage FA.validateAll 
-      submit >>= traverse_ (Submitted >>> handleMessage)
+      IC.submit >>= traverse_ (Submitted >>> handleMessage)
 
   , loadForm: \formInputs -> do
       let setFields rec = rec { allTouched = false, initialInputs = formInputs }
@@ -291,10 +292,10 @@ handleAction handleAction' handleMessage action = flip match action
         , errors = 0
         , submitAttempts = 0
         , submitting = false
-        , form = Internal.replaceFormFieldInputs formInputs st.form
+        , form = IT.replaceFormFieldInputs formInputs st.form
         , internal = over InternalState setFields st.internal
         }
-      handleMessage $ Changed $ getPublicState new
+      handleMessage $ Changed $ IC.getPublicState new
   }
   where
   sync :: Action form act 
@@ -306,15 +307,15 @@ handleQuery
   => RL.RowToList is ixs
   => RL.RowToList fs fxs
   => EqRecord ixs is
-  => Internal.InputFieldsToFormFields ixs is fs
-  => Internal.FormFieldsToInputFields fxs fs is
-  => Internal.CountErrors fxs fs
-  => Internal.AllTouched fxs fs
-  => Internal.SetFormFieldsTouched fxs fs fs
-  => Internal.ReplaceFormFieldInputs is fxs fs fs
-  => Internal.ModifyAll ifs fxs fs fs
-  => Internal.ValidateAll vs fxs fs fs m
-  => Internal.FormFieldToMaybeOutput fxs fs os
+  => IT.InputFieldsToFormFields ixs is fs
+  => IT.FormFieldsToInputFields fxs fs is
+  => IT.CountErrors fxs fs
+  => IT.AllTouched fxs fs
+  => IT.SetFormFieldsTouched fxs fs fs
+  => IT.ReplaceFormFieldInputs is fxs fs fs
+  => IT.ModifyAll ifs fxs fs fs
+  => IT.ValidateAll vs fxs fs fs m
+  => IT.FormFieldToMaybeOutput fxs fs os
   => Newtype (form Record InputField) { | is }
   => Newtype (form Record InputFunction) { | ifs }
   => Newtype (form Record FormField) { | fs }
@@ -331,9 +332,9 @@ handleQuery
 handleQuery handleQuery' handleMessage = VF.match
   { query: case _ of
       SubmitReply reply -> do
-        _ <- preSubmit 
+        _ <- IC.preSubmit 
         _ <- handleAction (const (pure unit)) handleMessage FA.validateAll 
-        mbForm <- submit 
+        mbForm <- IC.submit 
         pure $ Just $ reply mbForm
 
       SendQuery box -> 
@@ -347,63 +348,3 @@ handleQuery handleQuery' handleMessage = VF.match
 
   , userQuery: \q -> handleQuery' q
   }
-
-
--- INTERNAL
-
--- Remove internal fields and user-supplied fields to return the public state
-getPublicState 
-  :: forall form st m
-   . Row.Lacks "internal" st
-  => State form st m 
-  -> PublicState form st
-getPublicState = Builder.build (Builder.delete (SProxy :: SProxy "internal"))
-
-preSubmit 
-  :: forall form st act ps msg m fs fxs os vs
-   . MonadAff m
-  => RL.RowToList fs fxs
-  => Internal.AllTouched fxs fs
-  => Internal.SetFormFieldsTouched fxs fs fs
-  => Internal.ValidateAll vs fxs fs fs m
-  => Internal.FormFieldToMaybeOutput fxs fs os
-  => Internal.ValidateAll vs fxs fs fs m
-  => Newtype (form Record FormField) { | fs }
-  => Newtype (form Record OutputField) { | os }
-  => Newtype (form Record (Validation form m)) { | vs }
-  => HalogenM form st act ps msg m Unit
-preSubmit = do
-  init <- H.modify \st -> st
-    { submitAttempts = st.submitAttempts + 1
-    , submitting = true
-    }
-
-  -- For performance purposes, avoid running this if possible
-  let internal = unwrap init.internal
-  when (not internal.allTouched) do
-    H.modify_ _
-      { form = Internal.setFormFieldsTouched init.form
-      , internal = over InternalState (_ { allTouched = true }) init.internal
-      }
-
-submit 
-  :: forall form st act ps msg m fs fxs os vs
-   . MonadAff m
-  => RL.RowToList fs fxs
-  => Internal.AllTouched fxs fs
-  => Internal.SetFormFieldsTouched fxs fs fs
-  => Internal.ValidateAll vs fxs fs fs m
-  => Internal.FormFieldToMaybeOutput fxs fs os
-  => Internal.ValidateAll vs fxs fs fs m
-  => Newtype (form Record FormField) { | fs }
-  => Newtype (form Record OutputField) { | os }
-  => Newtype (form Record (Validation form m)) { | vs }
-  => HalogenM form st act ps msg m (Maybe (form Record OutputField))
-submit = do
-  -- For performance purposes, only attempt to submit if the form is valid
-  validated <- H.get
-  H.modify_ _ { submitting = false }
-
-  pure case validated.validity of
-    Valid -> Internal.formFieldsToMaybeOutputFields validated.form
-    _ -> Nothing

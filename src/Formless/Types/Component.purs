@@ -118,12 +118,12 @@ type HalogenM form st act ps msg m =
   H.HalogenM (State form st m) (Action form act) ps msg m
 
 -- | A simple component eval type when the component does not need extension
-type HalogenM' form m =
-  HalogenM form () Void () Void m
+type HalogenM' form msg m =
+  HalogenM form () Void () msg m
 
 -- | The component local state
 type State form st m = 
-  {| StateRow form (internal :: InternalState form m | st) }
+  { | StateRow form (internal :: InternalState form m | st) }
 
 -- | A simple state type when the component does not need extension
 type State' form m =
@@ -131,7 +131,7 @@ type State' form m =
 
 -- | The component's public state
 type PublicState form st = 
-  {| StateRow form st }
+  { | StateRow form st }
 
 -- | The component's public state, as an extensible row
 type StateRow form st =
@@ -203,14 +203,13 @@ type Message' form = Message form ()
 type Slot form query ps msg = H.Slot (Query form query ps) msg
 
 -- | A simple Slot type when the component does not need extension
-type Slot' form = H.Slot (Query' form) Void
+type Slot' form msg = H.Slot (Query' form) msg
 
 -- | A convenience export of formless as a symbol for use when mounting Formless
 -- | as a child component
 -- |
 -- | ```purescript
--- | type ChildSlots = (formless :: F.Slot' Form)
+-- | type ChildSlots = (formless :: F.Slot' Form FormResult)
 -- | HH.slot F._formless unit (F.component spec) input handler
 -- | ```
 _formless = SProxy :: SProxy "formless"
-
