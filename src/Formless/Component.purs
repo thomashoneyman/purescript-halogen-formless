@@ -74,7 +74,7 @@ raiseResult
   :: forall form st act slots wrappedOutput output m
    . Newtype (form Record OutputField) { | wrappedOutput }
   => HM.HMap UnwrapField { | wrappedOutput } { | output }
-  => Message form slots 
+  => Message form st 
   -> HalogenM form st act slots { | output } m Unit
 raiseResult = case _ of
   Submitted out -> H.raise (unwrapOutputFields out)
