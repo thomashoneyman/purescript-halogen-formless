@@ -204,7 +204,7 @@ type Slot form query ps msg = H.Slot (Query form query ps) msg
 
 -- | A simple Slot type when the component does not need extension, besides a
 -- | custom output message
-type Slot' msg = H.Slot (Const Void) msg
+type Slot' form msg = H.Slot (Query' form) msg
 
 -- | A convenience export of formless as a symbol for use when mounting Formless
 -- | as a child component
