@@ -37,7 +37,7 @@ import Unsafe.Coerce (unsafeCoerce)
 -- | ```purescript
 -- | mySpec = F.defaultSpec { render = myRender }
 -- | ```
-defaultSpec :: forall form st query act slots msg m. Spec form st query act slots msg m
+defaultSpec :: forall form st query act slots input msg m. Spec form st query act slots input msg m
 defaultSpec =
   { render: const (HH.text mempty)
   , handleAction: const (pure unit)
@@ -83,7 +83,7 @@ raiseResult = case _ of
 -- | The Formless component, which takes a `spec` and provides a running form
 -- | component from it.
 component
-  :: forall form st query act slots msg m is ixs ivs fs fxs us vs os ifs ivfs
+  :: forall form st query act slots input msg m is ixs ivs fs fxs us vs os ifs ivfs
    . MonadAff m
   => RL.RowToList is ixs
   => RL.RowToList fs fxs
@@ -115,10 +115,11 @@ component
   => Row.Lacks "submitting" st
   => Row.Lacks "form" st
   => Row.Lacks "internal" st
-  => Spec form st query act slots msg m
-  -> Component form st query slots msg m
-component spec = H.mkComponent
-  { initialState
+  => (input -> Input form st m)
+  -> Spec form st query act slots input msg m
+  -> Component form query slots input msg m
+component mkInput spec = H.mkComponent
+  { initialState: initialState <<< mkInput
   , render: IC.getPublicState >>> spec.render
   , eval: H.mkEval $ H.defaultEval
       { handleQuery = \q -> handleQuery spec.handleQuery spec.handleMessage q

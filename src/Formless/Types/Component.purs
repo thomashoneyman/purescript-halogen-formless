@@ -26,19 +26,19 @@ import Halogen.Query.ChildQuery (ChildQueryBox)
 -- | but you may also provide others. For example, if you have child components,
 -- | you can tell Formless how to manage those child components by adding a
 -- | handler action and `handleAction` case.
-type Spec form st query act slots msg m =
+type Spec form st query act slots input msg m =
   { render :: PublicState form st -> ComponentHTML form act slots m
   , handleAction :: act -> HalogenM form st act slots msg m Unit
   , handleQuery :: forall a. query a -> HalogenM form st act slots msg m (Maybe a)
   , handleMessage :: Message form st -> HalogenM form st act slots msg m Unit
-  , receive :: Input form st m -> Maybe act
+  , receive :: input -> Maybe act
   , initialize :: Maybe act
   , finalize :: Maybe act
   }
 
 -- | A simplified type when the component has only a form spec, some output, and runs
 -- | in some monad `m`
-type Spec' form msg m = Spec form () (Const Void) Void () msg m
+type Spec' form msg input m = Spec form () (Const Void) Void () input msg m
 
 -- | The component action type. While actions are typically considered
 -- | internal to a component, in Formless you write the render function and will
@@ -98,12 +98,12 @@ type Query form query slots = VariantF
 type Query' form = Query form (Const Void) ()
 
 -- | The component type
-type Component form st query slots msg m =
-  H.Component HH.HTML (Query form query slots) (Input form st m) msg m
+type Component form query slots input msg m =
+  H.Component HH.HTML (Query form query slots) input msg m
 
 -- | A simple component type when the component does not need extension
-type Component' form m =
-  Component form () (Const Void) () Void m
+type Component' form input m =
+  Component form (Const Void) () input Void m
 
 -- | The component's HTML type, the result of the render function.
 type ComponentHTML form act slots m =
