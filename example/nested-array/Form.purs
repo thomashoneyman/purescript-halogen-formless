@@ -1,4 +1,4 @@
-module Example.Nested.FormSpec where
+module Example.Nested.Form where
 
 import Prelude
 

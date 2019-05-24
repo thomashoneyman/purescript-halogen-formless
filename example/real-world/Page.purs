@@ -1,4 +1,4 @@
-module Example.RealWorld.Component where
+module Example.RealWorld.Page where
 
 import Prelude
 

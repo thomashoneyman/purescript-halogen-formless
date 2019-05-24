@@ -1,4 +1,4 @@
-module Example.ExternalComponents.FormSpec where
+module Example.ExternalComponents.Form where
 
 import Prelude
 

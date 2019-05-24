@@ -8,10 +8,10 @@ import Effect (Effect)
 import Effect.Aff (Aff)
 import Example.Basic.Component as Basic
 import Example.Async.Component as Async
-import Example.Nested.Component as Nested
-import Example.ExternalComponents.Component as ExternalComponents
+import Example.Nested.Page as Nested
+import Example.ExternalComponents.Page as ExternalComponents
 import Example.App.Home as Home
-import Example.RealWorld.Component as RealWorld
+import Example.RealWorld.Page as RealWorld
 import Foreign.Object as Object
 import Halogen.Aff as HA
 import Halogen.HTML (text) as HH

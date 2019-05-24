@@ -1,4 +1,4 @@
-module Example.ExternalComponents.Component where
+module Example.ExternalComponents.Page where
 
 import Prelude
 
@@ -7,8 +7,8 @@ import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
 import Effect.Class.Console (logShow)
 import Example.App.UI.Element as UI
-import Example.ExternalComponents.FormSpec (ChildSlots, User, UserForm)
-import Example.ExternalComponents.FormSpec as FS
+import Example.ExternalComponents.Form (ChildSlots, User, UserForm)
+import Example.ExternalComponents.Form as Form
 import Formless as F
 import Halogen as H
 import Halogen.HTML as HH
@@ -40,5 +40,5 @@ component = H.mkComponent
           Next, try opening the console. If you submit the form with invalid values, Formless will show you your errors. If you submit a valid form, you'll see Formless just returns the valid outputs for you to work with.
 
           """
-      , HH.slot F._formless unit FS.component unit (Just <<< HandleFormless)
+      , HH.slot F._formless unit Form.component unit (Just <<< HandleFormless)
       ]
