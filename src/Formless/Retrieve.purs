@@ -31,7 +31,7 @@ getTouched :: ∀ e i o. FormFieldGet e i o Boolean
 getTouched sym = view (_FieldTouched sym)
 
 -- | Given a form, get the result at the specified symbol
-getResult :: ∀ e i o. FormFieldGet e i o (FormFieldResult e o) 
+getResult :: ∀ e i o. FormFieldGet e i o (FormFieldResult e o)
 getResult sym = view (_FieldResult sym)
 
 -- | Given a form, get the error (if it exists) at the specified symbol
@@ -165,7 +165,7 @@ data GetError = GetError
 
 -- | Heterogeneous type class for the getError function
 instance getErrorResult' :: Mapping GetError (FormField e i o) (Maybe e) where
-  mapping GetError (FormField { result }) = case result of 
+  mapping GetError (FormField { result }) = case result of
     Error e -> Just e
     _ -> Nothing
 

@@ -36,7 +36,7 @@ set
   => SProxy sym
   -> i
   -> Variant (modify :: form Variant InputFunction | v)
-set sym i = 
+set sym i =
   inj (SProxy :: _ "modify") (wrap (inj sym (wrap (const i))))
 
 -- | Modify the input value of a form field at the specified label with the
@@ -53,7 +53,7 @@ modify
   => SProxy sym
   -> (i -> i)
   -> Variant (modify :: form Variant InputFunction | v)
-modify sym f = 
+modify sym f =
   inj (SProxy :: _ "modify") (wrap (inj sym (wrap f)))
 
 -- | Trigger validation on a form field
@@ -68,7 +68,7 @@ validate
   => Row.Cons sym (U e i o) r us
   => SProxy sym
   -> Variant (validate :: form Variant U | v)
-validate sym = 
+validate sym =
   inj (SProxy :: _ "validate") (wrap (inj sym U))
 
 -- | Set the input value of a form field at the specified label, also triggering
@@ -85,7 +85,7 @@ setValidate
   => SProxy sym
   -> i
   -> Variant (modifyValidate :: Tuple (Maybe Milliseconds) (form Variant InputFunction) | v)
-setValidate sym i = 
+setValidate sym i =
   inj (SProxy :: _ "modifyValidate") (Tuple Nothing (wrap (inj sym (wrap (const i)))))
 
 -- | Modify the input value of a form field at the specified label, also triggering
@@ -102,7 +102,7 @@ modifyValidate
   => SProxy sym
   -> (i -> i)
   -> Variant (modifyValidate :: Tuple (Maybe Milliseconds) (form Variant InputFunction) | v)
-modifyValidate sym f = 
+modifyValidate sym f =
   inj (SProxy :: _ "modifyValidate") (Tuple Nothing (wrap (inj sym (wrap f))))
 
 -- | Set the input value of a form field at the specified label, while debouncing
@@ -122,7 +122,7 @@ asyncSetValidate
   -> SProxy sym
   -> i
   -> Variant (modifyValidate :: Tuple (Maybe Milliseconds) (form Variant InputFunction) | v)
-asyncSetValidate ms sym i = 
+asyncSetValidate ms sym i =
   inj (SProxy :: _ "modifyValidate") (Tuple (Just ms) (wrap (inj sym (wrap (const i)))))
 
 -- | Modify the input value of a form field at the specified label, while debouncing
@@ -142,7 +142,7 @@ asyncModifyValidate
   -> SProxy sym
   -> (i -> i)
   -> Variant (modifyValidate :: Tuple (Maybe Milliseconds) (form Variant InputFunction) | v)
-asyncModifyValidate ms s f = 
+asyncModifyValidate ms s f =
   inj (SProxy :: _ "modifyValidate") (Tuple (Just ms) (wrap (inj s (wrap f))))
 
 -- | Reset the value of the specified form field to its default value
@@ -159,7 +159,7 @@ reset
   => Row.Cons sym (InputFunction e i o) r inputs
   => SProxy sym
   -> Variant (reset :: form Variant InputFunction | v)
-reset sym = 
+reset sym =
   inj (SProxy :: _ "reset") (wrap (inj sym (wrap (const initial))))
 
 -- | Provide a record of input fields to overwrite all current
@@ -170,17 +170,17 @@ reset sym =
 -- | ```purescript
 -- | [ HE.onClick \_ -> Just $ F.setAll
 -- |     { name: "Default Name"
--- |     , enabled: false 
--- |     } 
+-- |     , enabled: false
+-- |     }
 -- | ]
 -- | ```
 setAll
   :: forall form v is is'
    . Newtype (form Record InputField) { | is' }
   => HM.HMap WrapField { | is } { | is' }
-  => { | is } 
+  => { | is }
   -> Variant (setAll :: Tuple (form Record InputField) Boolean | v)
-setAll is = 
+setAll is =
   inj (SProxy :: _ "setAll") (Tuple (wrapInputFields is) false)
 
 -- | Provide a record of input functions to modify all current
@@ -190,8 +190,8 @@ setAll is =
 -- | ```purescript
 -- | [ HE.onClick \_ -> Just $ F.modifyAll
 -- |     { name: \str -> "User: " <> str
--- |     , enabled: \bool -> not bool 
--- |     } 
+-- |     , enabled: \bool -> not bool
+-- |     }
 -- | ]
 -- | ```
 modifyAll
@@ -200,7 +200,7 @@ modifyAll
   => HM.HMap WrapField { | ifs } { | ifs' }
   => { | ifs }
   -> Variant (modifyAll :: Tuple (form Record InputFunction) Boolean | v)
-modifyAll fs = 
+modifyAll fs =
   inj (SProxy :: _ "modifyAll") (Tuple (wrapInputFunctions fs) false)
 
 -- | Validate all fields in the form, collecting errors
@@ -209,7 +209,7 @@ modifyAll fs =
 -- | [ HE.onClick \_ -> Just F.validateAll ]
 -- | ```
 validateAll :: forall v. Variant (validateAll :: Unit | v)
-validateAll = 
+validateAll =
   inj (SProxy :: _ "validateAll") unit
 
 -- | Provide a record of inputs to overwrite all current inputs without
@@ -220,8 +220,8 @@ validateAll =
 -- | ```purescript
 -- | [ HE.onClick \_ -> Just $ F.setValidateAll
 -- |     { name: "Default Name"
--- |     , enabled: false 
--- |     } 
+-- |     , enabled: false
+-- |     }
 -- | ]
 -- | ```
 setValidateAll
@@ -230,7 +230,7 @@ setValidateAll
   => HM.HMap WrapField { | is } { | is' }
   => { | is }
   -> Variant (setAll :: Tuple (form Record InputField) Boolean | v)
-setValidateAll is = 
+setValidateAll is =
   inj (SProxy :: _ "setAll") (Tuple (wrapInputFields is) true)
 
 -- | Provide a record of input functions to modify all current
@@ -240,8 +240,8 @@ setValidateAll is =
 -- | ```purescript
 -- | [ HE.onClick \_ -> Just $ F.modifyValidateAll
 -- |     { name: \str -> "User: " <> str
--- |     , enabled: \bool -> not bool 
--- |     } 
+-- |     , enabled: \bool -> not bool
+-- |     }
 -- | ]
 -- | ```
 modifyValidateAll
@@ -250,7 +250,7 @@ modifyValidateAll
   => HM.HMap WrapField { | ifs } { | ifs' }
   => { | ifs }
   -> Variant (modifyAll :: Tuple (form Record InputFunction) Boolean | v)
-modifyValidateAll ifs = 
+modifyValidateAll ifs =
   inj (SProxy :: _ "modifyAll") (Tuple (wrapInputFunctions ifs) true)
 
 -- | Reset all fields to their initial values, and reset the form
@@ -260,7 +260,7 @@ modifyValidateAll ifs =
 -- | [ HE.onClick \_ -> Just F.resetAll ]
 -- | ```
 resetAll :: forall v. Variant (resetAll :: Unit | v)
-resetAll = 
+resetAll =
   inj (SProxy :: _ "resetAll") unit
 
 -- | Submit the form, which will trigger a `Submitted` result if the
@@ -270,23 +270,22 @@ resetAll =
 -- | [ HE.onClick \_ -> Just F.submit ]
 -- | ```
 submit :: forall v. Variant (submit :: Unit | v)
-submit = 
+submit =
   inj (SProxy :: _ "submit") unit
 
 -- | Load a form from a set of existing inputs. Useful for when you need to mount
--- | Formless, perform some other actions like request data from the server, and 
--- | then load an existing set of inputs. 
+-- | Formless, perform some other actions like request data from the server, and
+-- | then load an existing set of inputs.
 -- |
 -- | ```purescript
--- | [ HE.onClick \_ -> Just $ F.loadForm $ F.wrapInputFields 
+-- | [ HE.onClick \_ -> Just $ F.loadForm $ F.wrapInputFields
 -- |     { name: ""
 -- |     , enabled: false
 -- |     }
 -- | ]
 -- | ```
-loadForm 
+loadForm
   :: forall form v
-   . form Record InputField 
+   . form Record InputField
   -> Variant (loadForm :: form Record InputField | v)
 loadForm = inj (SProxy :: _ "loadForm")
-

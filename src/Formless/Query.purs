@@ -1,6 +1,6 @@
 -- | This module exports helpers for working with Formless queries. Action-style
 -- | queries are already specialized to `Unit` for you. Prefer these over using
--- | data constructors from the Formless query algebra. Remember that you can 
+-- | data constructors from the Formless query algebra. Remember that you can
 -- | freely extend the Formless query algebra with your own queries by using the
 -- | `injQuery` function.
 module Formless.Query where
@@ -35,21 +35,21 @@ asQuery = VF.inj (SProxy :: SProxy "query") <<< H.tell <<< AsQuery
 
 -- | Submit the form, returning the output of validation if successful
 -- | and `Nothing` otherwise.
-submitReply 
+submitReply
   :: forall form query ps a
    . (Maybe (form Record OutputField) -> a)
   -> Query form query ps a
 submitReply = VF.inj (SProxy :: SProxy "query") <<< SubmitReply
 
 -- | When you have specified a child component within Formless and need to query it,
--- | you can do so in two ways. 
+-- | you can do so in two ways.
 -- |
--- | First, you can use `H.query` as usual within the `handleExtraQuery` function 
--- | you provide to Formless as input. You can, for example, write your own query 
--- | which manages the child component, write it into the render function you 
--- | supply Formless, and then when that query is triggered, query the child 
--- | component. 
--- | 
+-- | First, you can use `H.query` as usual within the `handleExtraQuery` function
+-- | you provide to Formless as input. You can, for example, write your own query
+-- | which manages the child component, write it into the render function you
+-- | supply Formless, and then when that query is triggered, query the child
+-- | component.
+-- |
 -- | Second, you can use the `sendQuery` function within your parent component's
 -- | `handleAction` or `handleQuery` functions. Given the slot for Formless, the
 -- | slot for the child component within Formless, and the query you'd like to
@@ -81,8 +81,7 @@ sendQuery
   -> H.HalogenM st act pps pmsg m (Maybe a)
 sendQuery ol os il is cq =
   H.query ol os
-    $ VF.inj (SProxy :: _ "query") 
+    $ VF.inj (SProxy :: _ "query")
     $ SendQuery
     $ CQ.mkChildQueryBox
     $ CQ.ChildQuery (\k -> maybe (pure Nothing) k <<< Slot.lookup il is) cq identity
-

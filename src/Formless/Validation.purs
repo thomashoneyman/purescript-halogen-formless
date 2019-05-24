@@ -83,7 +83,7 @@ hoistFnME_ :: ∀ form m e i o. Monad m => (i -> m (Either e o)) -> Validation f
 hoistFnME_ = Validation <<< const
 
 ----------
--- Common validation 
+-- Common validation
 
 -- | A function to create a record of validators that simply pass through all inputs
 -- | for when no validation is needed. Provide this as your `validators` function.
@@ -98,7 +98,7 @@ noValidators
   -> form Record (Validation form m)
 noValidators = wrap <<< hmap EmptyValidators <<< unwrap
 
--- | A validation function which simply passes through its input value as its 
+-- | A validation function which simply passes through its input value as its
 -- | output value. Use on individual fields which do not need any validation.
 noValidation :: ∀ form m e i. Monad m => Validation form m e i i
 noValidation = hoistFn_ identity

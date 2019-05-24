@@ -21,7 +21,7 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.Query.ChildQuery (ChildQueryBox)
 
--- | A type representing the various functions that can be provided to extend 
+-- | A type representing the various functions that can be provided to extend
 -- | the Formless component. Usually only the `render` function is required,
 -- | but you may also provide others. For example, if you have child components,
 -- | you can tell Formless how to manage those child components by adding a
@@ -49,8 +49,8 @@ type Spec' form msg m = Spec form () (Const Void) Void () msg m
 -- | You can freely extend this type with your own actions using `injAction`.
 type Action form act = Variant
   ( userAction :: act
-  | InternalAction act 
-  + PublicAction form 
+  | InternalAction act
+  + PublicAction form
   )
 
 type PublicAction form =
@@ -75,8 +75,8 @@ type InternalAction act r =
 -- | A simple action type when the component does not need extension
 type Action' form = Action form Void
 
--- | The internals of the public component query type. Many of these are shared 
--- | with actions of the same name so they can be used in rendering. See 
+-- | The internals of the public component query type. Many of these are shared
+-- | with actions of the same name so they can be used in rendering. See
 -- | `Formless.Action` and `Formless.Query` for more.
 data QueryF form ps a
   = SubmitReply (Maybe (form Record OutputField) -> a)
@@ -90,7 +90,7 @@ derive instance functorQueryF :: Functor (QueryF form ps)
 -- | The component query type, which you can freely extend with your own queries
 -- | using `injQuery` from `Formless.Query`.
 type Query form query ps = VariantF
-  ( query :: FProxy (QueryF form ps) 
+  ( query :: FProxy (QueryF form ps)
   , userQuery :: FProxy query
   )
 
@@ -98,7 +98,7 @@ type Query form query ps = VariantF
 type Query' form = Query form (Const Void) ()
 
 -- | The component type
-type Component form st query ps msg m = 
+type Component form st query ps msg m =
   H.Component HH.HTML (Query form query ps) (Input form st m) msg m
 
 -- | A simple component type when the component does not need extension
@@ -106,7 +106,7 @@ type Component' form m =
   Component form () (Const Void) () Void m
 
 -- | The component's HTML type, the result of the render function.
-type ComponentHTML form act ps m = 
+type ComponentHTML form act ps m =
   H.ComponentHTML (Action form act) ps m
 
 -- | A simple component HTML type when the component does not need extension
@@ -122,7 +122,7 @@ type HalogenM' form msg m =
   HalogenM form () Void () msg m
 
 -- | The component local state
-type State form st m = 
+type State form st m =
   { | StateRow form (internal :: InternalState form m | st) }
 
 -- | A simple state type when the component does not need extension
@@ -130,7 +130,7 @@ type State' form m =
   State form () m
 
 -- | The component's public state
-type PublicState form st = 
+type PublicState form st =
   { | StateRow form st }
 
 -- | The component's public state, as an extensible row
