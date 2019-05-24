@@ -26,11 +26,11 @@ import Halogen.Query.ChildQuery (ChildQueryBox)
 -- | but you may also provide others. For example, if you have child components,
 -- | you can tell Formless how to manage those child components by adding a
 -- | handler action and `handleAction` case.
-type Spec form st query act ps msg m =
-  { render :: PublicState form st -> ComponentHTML form act ps m
-  , handleAction :: act -> HalogenM form st act ps msg m Unit
-  , handleQuery :: forall a. query a -> HalogenM form st act ps msg m (Maybe a)
-  , handleMessage :: Message form st -> HalogenM form st act ps msg m Unit
+type Spec form st query act slots msg m =
+  { render :: PublicState form st -> ComponentHTML form act slots m
+  , handleAction :: act -> HalogenM form st act slots msg m Unit
+  , handleQuery :: forall a. query a -> HalogenM form st act slots msg m (Maybe a)
+  , handleMessage :: Message form st -> HalogenM form st act slots msg m Unit
   , receive :: Input form st m -> Maybe act
   , initialize :: Maybe act
   , finalize :: Maybe act
@@ -78,19 +78,19 @@ type Action' form = Action form Void
 -- | The internals of the public component query type. Many of these are shared
 -- | with actions of the same name so they can be used in rendering. See
 -- | `Formless.Action` and `Formless.Query` for more.
-data QueryF form ps a
+data QueryF form slots a
   = SubmitReply (Maybe (form Record OutputField) -> a)
   -- Query a child component of Formless through Formless
-  | SendQuery (ChildQueryBox ps (Maybe a))
+  | SendQuery (ChildQueryBox slots (Maybe a))
   -- Run a Formless action as a query
   | AsQuery (Variant (PublicAction form)) a
 
-derive instance functorQueryF :: Functor (QueryF form ps)
+derive instance functorQueryF :: Functor (QueryF form slots)
 
 -- | The component query type, which you can freely extend with your own queries
 -- | using `injQuery` from `Formless.Query`.
-type Query form query ps = VariantF
-  ( query :: FProxy (QueryF form ps)
+type Query form query slots = VariantF
+  ( query :: FProxy (QueryF form slots)
   , userQuery :: FProxy query
   )
 
@@ -98,24 +98,24 @@ type Query form query ps = VariantF
 type Query' form = Query form (Const Void) ()
 
 -- | The component type
-type Component form st query ps msg m =
-  H.Component HH.HTML (Query form query ps) (Input form st m) msg m
+type Component form st query slots msg m =
+  H.Component HH.HTML (Query form query slots) (Input form st m) msg m
 
 -- | A simple component type when the component does not need extension
 type Component' form m =
   Component form () (Const Void) () Void m
 
 -- | The component's HTML type, the result of the render function.
-type ComponentHTML form act ps m =
-  H.ComponentHTML (Action form act) ps m
+type ComponentHTML form act slots m =
+  H.ComponentHTML (Action form act) slots m
 
 -- | A simple component HTML type when the component does not need extension
 type ComponentHTML' form m =
   ComponentHTML form Void () m
 
 -- | The component's eval type
-type HalogenM form st act ps msg m =
-  H.HalogenM (State form st m) (Action form act) ps msg m
+type HalogenM form st act slots msg m =
+  H.HalogenM (State form st m) (Action form act) slots msg m
 
 -- | A simple component eval type when the component does not need extension
 type HalogenM' form msg m =
@@ -200,7 +200,7 @@ type Message' form = Message form ()
 
 -- | A slot type that can be used in the ChildSlots definition for your parent
 -- | component
-type Slot form query ps msg = H.Slot (Query form query ps) msg
+type Slot form query slots msg = H.Slot (Query form query slots) msg
 
 -- | A simple Slot type when the component does not need extension, besides a
 -- | custom output message
