@@ -59,7 +59,7 @@ instance showSpeed :: Show Speed where
 instance initialSpeed :: F.Initial Speed where
   initial = Low
 
--- This is the data type used throughout our fake application. In this case, it's 
+-- This is the data type used throughout our fake application. In this case, it's
 -- the same type the form and the underlying row, so we'll use `F.OutputType`.
 newtype Options = Options { | OptionsRow F.OutputType }
 derive instance newtypeOptions :: Newtype Options _
@@ -93,17 +93,17 @@ _optionsForm = SProxy :: SProxy "optionsForm"
 
 -- We'll maintain a flag so we can check if the enabled state has changed
 type State =
-  ( prevEnabled :: Boolean ) 
+  ( prevEnabled :: Boolean )
 
-data Action 
+data Action
   = HandleDropdown (DD.Message Metric)
 
-type Message = 
+type Message =
   { errors :: Int
-  , dirty :: Boolean 
+  , dirty :: Boolean
   }
 
-type ChildSlots = 
+type ChildSlots =
   ( dropdown :: DD.Slot Metric Unit )
 
 -- Form spec
@@ -111,46 +111,46 @@ type ChildSlots =
 prx :: F.SProxies OptionsForm
 prx = F.mkSProxies $ F.FormProxy :: _ OptionsForm
 
-input :: forall m. Monad m => F.Input OptionsForm State m
-input = 
-  { prevEnabled: false
-  , initialInputs: Just defaultInputFields
-  , validators: OptionsForm
-      { enable: F.noValidation
-      , metric: V.exists
-      , viewCost: validateMetric ViewCost
-      , clickCost: validateMetric ClickCost
-      , installCost: validateMetric InstallCost
-      , size: Int.toNumber <$> V.strIsInt
-      , dimensions: Int.toNumber <$> V.strIsInt
-      , speed: F.noValidation
-      }
-  }
-  where
-  validateMetric metric = F.Validation \form i ->
-    if F.getInput prx.metric form == Just metric
-      then map (map (Just <<< Dollars)) $ F.runValidation V.strIsInt form i
-      else pure (pure Nothing)
-
-defaultInputFields :: OptionsForm Record F.InputField
-defaultInputFields = F.wrapInputFields 
-  { enable: false
-  , metric: Just ViewCost
-  , viewCost: "10"
-  , clickCost: ""
-  , installCost: ""
-  , size: "21"
-  , dimensions: "3005"
-  , speed: Low
-  }
-
-spec :: F.Spec OptionsForm State (Const Void) Action ChildSlots Message Aff
-spec = F.defaultSpec
-  { render = render 
-  , handleAction = handleAction 
+component :: F.Component OptionsForm (Const Void) ChildSlots Unit Message Aff
+component = F.component (const input) $ F.defaultSpec
+  { render = render
+  , handleAction = handleAction
   , handleMessage = handleMessage
   }
   where
+  input :: F.Input OptionsForm State Aff
+  input =
+    { prevEnabled: false
+    , initialInputs: Just defaultInputFields
+    , validators: OptionsForm
+        { enable: F.noValidation
+        , metric: V.exists
+        , viewCost: validateMetric ViewCost
+        , clickCost: validateMetric ClickCost
+        , installCost: validateMetric InstallCost
+        , size: Int.toNumber <$> V.strIsInt
+        , dimensions: Int.toNumber <$> V.strIsInt
+        , speed: F.noValidation
+        }
+    }
+    where
+    validateMetric metric = F.Validation \form i ->
+      if F.getInput prx.metric form == Just metric
+        then map (map (Just <<< Dollars)) $ F.runValidation V.strIsInt form i
+        else pure (pure Nothing)
+
+  defaultInputFields :: OptionsForm Record F.InputField
+  defaultInputFields = F.wrapInputFields
+    { enable: false
+    , metric: Just ViewCost
+    , viewCost: "10"
+    , clickCost: ""
+    , installCost: ""
+    , size: "21"
+    , dimensions: "3005"
+    , speed: Low
+    }
+
   -- available for both handleMessage and handleAction
   eval act = F.handleAction handleAction handleMessage act
 
@@ -162,11 +162,11 @@ spec = F.defaultSpec
       H.modify_ _ { prevEnabled = enabled }
       when (st.prevEnabled /= enabled) case enabled of
         true -> do
-          let 
+          let
             initial = F.mkInputFields $ F.FormProxy :: _ OptionsForm
             new = over OptionsForm (_ { enable = F.InputField true }) initial
           eval $ F.loadForm new
-        _ -> 
+        _ ->
           eval $ F.loadForm defaultInputFields
     _ -> pure unit
 
@@ -209,7 +209,7 @@ spec = F.defaultSpec
 
     renderMetric = UI.field
       { label: "Metric"
-      , help: F.getResult prx.metric form # UI.resultToHelp 
+      , help: F.getResult prx.metric form # UI.resultToHelp
           "Choose a metric to optimize for."
       }
       [ HH.slot DD._dropdown unit (Select.component DD.spec) ddInput handler ]
@@ -260,7 +260,7 @@ spec = F.defaultSpec
       [ speedInput Low, speedInput Medium, speedInput Fast ]
       where
       speed = F.getField prx.speed form
-      speedInput speed' = 
+      speedInput speed' =
         HH.label
           [ class_ "radio" ]
           [ HH.input
@@ -272,4 +272,3 @@ spec = F.defaultSpec
               ]
           , HH.text (" " <> show speed')
           ]
-

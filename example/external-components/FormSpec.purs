@@ -6,7 +6,7 @@ import Data.Const (Const)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
-import Effect.Aff.Class (class MonadAff)
+import Effect.Aff (Aff)
 import Effect.Class.Console (logShow)
 import Example.App.UI.Element as UI
 import Example.App.UI.Typeahead as TA
@@ -48,33 +48,33 @@ type ChildSlots =
   ( typeahead :: TA.Slot Maybe String Typeahead )
 
 data Typeahead
-  = Email 
+  = Email
   | Whiskey
   | Language
 
 derive instance eqTypeahead :: Eq Typeahead
 derive instance ordTypeahead :: Ord Typeahead
 
--- Component spec 
+-- Component spec
 
-defaultInput :: forall m. MonadAff m => F.Input' UserForm m
-defaultInput =
-  { validators: UserForm
-      { name: V.minLength 7
-      , email: V.exists >>> V.emailFormat
-      , whiskey: V.exists
-      , language: V.exists
-      }
-  , initialInputs: Nothing
-  }
-
-spec :: forall m. MonadAff m => F.Spec UserForm () (Const Void) Action ChildSlots User m
-spec = F.defaultSpec
+component :: F.Component UserForm (Const Void) ChildSlots Unit User Aff
+component = F.component (const defaultInput) $ F.defaultSpec
   { render = render
   , handleAction = handleAction
   , handleMessage = handleMessage
   }
   where
+  defaultInput :: F.Input' UserForm Aff
+  defaultInput =
+    { validators: UserForm
+        { name: V.minLength 7
+        , email: V.exists >>> V.emailFormat
+        , whiskey: V.exists
+        , language: V.exists
+        }
+    , initialInputs: Nothing
+    }
+
   handleMessage = case _ of
     F.Submitted outputs -> H.raise (F.unwrapOutputFields outputs)
     F.Changed formState -> logShow $ delete (SProxy :: _ "form") formState
@@ -105,12 +105,12 @@ spec = F.defaultSpec
     -- are recursively evaluating Formless actions.
     eval act = F.handleAction handleAction handleMessage act
 
-  render :: F.PublicState UserForm () -> F.ComponentHTML UserForm Action ChildSlots m
-  render st = 
+  render :: F.PublicState UserForm () -> F.ComponentHTML UserForm Action ChildSlots Aff
+  render st =
     UI.formContent_
       [ name
-      , email 
-      , whiskey 
+      , email
+      , whiskey
       , language
       , UI.p_
           """
@@ -139,14 +139,14 @@ spec = F.defaultSpec
       , placeholder: "Dale"
       , sym: prx.name
       }
-    
+
     email = UI.field
       { label: "Email"
       , help: F.getResult prx.email st.form # UI.resultToHelp "Choose an email"
       }
       [ singleTypeahead Email
           { placeholder: "me@you.com"
-          , items: 
+          , items:
               [ "not@anemail.org"
               , "snail@utopia.snailutopia"
               , "blue@jordans@blordens.pordens"
@@ -158,12 +158,12 @@ spec = F.defaultSpec
 
     whiskey = UI.field
       { label: "Whiskey"
-      , help: F.getResult prx.whiskey st.form # UI.resultToHelp 
+      , help: F.getResult prx.whiskey st.form # UI.resultToHelp
           "Select a favorite whiskey"
       }
       [ singleTypeahead Whiskey
           { placeholder: "Lagavulin 12"
-          , items: 
+          , items:
               [ "Lagavulin 16"
               , "Kilchoman Blue Label"
               , "Laphroaig"
@@ -199,8 +199,7 @@ spec = F.defaultSpec
           }
       ]
 
-    singleTypeahead slot input = 
+    singleTypeahead slot input =
       HH.slot TA._typeahead slot (Select.component TA.single) (TA.input input) handler
       where
       handler = Just <<< F.injAction <<< HandleTypeahead slot
-

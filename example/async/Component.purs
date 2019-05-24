@@ -39,7 +39,7 @@ component = H.mkComponent
   , eval: H.mkEval $ H.defaultEval { handleAction = handleAction }
   }
   where
-  handleAction = case _ of 
+  handleAction = case _ of
     HandleForm bankUser -> H.liftEffect $ logShow (bankUser :: BankUser)
 
   render _ =
@@ -51,21 +51,21 @@ component = H.mkComponent
           If you have fields with expensive validation, you can debounce modifications to the field with the async versions of setValidate and modifyValidate query functions. The result type of the form field lets you know whether the field has not been validated, is currently validating, or has produced an error or result.
           """
       , HH.br_
-      , HH.slot F._formless unit (F.component formSpec) formInput (Just <<< HandleForm)
+      , HH.slot F._formless unit formComponent unit (Just <<< HandleForm)
       ]
 
-  formInput = 
-    { validators: Form
-        { name: V.minLength 5
-        , email: V.emailFormat >>> V.emailIsUsed
-        , balance: V.strIsInt >>> V.enoughMoney
-        }
-    , initialInputs: Nothing
-    }
-
-  formSpec :: F.Spec' Form BankUser Aff
-  formSpec = F.defaultSpec { render = renderForm, handleMessage = F.raiseResult }
+  formComponent :: F.Component Form (Const Void) () Unit BankUser Aff
+  formComponent = F.component (const formInput) $ F.defaultSpec { render = renderForm, handleMessage = F.raiseResult }
     where
+    formInput =
+      { validators: Form
+          { name: V.minLength 5
+          , email: V.emailFormat >>> V.emailIsUsed
+          , balance: V.strIsInt >>> V.enoughMoney
+          }
+      , initialInputs: Nothing
+      }
+
     renderForm { form } =
       UI.formContent_
         [ UI.input
@@ -78,7 +78,7 @@ component = H.mkComponent
             ]
         , UI.input
             { label: "Email"
-            , help: F.getResult prx.email form # UI.resultToHelp 
+            , help: F.getResult prx.email form # UI.resultToHelp
                 "Provide your email address"
             , placeholder: "john@hamm.com"
             }
@@ -88,17 +88,17 @@ component = H.mkComponent
             ]
         , UI.input
             { label: "Donation"
-            , help: F.getResult prx.balance form # UI.resultToHelp 
+            , help: F.getResult prx.balance form # UI.resultToHelp
                 "How many dollas do you want to spend?"
             , placeholder: "1000"
             }
             [ HP.value $ F.getInput prx.balance form
-            , HE.onValueInput $ 
+            , HE.onValueInput $
                 Just <<< F.asyncSetValidate (Milliseconds 500.0) prx.balance
             ]
         , UI.buttonPrimary
             [ HE.onClick \_ -> Just F.submit ]
             [ HH.text "Submit" ]
         ]
-      where 
+      where
       prx = F.mkSProxies (F.FormProxy :: _ Form)

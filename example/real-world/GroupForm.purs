@@ -9,12 +9,12 @@ import Data.Monoid (guard)
 import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
-import Example.App.Validation (class ToText, FieldError)
-import Example.App.Validation as V
 import Example.App.UI.Dropdown as DD
 import Example.App.UI.Element (class_)
 import Example.App.UI.Element as UI
 import Example.App.UI.Typeahead as TA
+import Example.App.Validation (class ToText, FieldError)
+import Example.App.Validation as V
 import Example.RealWorld.OptionsForm as OF
 import Formless as F
 import Halogen as H
@@ -41,11 +41,11 @@ instance toTextAdmin :: ToText Admin where
     Just (GroupId n) -> "Administrator " <> show n
     Nothing -> "None"
 
--- As far as our application is concerned this is the type that matters. Most 
+-- As far as our application is concerned this is the type that matters. Most
 -- fields are directly out of our form and we could have used `F.OutputType` to
 -- recover them. To be explicit, though, we'll copy them here.
--- 
--- The extra fields `id` and `secretKey` will come from the server after 
+--
+-- The extra fields `id` and `secretKey` will come from the server after
 -- submission, and the `options` field will come from our sub-form.
 newtype Group = Group
   { name :: String
@@ -90,11 +90,11 @@ _groupForm = SProxy :: SProxy "groupForm"
 
 type State =
   ( selectedTab :: Tab        -- which tab the user is viewing
-  , optionsErrors :: Int      -- count of errors in the options form 
+  , optionsErrors :: Int      -- count of errors in the options form
   , optionsDirty :: Boolean   -- whether the options form has been edited
   )
 
-data Action 
+data Action
   = Select Tab
   | UpdateKey1 String
   | UpdateKey2 String
@@ -116,54 +116,54 @@ derive instance eqTASlot :: Eq TASlot
 derive instance ordTASlot :: Ord TASlot
 
 
--- Form spec 
+-- Form spec
 
 prx :: F.SProxies GroupForm
 prx = F.mkSProxies $ F.FormProxy :: _ GroupForm
 
-input :: forall m. Monad m => F.Input GroupForm State m
-input =
-  { validators: GroupForm
-      { name: V.nonEmptyStr
-      , admin: V.exists
-      , applications: V.nonEmptyArray
-      , pixels: V.nonEmptyArray
-      , whiskey: V.exists
-      , secretKey1: V.nonEmptyStr >>> V.minLength 5 >>> equalsSecretKey2
-      , secretKey2: V.nonEmptyStr >>> V.minLength 5 >>> equalsSecretKey1
-      }
-  , initialInputs: Nothing
-  , selectedTab: GroupTab
-  , optionsErrors: 0
-  , optionsDirty: false
-  }
-  where
-  equalsSecretKey2 = F.hoistFnE \form secretKey1 -> do
-    let secretKey2 = F.getInput prx.secretKey2 form
-    if secretKey1 == secretKey2
-      then Right secretKey1
-      else Left $ V.NotEqual secretKey2 secretKey1
-
-  equalsSecretKey1 = F.hoistFnE \form secretKey2 -> do
-    let secretKey1 = F.getInput prx.secretKey1 form
-    if secretKey2 == secretKey1
-      then Right secretKey2
-      else Left $ V.NotEqual secretKey1 secretKey2
-
-spec :: F.Spec GroupForm State (Const Void) Action ChildSlots Group Aff
-spec = F.defaultSpec
-  { render = render 
+component :: F.Component GroupForm (Const Void) ChildSlots Unit Group Aff
+component = F.component (const input) $ F.defaultSpec
+  { render = render
   , handleAction = handleAction
   , handleMessage = handleMessage
   }
   where
+  input :: F.Input GroupForm State Aff
+  input =
+    { validators: GroupForm
+        { name: V.nonEmptyStr
+        , admin: V.exists
+        , applications: V.nonEmptyArray
+        , pixels: V.nonEmptyArray
+        , whiskey: V.exists
+        , secretKey1: V.nonEmptyStr >>> V.minLength 5 >>> equalsSecretKey2
+        , secretKey2: V.nonEmptyStr >>> V.minLength 5 >>> equalsSecretKey1
+        }
+    , initialInputs: Nothing
+    , selectedTab: GroupTab
+    , optionsErrors: 0
+    , optionsDirty: false
+    }
+    where
+    equalsSecretKey2 = F.hoistFnE \form secretKey1 -> do
+      let secretKey2 = F.getInput prx.secretKey2 form
+      if secretKey1 == secretKey2
+        then Right secretKey1
+        else Left $ V.NotEqual secretKey2 secretKey1
+
+    equalsSecretKey1 = F.hoistFnE \form secretKey2 -> do
+      let secretKey1 = F.getInput prx.secretKey1 form
+      if secretKey2 == secretKey1
+        then Right secretKey2
+        else Left $ V.NotEqual secretKey1 secretKey2
+
   handleMessage = case _ of
-    F.Submitted form -> do 
+    F.Submitted form -> do
       -- first, we'll submit the options form
       mbOptionsForm <- H.query OF._optionsForm unit (H.request F.submitReply)
       let options = map (OF.Options <<< F.unwrapOutputFields) (join mbOptionsForm)
-      -- next, we'll fetch a new group id (in the real world this might be a server call) 
-      groupId <- pure $ GroupId 10 
+      -- next, we'll fetch a new group id (in the real world this might be a server call)
+      groupId <- pure $ GroupId 10
      -- then, we'll produce a new Group by transforming our form outputs and raise it
      -- as a message.
       H.raise
@@ -176,7 +176,7 @@ spec = F.defaultSpec
     _ -> pure unit
 
   handleAction = case _ of
-    Select tab -> 
+    Select tab ->
       H.modify_ _ { selectedTab = tab }
 
     ResetForm -> do
@@ -185,7 +185,7 @@ spec = F.defaultSpec
       _ <- H.query TA._typeaheadMulti Pixels TA.clear
       _ <- H.query TA._typeaheadSingle unit TA.clear
       _ <- H.query DD._dropdown unit DD.clear
-      -- then, we'll reset the options form's components 
+      -- then, we'll reset the options form's components
       _ <- F.sendQuery OF._optionsForm unit DD._dropdown unit DD.clear
       -- and then we'll reset the forms
       _ <- H.query OF._optionsForm unit (F.asQuery F.resetAll)
@@ -209,7 +209,7 @@ spec = F.defaultSpec
       eval $ F.reset prx.secretKey1
       eval $ F.reset prx.secretKey2
       case dropdownMessage of
-        DD.Selected admin -> 
+        DD.Selected admin ->
           eval $ F.setValidate prx.admin (Just admin)
         DD.Cleared ->
           eval $ F.setValidate prx.admin Nothing
@@ -223,7 +223,7 @@ spec = F.defaultSpec
 
     where
     eval act = F.handleAction handleAction handleMessage act
-         
+
   render st@{ form } =
     HH.div_
       [ UI.grouped_
@@ -251,7 +251,7 @@ spec = F.defaultSpec
               ]
               [ HH.text "Reset All" ]
           ]
-      , HH.div 
+      , HH.div
          [ class_ $ "is-hidden" # guard (st.selectedTab /= GroupTab) ]
          [ UI.formContent_
              [ renderName
@@ -260,12 +260,12 @@ spec = F.defaultSpec
              , renderSecretKey2
              , renderApplications
              , renderPixels
-             , renderWhiskey 
+             , renderWhiskey
              ]
         ]
       , HH.div
           [ class_ $ "is-hidden" # guard (st.selectedTab /= OptionsTab) ]
-          [ HH.slot OF._optionsForm unit (F.component OF.spec) OF.input handleOF ]
+          [ HH.slot OF._optionsForm unit OF.component unit handleOF ]
       ]
     where
     handleOF = Just <<< F.injAction <<< HandleOptionsForm
@@ -299,14 +299,14 @@ spec = F.defaultSpec
 
     renderAdmin = UI.field
       { label: "Administrator"
-      , help: F.getResult prx.admin form # UI.resultToHelp 
+      , help: F.getResult prx.admin form # UI.resultToHelp
           "Choose an administrator for the account"
       }
       [ HH.slot DD._dropdown unit (Select.component DD.spec) ddInput handler ]
       where
       handler = Just <<< F.injAction <<< HandleDropdown
-      ddInput = DD.input 
-        { placeholder: "Choose an admin" 
+      ddInput = DD.input
+        { placeholder: "Choose an admin"
         , items: map (Admin <<< { id: _ })
             [ Nothing
             , Just $ GroupId 10
@@ -320,13 +320,13 @@ spec = F.defaultSpec
 
     renderWhiskey = UI.field
       { label: "Whiskey"
-      , help: F.getResult prx.whiskey form # UI.resultToHelp 
+      , help: F.getResult prx.whiskey form # UI.resultToHelp
           "Choose a whiskey to be awarded"
       }
       [ HH.slot TA._typeaheadSingle unit (Select.component TA.single) taInput handler ]
       where
       handler = Just <<< F.injAction <<< HandleTASingle
-      taInput = TA.input 
+      taInput = TA.input
         { placeholder: "Choose a whiskey"
         , items:
             [ "Laphroiag 10"
@@ -341,9 +341,9 @@ spec = F.defaultSpec
       { label: "Tracking Pixels"
       , help: F.getResult prx.pixels form # UI.resultToHelp "Choose a pixel to track"
       }
-      [ HH.slot TA._typeaheadMulti Pixels component taInput handler ]
+      [ HH.slot TA._typeaheadMulti Pixels selectComponent taInput handler ]
       where
-      component = Select.component TA.multi
+      selectComponent = Select.component TA.multi
       handler = Just <<< F.injAction <<< HandleTAMulti Pixels
       taInput = TA.input
         { placeholder: "Search pixels"
@@ -357,15 +357,14 @@ spec = F.defaultSpec
 
     renderApplications = UI.field
       { label: "Application Targets"
-      , help: F.getResult prx.applications form # UI.resultToHelp 
+      , help: F.getResult prx.applications form # UI.resultToHelp
           "Applications are available in several sizes."
       }
-      [ HH.slot TA._typeaheadMulti Applications component taInput handler ]
+      [ HH.slot TA._typeaheadMulti Applications selectComponent taInput handler ]
       where
-      component = Select.component TA.multi
+      selectComponent = Select.component TA.multi
       handler = Just <<< F.injAction <<< HandleTAMulti Applications
       taInput = TA.input
         { placeholder: "Search one or more applications"
         , items: [ "Facebook", "Google", "Twitter", "Pinterest" ]
         }
-
