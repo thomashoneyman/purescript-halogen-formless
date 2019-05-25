@@ -121,12 +121,12 @@ component
 component mkInput spec = H.mkComponent
   { initialState: initialState <<< mkInput
   , render: IC.getPublicState >>> spec.render
-  , eval: H.mkEval $ H.defaultEval
-      { handleQuery = \q -> handleQuery spec.handleQuery spec.handleMessage q
-      , handleAction = \act -> handleAction spec.handleAction spec.handleMessage act
-      , initialize = Just (inj (SProxy :: _ "initialize") spec.initialize)
-      , receive = map (map FA.injAction) spec.receive
-      , finalize = map FA.injAction spec.finalize
+  , eval: H.mkEval
+      { handleQuery: \q -> handleQuery spec.handleQuery spec.handleMessage q
+      , handleAction: \act -> handleAction spec.handleAction spec.handleMessage act
+      , initialize: Just (inj (SProxy :: _ "initialize") spec.initialize)
+      , receive: map (map FA.injAction) spec.receive
+      , finalize: map FA.injAction spec.finalize
       }
   }
   where
