@@ -30,7 +30,7 @@ type Spec form st query act slots input msg m =
   { render :: PublicState form st -> ComponentHTML form act slots m
   , handleAction :: act -> HalogenM form st act slots msg m Unit
   , handleQuery :: forall a. query a -> HalogenM form st act slots msg m (Maybe a)
-  , handleMessage :: Message form st -> HalogenM form st act slots msg m Unit
+  , handleEvent :: Event form st -> HalogenM form st act slots msg m Unit
   , receive :: input -> Maybe act
   , initialize :: Maybe act
   , finalize :: Maybe act
@@ -192,11 +192,11 @@ type Input' form m = Input form () m
 -- | The component tries to require as few messages to be handled as possible. You
 -- | can always use the *Reply variants of queries to perform actions and receive
 -- | a result out the other end, or extend these messages.
-data Message form st
+data Event form st
   = Submitted (form Record OutputField)
   | Changed (PublicState form st)
 
-type Message' form = Message form ()
+type Event' form = Event form ()
 
 -- | A slot type that can be used in the ChildSlots definition for your parent
 -- | component
