@@ -21,24 +21,24 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.Query.ChildQuery (ChildQueryBox)
 
--- | A type representing the various functions that can be provided to extend 
+-- | A type representing the various functions that can be provided to extend
 -- | the Formless component. Usually only the `render` function is required,
 -- | but you may also provide others. For example, if you have child components,
 -- | you can tell Formless how to manage those child components by adding a
 -- | handler action and `handleAction` case.
-type Spec form st query act ps msg m =
-  { render :: PublicState form st -> ComponentHTML form act ps m
-  , handleAction :: act -> HalogenM form st act ps msg m Unit
-  , handleQuery :: forall a. query a -> HalogenM form st act ps msg m (Maybe a)
-  , handleMessage :: Message form st -> HalogenM form st act ps msg m Unit
-  , receive :: Input form st m -> Maybe act
+type Spec form st query act slots input msg m =
+  { render :: PublicState form st -> ComponentHTML form act slots m
+  , handleAction :: act -> HalogenM form st act slots msg m Unit
+  , handleQuery :: forall a. query a -> HalogenM form st act slots msg m (Maybe a)
+  , handleEvent :: Event form st -> HalogenM form st act slots msg m Unit
+  , receive :: input -> Maybe act
   , initialize :: Maybe act
   , finalize :: Maybe act
   }
 
 -- | A simplified type when the component has only a form spec, some output, and runs
 -- | in some monad `m`
-type Spec' form msg m = Spec form () (Const Void) Void () msg m
+type Spec' form msg input m = Spec form () (Const Void) Void () input msg m
 
 -- | The component action type. While actions are typically considered
 -- | internal to a component, in Formless you write the render function and will
@@ -49,8 +49,8 @@ type Spec' form msg m = Spec form () (Const Void) Void () msg m
 -- | You can freely extend this type with your own actions using `injAction`.
 type Action form act = Variant
   ( userAction :: act
-  | InternalAction act 
-  + PublicAction form 
+  | InternalAction act
+  + PublicAction form
   )
 
 type PublicAction form =
@@ -75,22 +75,22 @@ type InternalAction act r =
 -- | A simple action type when the component does not need extension
 type Action' form = Action form Void
 
--- | The internals of the public component query type. Many of these are shared 
--- | with actions of the same name so they can be used in rendering. See 
+-- | The internals of the public component query type. Many of these are shared
+-- | with actions of the same name so they can be used in rendering. See
 -- | `Formless.Action` and `Formless.Query` for more.
-data QueryF form ps a
+data QueryF form slots a
   = SubmitReply (Maybe (form Record OutputField) -> a)
   -- Query a child component of Formless through Formless
-  | SendQuery (ChildQueryBox ps (Maybe a))
+  | SendQuery (ChildQueryBox slots (Maybe a))
   -- Run a Formless action as a query
   | AsQuery (Variant (PublicAction form)) a
 
-derive instance functorQueryF :: Functor (QueryF form ps)
+derive instance functorQueryF :: Functor (QueryF form slots)
 
 -- | The component query type, which you can freely extend with your own queries
 -- | using `injQuery` from `Formless.Query`.
-type Query form query ps = VariantF
-  ( query :: FProxy (QueryF form ps) 
+type Query form query slots = VariantF
+  ( query :: FProxy (QueryF form slots)
   , userQuery :: FProxy query
   )
 
@@ -98,31 +98,31 @@ type Query form query ps = VariantF
 type Query' form = Query form (Const Void) ()
 
 -- | The component type
-type Component form st query ps msg m = 
-  H.Component HH.HTML (Query form query ps) (Input form st m) msg m
+type Component form query slots input msg m =
+  H.Component HH.HTML (Query form query slots) input msg m
 
 -- | A simple component type when the component does not need extension
-type Component' form m =
-  Component form () (Const Void) () Void m
+type Component' form input m =
+  Component form (Const Void) () input Void m
 
 -- | The component's HTML type, the result of the render function.
-type ComponentHTML form act ps m = 
-  H.ComponentHTML (Action form act) ps m
+type ComponentHTML form act slots m =
+  H.ComponentHTML (Action form act) slots m
 
 -- | A simple component HTML type when the component does not need extension
 type ComponentHTML' form m =
   ComponentHTML form Void () m
 
 -- | The component's eval type
-type HalogenM form st act ps msg m =
-  H.HalogenM (State form st m) (Action form act) ps msg m
+type HalogenM form st act slots msg m =
+  H.HalogenM (State form st m) (Action form act) slots msg m
 
 -- | A simple component eval type when the component does not need extension
 type HalogenM' form msg m =
   HalogenM form () Void () msg m
 
 -- | The component local state
-type State form st m = 
+type State form st m =
   { | StateRow form (internal :: InternalState form m | st) }
 
 -- | A simple state type when the component does not need extension
@@ -130,7 +130,7 @@ type State' form m =
   State form () m
 
 -- | The component's public state
-type PublicState form st = 
+type PublicState form st =
   { | StateRow form st }
 
 -- | The component's public state, as an extensible row
@@ -192,15 +192,15 @@ type Input' form m = Input form () m
 -- | The component tries to require as few messages to be handled as possible. You
 -- | can always use the *Reply variants of queries to perform actions and receive
 -- | a result out the other end, or extend these messages.
-data Message form st
+data Event form st
   = Submitted (form Record OutputField)
   | Changed (PublicState form st)
 
-type Message' form = Message form ()
+type Event' form = Event form ()
 
 -- | A slot type that can be used in the ChildSlots definition for your parent
 -- | component
-type Slot form query ps msg = H.Slot (Query form query ps) msg
+type Slot form query slots msg = H.Slot (Query form query slots) msg
 
 -- | A simple Slot type when the component does not need extension, besides a
 -- | custom output message

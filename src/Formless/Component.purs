@@ -20,7 +20,7 @@ import Formless.Internal.Debounce (debounceForm)
 import Formless.Internal.Transform as IT
 import Formless.Transform.Record (UnwrapField, unwrapOutputFields)
 import Formless.Transform.Row (mkInputFields, class MakeInputFieldsFromRow)
-import Formless.Types.Component (Action, Component, HalogenM, Input, InternalState(..), Message(..), PublicAction, Query, QueryF(..), Spec, State, ValidStatus(..))
+import Formless.Types.Component (Action, Component, HalogenM, Input, InternalState(..), Event(..), PublicAction, Query, QueryF(..), Spec, State, ValidStatus(..))
 import Formless.Types.Form (FormField, InputField, InputFunction, OutputField, U, FormProxy(..))
 import Formless.Validation (Validation)
 import Halogen as H
@@ -31,50 +31,50 @@ import Prim.RowList as RL
 import Record.Builder as Builder
 import Unsafe.Coerce (unsafeCoerce)
 
--- | The default spec, which can be overridden by whatever functions you need 
+-- | The default spec, which can be overridden by whatever functions you need
 -- | to extend the component. For example:
 -- |
 -- | ```purescript
 -- | mySpec = F.defaultSpec { render = myRender }
 -- | ```
-defaultSpec :: forall form st query act slots msg m. Spec form st query act slots msg m
-defaultSpec = 
+defaultSpec :: forall form st query act slots input msg m. Spec form st query act slots input msg m
+defaultSpec =
   { render: const (HH.text mempty)
   , handleAction: const (pure unit)
   , handleQuery: const (pure Nothing)
-  , handleMessage: const (pure unit)
+  , handleEvent: const (pure unit)
   , receive: const Nothing
   , initialize: Nothing
   , finalize: Nothing
   }
 
--- | A convenience function for raising a form's validated and unwrapped outputs 
--- | as its only message to a parent component. Useful when you only want to be 
+-- | A convenience function for raising a form's validated and unwrapped outputs
+-- | as its only message to a parent component. Useful when you only want to be
 -- | notified with a form's successfully-parsed data. For example:
 -- |
 -- | ```purescript
 -- | type User = { name :: String, email :: Email }
 -- |
--- | newtype UserForm r f = UserForm (r 
+-- | newtype UserForm r f = UserForm (r
 -- |   ( name :: f Void String String
 -- |   , email :: f EmailError String Email
 -- |   ))
 -- | derive instance newtypeUserForm :: Newtype (UserForm r f) _
--- | 
--- | -- we only want to handle our `User` type on successful submission; we can 
--- | -- use `raiseResult` as our `handleMessage` function to do this conveniently.
--- | formSpec = F.defaultSpec { handleMessage = raiseResult }
+-- |
+-- | -- we only want to handle our `User` type on successful submission; we can
+-- | -- use `raiseResult` as our `handleEvent` function to do this conveniently.
+-- | formSpec = F.defaultSpec { handleEvent = raiseResult }
 -- |
 -- | -- the parent can now just handle the `User` output
 -- | data ParentAction = HandleForm User
 -- |
 -- | type ChildSlots = ( formless :: F.Slot' UserForm User Unit )
 -- | ```
-raiseResult 
+raiseResult
   :: forall form st act slots wrappedOutput output m
    . Newtype (form Record OutputField) { | wrappedOutput }
   => HM.HMap UnwrapField { | wrappedOutput } { | output }
-  => Message form st 
+  => Event form st
   -> HalogenM form st act slots { | output } m Unit
 raiseResult = case _ of
   Submitted out -> H.raise (unwrapOutputFields out)
@@ -83,7 +83,7 @@ raiseResult = case _ of
 -- | The Formless component, which takes a `spec` and provides a running form
 -- | component from it.
 component
-  :: forall form st query act slots msg m is ixs ivs fs fxs us vs os ifs ivfs
+  :: forall form st query act slots input msg m is ixs ivs fs fxs us vs os ifs ivfs
    . MonadAff m
   => RL.RowToList is ixs
   => RL.RowToList fs fxs
@@ -115,17 +115,18 @@ component
   => Row.Lacks "submitting" st
   => Row.Lacks "form" st
   => Row.Lacks "internal" st
-  => Spec form st query act slots msg m
-  -> Component form st query slots msg m
-component spec = H.mkComponent
-  { initialState
+  => (input -> Input form st m)
+  -> Spec form st query act slots input msg m
+  -> Component form query slots input msg m
+component mkInput spec = H.mkComponent
+  { initialState: initialState <<< mkInput
   , render: IC.getPublicState >>> spec.render
-  , eval: H.mkEval $ H.defaultEval
-      { handleQuery = \q -> handleQuery spec.handleQuery spec.handleMessage q
-      , handleAction = \act -> handleAction spec.handleAction spec.handleMessage act
-      , initialize = Just (inj (SProxy :: _ "initialize") spec.initialize)
-      , receive = map (map FA.injAction) spec.receive
-      , finalize = map FA.injAction spec.finalize
+  , eval: H.mkEval
+      { handleQuery: \q -> handleQuery spec.handleQuery spec.handleEvent q
+      , handleAction: \act -> handleAction spec.handleAction spec.handleEvent act
+      , initialize: Just (inj (SProxy :: _ "initialize") spec.initialize)
+      , receive: map (map FA.injAction) spec.receive
+      , finalize: map FA.injAction spec.finalize
       }
   }
   where
@@ -145,7 +146,7 @@ component spec = H.mkComponent
       , debounceRef: Nothing
       , validationRef: Nothing
       }
-    pipeline = 
+    pipeline =
       Builder.delete (SProxy :: _ "validators")
         >>> Builder.delete (SProxy :: _ "initialInputs")
         >>> Builder.insert (SProxy :: _ "validity") Incomplete
@@ -181,10 +182,10 @@ handleAction
   => Newtype (form Variant U) (Variant us)
   => Row.Lacks "internal" st
   => (act -> HalogenM form st act slots msg m Unit)
-  -> (Message form st -> HalogenM form st act slots msg m Unit)
+  -> (Event form st -> HalogenM form st act slots msg m Unit)
   -> Action form act
   -> HalogenM form st act slots msg m Unit
-handleAction handleAction' handleMessage action = flip match action 
+handleAction handleAction' handleEvent action = flip match action
   { initialize: \mbAction -> do
       dr <- H.liftEffect $ Ref.new Nothing
       vr <- H.liftEffect $ Ref.new Nothing
@@ -194,7 +195,7 @@ handleAction handleAction' handleMessage action = flip match action
 
   , syncFormData: \_ -> do
       st <- H.get
-      let 
+      let
         errors = IT.countErrors st.form
         dirty = not $ eq
           (unwrap (IT.formFieldsToInputFields st.form))
@@ -223,15 +224,15 @@ handleAction handleAction' handleMessage action = flip match action
           -- The sync revealed that not all fields have been touched
           _ -> H.modify _ { validity = Incomplete, errors = errors, dirty = dirty }
 
-      handleMessage $ Changed $ IC.getPublicState newState
+      handleEvent $ Changed $ IC.getPublicState newState
 
-  , userAction: \act -> 
+  , userAction: \act ->
       handleAction' act
 
   , modify: \variant ->  do
       H.modify_ \st -> st
         { form = IT.unsafeModifyInputVariant identity variant st.form }
-      handleAction handleAction' handleMessage sync
+      handleAction handleAction' handleEvent sync
 
   , validate: \variant -> do
       st <- H.get
@@ -239,7 +240,7 @@ handleAction handleAction' handleMessage action = flip match action
       form <- H.lift do
         IT.unsafeRunValidationVariant variant validators st.form
       H.modify_ _ { form = form }
-      handleAction handleAction' handleMessage sync
+      handleAction handleAction' handleEvent sync
 
   , modifyValidate: \(Tuple milliseconds variant) -> do
       let
@@ -254,49 +255,49 @@ handleAction handleAction' handleMessage action = flip match action
         validate = do
           st <- H.get
           let vs = (unwrap st.internal).validators
-          form <- H.lift do 
+          form <- H.lift do
             IT.unsafeRunValidationVariant (unsafeCoerce variant) vs st.form
           H.modify_ _ { form = form }
           pure form
 
       case milliseconds of
-        Nothing -> 
-          modifyWith identity *> validate *> handleAction handleAction' handleMessage sync
+        Nothing ->
+          modifyWith identity *> validate *> handleAction handleAction' handleEvent sync
         Just ms ->
           debounceForm
             ms
             (modifyWith identity)
             (modifyWith (const Validating) *> validate)
-            (handleAction handleAction' handleMessage sync)
+            (handleAction handleAction' handleEvent sync)
 
   , reset: \variant -> do
       H.modify_ \st -> st
         { form = IT.unsafeModifyInputVariant identity variant st.form
         , internal = over InternalState (_ { allTouched = false }) st.internal
         }
-      handleAction handleAction' handleMessage sync
+      handleAction handleAction' handleEvent sync
 
   , setAll: \(Tuple formInputs shouldValidate) -> do
       new <- H.modify \st -> st
         { form = IT.replaceFormFieldInputs formInputs st.form }
-      handleMessage $ Changed $ IC.getPublicState new
+      handleEvent $ Changed $ IC.getPublicState new
       case shouldValidate of
-        true -> handleAction handleAction' handleMessage FA.validateAll
-        _ -> handleAction handleAction' handleMessage sync
+        true -> handleAction handleAction' handleEvent FA.validateAll
+        _ -> handleAction handleAction' handleEvent sync
 
   , modifyAll: \(Tuple formInputs shouldValidate) -> do
       new <- H.modify \st -> st
         { form = IT.modifyAll formInputs st.form }
-      handleMessage $ Changed $ IC.getPublicState new
+      handleEvent $ Changed $ IC.getPublicState new
       case shouldValidate of
-        true -> handleAction handleAction' handleMessage FA.validateAll
-        _ -> handleAction handleAction' handleMessage sync
+        true -> handleAction handleAction' handleEvent FA.validateAll
+        _ -> handleAction handleAction' handleEvent sync
 
   , validateAll: \_ -> do
       st <- H.get
       form <- H.lift $ IT.validateAll (unwrap st.internal).validators st.form
       H.modify_ _ { form = form }
-      handleAction handleAction' handleMessage sync
+      handleAction handleAction' handleEvent sync
 
   , resetAll: \_ -> do
       new <- H.modify \st -> st
@@ -305,17 +306,17 @@ handleAction handleAction' handleMessage action = flip match action
         , errors = 0
         , submitAttempts = 0
         , submitting = false
-        , form = 
+        , form =
             IT.replaceFormFieldInputs (unwrap st.internal).initialInputs st.form
-        , internal = 
+        , internal =
             over InternalState (_ { allTouched = false }) st.internal
         }
-      handleMessage $ Changed $ IC.getPublicState new
+      handleEvent $ Changed $ IC.getPublicState new
 
   , submit: \_ -> do
-      _ <- IC.preSubmit 
-      _ <- handleAction handleAction' handleMessage FA.validateAll 
-      IC.submit >>= traverse_ (Submitted >>> handleMessage)
+      _ <- IC.preSubmit
+      _ <- handleAction handleAction' handleEvent FA.validateAll
+      IC.submit >>= traverse_ (Submitted >>> handleEvent)
 
   , loadForm: \formInputs -> do
       let setFields rec = rec { allTouched = false, initialInputs = formInputs }
@@ -329,13 +330,13 @@ handleAction handleAction' handleMessage action = flip match action
         , form = IT.replaceFormFieldInputs formInputs st.form
         , internal = over InternalState setFields st.internal
         }
-      handleMessage $ Changed $ IC.getPublicState new
+      handleEvent $ Changed $ IC.getPublicState new
   }
   where
-  sync :: Action form act 
+  sync :: Action form act
   sync = inj (SProxy :: SProxy "syncFormData") unit
 
-handleQuery 
+handleQuery
   :: forall form st query act slots msg m a is ixs ivs fs fxs us vs os ifs ivfs
    . MonadAff m
   => RL.RowToList is ixs
@@ -360,24 +361,24 @@ handleQuery
   => Newtype (form Variant U) (Variant us)
   => Row.Lacks "internal" st
   => (forall b. query b -> HalogenM form st act slots msg m (Maybe b))
-  -> (Message form st -> HalogenM form st act slots msg m Unit)
-  -> Query form query slots a 
+  -> (Event form st -> HalogenM form st act slots msg m Unit)
+  -> Query form query slots a
   -> HalogenM form st act slots msg m (Maybe a)
-handleQuery handleQuery' handleMessage = VF.match
+handleQuery handleQuery' handleEvent = VF.match
   { query: case _ of
       SubmitReply reply -> do
-        _ <- IC.preSubmit 
-        _ <- handleAction (const (pure unit)) handleMessage FA.validateAll 
-        mbForm <- IC.submit 
+        _ <- IC.preSubmit
+        _ <- handleAction (const (pure unit)) handleEvent FA.validateAll
+        mbForm <- IC.submit
         pure $ Just $ reply mbForm
 
-      SendQuery box -> 
+      SendQuery box ->
         H.HalogenM $ liftF $ H.ChildQuery box
 
-      AsQuery (act :: Variant (PublicAction form)) a -> Just a <$ 
-        handleAction 
-          (const (pure unit)) 
-          handleMessage
+      AsQuery (act :: Variant (PublicAction form)) a -> Just a <$
+        handleAction
+          (const (pure unit))
+          handleEvent
           ((expand act) :: Action form act)
 
   , userQuery: \q -> handleQuery' q

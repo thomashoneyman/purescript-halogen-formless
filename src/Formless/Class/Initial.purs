@@ -57,4 +57,3 @@ instance initialTuple :: (Initial a, Initial b) => Initial (Tuple a b) where
 
 instance initialRecord :: (RL.RowToList row list, MonoidRecord list row row) => Initial (Record row) where
   initial = mempty
-

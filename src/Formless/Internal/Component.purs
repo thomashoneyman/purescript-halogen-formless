@@ -16,14 +16,14 @@ import Prim.RowList as RL
 import Record.Builder as Builder
 
 -- Remove internal fields and user-supplied fields to return the public state
-getPublicState 
+getPublicState
   :: forall form st m
    . Row.Lacks "internal" st
-  => State form st m 
+  => State form st m
   -> PublicState form st
 getPublicState = Builder.build (Builder.delete (SProxy :: SProxy "internal"))
 
-preSubmit 
+preSubmit
   :: forall form st act ps msg m fs fxs os vs
    . MonadAff m
   => RL.RowToList fs fxs
@@ -50,7 +50,7 @@ preSubmit = do
       , internal = over InternalState (_ { allTouched = true }) init.internal
       }
 
-submit 
+submit
   :: forall form st act ps msg m fs fxs os vs
    . MonadAff m
   => RL.RowToList fs fxs

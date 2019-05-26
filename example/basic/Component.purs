@@ -41,22 +41,22 @@ component = H.mkComponent
     UI.section_
       [ UI.h1_ [ HH.text "Formless" ]
       , UI.h2_ [ HH.text "A basic contact form." ]
-      , UI.p_ 
+      , UI.p_
           """
           You can create a full Halogen contact form like this in less than 20 lines of Formless, excluding the render function.  It's type-safe, supports complex types, has validation, and parses to the output type of your choice."
           """
       , HH.br_
-      , HH.slot F._formless unit (F.component formSpec) formInput (Just <<< HandleContact)
+      , HH.slot F._formless unit formComponent unit (Just <<< HandleContact)
       ]
 
-  formInput = 
-    { validators: ContactForm { name: V.minLength 5, text: F.noValidation }
-    , initialInputs: Nothing
-    }
-
-  formSpec :: F.Spec' ContactForm Contact Aff
-  formSpec = F.defaultSpec { render = renderFormless, handleMessage = F.raiseResult }
+  formComponent :: F.Component ContactForm (Const Void) () Unit Contact Aff
+  formComponent = F.component (const formInput) $ F.defaultSpec { render = renderFormless, handleEvent = F.raiseResult }
     where
+    formInput =
+      { validators: ContactForm { name: V.minLength 5, text: F.noValidation }
+      , initialInputs: Nothing
+      }
+
     renderFormless st =
      UI.formContent_
        [ UI.input

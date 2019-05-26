@@ -18,7 +18,7 @@ import Halogen as H
 -- | A helper function to debounce actions on the form and form fields. Implemented
 -- | to reduce type variables necessary in the `State` type
 
-debounceForm 
+debounceForm
   :: forall form st act ps msg m a
    . MonadAff m
   => Milliseconds
@@ -29,7 +29,7 @@ debounceForm
 debounceForm ms pre post last = do
   state <- H.get
 
-  let 
+  let
     dbRef = (unwrap state.internal).debounceRef
     vdRef = (unwrap state.internal).validationRef
 
@@ -42,7 +42,7 @@ debounceForm ms pre post last = do
       var <- H.liftAff $ AVar.empty
       fiber <- mkFiber var
 
-      _ <- H.fork do 
+      _ <- H.fork do
         void $ H.liftAff (AVar.take var)
         H.liftEffect $ traverse_ (Ref.write Nothing) dbRef
         atomic post (Just last)
@@ -58,24 +58,24 @@ debounceForm ms pre post last = do
 
   where
   mkFiber :: AVar Unit -> HalogenM form st act ps msg m (Fiber Unit)
-  mkFiber v = H.liftAff $ forkAff do 
-    delay ms 
+  mkFiber v = H.liftAff $ forkAff do
+    delay ms
     AVar.put unit v
 
   killFiber' :: forall x n. MonadAff n => Fiber x -> n Unit
   killFiber' = H.liftAff <<< killFiber (error ("time's up!"))
 
-  readRef :: forall x n. MonadAff n => Maybe (Ref (Maybe x)) -> n (Maybe x) 
+  readRef :: forall x n. MonadAff n => Maybe (Ref (Maybe x)) -> n (Maybe x)
   readRef = H.liftEffect <<< map join <<< traverse Ref.read
 
-  atomic 
+  atomic
     :: forall n
-     . MonadAff n 
+     . MonadAff n
     => HalogenM form st act ps msg n (form Record FormField)
     -> Maybe (HalogenM form st act ps msg n a)
     -> HalogenM form st act ps msg n Unit
   atomic process maybeLast = do
-    state <- H.get 
+    state <- H.get
     let ref = (unwrap state.internal).validationRef
     mbRef <- readRef ref
     for_ mbRef H.kill
@@ -86,4 +86,3 @@ debounceForm ms pre post last = do
       H.liftEffect $ for_ ref $ Ref.write Nothing
       for_ maybeLast identity
     H.liftEffect $ for_ ref $ Ref.write (Just forkId)
-
