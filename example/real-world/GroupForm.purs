@@ -125,7 +125,7 @@ component :: F.Component GroupForm (Const Void) ChildSlots Unit Group Aff
 component = F.component (const input) $ F.defaultSpec
   { render = render
   , handleAction = handleAction
-  , handleMessage = handleMessage
+  , handleEvent = handleEvent
   }
   where
   input :: F.Input GroupForm State Aff
@@ -157,7 +157,7 @@ component = F.component (const input) $ F.defaultSpec
         then Right secretKey2
         else Left $ V.NotEqual secretKey1 secretKey2
 
-  handleMessage = case _ of
+  handleEvent = case _ of
     F.Submitted form -> do
       -- first, we'll submit the options form
       mbOptionsForm <- H.query OF._optionsForm unit (H.request F.submitReply)
@@ -222,7 +222,7 @@ component = F.component (const input) $ F.defaultSpec
       Pixels -> eval $ F.setValidate prx.pixels new
 
     where
-    eval act = F.handleAction handleAction handleMessage act
+    eval act = F.handleAction handleAction handleEvent act
 
   render st@{ form } =
     HH.div_

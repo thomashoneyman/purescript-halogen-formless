@@ -115,7 +115,7 @@ component :: F.Component OptionsForm (Const Void) ChildSlots Unit Message Aff
 component = F.component (const input) $ F.defaultSpec
   { render = render
   , handleAction = handleAction
-  , handleMessage = handleMessage
+  , handleEvent = handleEvent
   }
   where
   input :: F.Input OptionsForm State Aff
@@ -151,10 +151,10 @@ component = F.component (const input) $ F.defaultSpec
     , speed: Low
     }
 
-  -- available for both handleMessage and handleAction
-  eval act = F.handleAction handleAction handleMessage act
+  -- available for both handleEvent and handleAction
+  eval act = F.handleAction handleAction handleEvent act
 
-  handleMessage = case _ of
+  handleEvent = case _ of
     F.Changed form -> do
       st <- H.get
       let enabled = F.getInput prx.enable form.form

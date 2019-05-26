@@ -61,7 +61,7 @@ component :: F.Component UserForm (Const Void) ChildSlots Unit User Aff
 component = F.component (const defaultInput) $ F.defaultSpec
   { render = render
   , handleAction = handleAction
-  , handleMessage = handleMessage
+  , handleEvent = handleEvent
   }
   where
   defaultInput :: F.Input' UserForm Aff
@@ -75,7 +75,7 @@ component = F.component (const defaultInput) $ F.defaultSpec
     , initialInputs: Nothing
     }
 
-  handleMessage = case _ of
+  handleEvent = case _ of
     F.Submitted outputs -> H.raise (F.unwrapOutputFields outputs)
     F.Changed formState -> logShow $ delete (SProxy :: _ "form") formState
 
@@ -103,7 +103,7 @@ component = F.component (const defaultInput) $ F.defaultSpec
     where
     -- you will usually want to define this pre-applied function if you
     -- are recursively evaluating Formless actions.
-    eval act = F.handleAction handleAction handleMessage act
+    eval act = F.handleAction handleAction handleEvent act
 
   render :: F.PublicState UserForm () -> F.ComponentHTML UserForm Action ChildSlots Aff
   render st =

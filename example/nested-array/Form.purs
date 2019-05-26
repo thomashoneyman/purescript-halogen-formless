@@ -60,7 +60,7 @@ eventComponent :: F.Component EventForm (Const Void) ChildSlots Unit Event Aff
 eventComponent = F.component (const eventFormInput) $ F.defaultSpec
   { render = render
   , handleAction = handleAction
-  , handleMessage = handleMessage
+  , handleEvent = handleEvent
   }
   where
   eventFormInput :: F.Input EventForm State Aff
@@ -92,11 +92,11 @@ eventComponent = F.component (const eventFormInput) $ F.defaultSpec
         members -> eval (F.set _members (Just members)) *> eval F.submit
 
     where
-    eval act = F.handleAction handleAction handleMessage act
+    eval act = F.handleAction handleAction handleEvent act
     _members = SProxy :: _ "members"
     _memberForm = SProxy :: _ "memberForm"
 
-  handleMessage = case _ of
+  handleEvent = case _ of
     F.Submitted outputs ->
       H.raise (F.unwrapOutputFields outputs)
     _ -> pure unit

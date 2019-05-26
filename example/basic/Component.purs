@@ -50,7 +50,7 @@ component = H.mkComponent
       ]
 
   formComponent :: F.Component ContactForm (Const Void) () Unit Contact Aff
-  formComponent = F.component (const formInput) $ F.defaultSpec { render = renderFormless, handleMessage = F.raiseResult }
+  formComponent = F.component (const formInput) $ F.defaultSpec { render = renderFormless, handleEvent = F.raiseResult }
     where
     formInput =
       { validators: ContactForm { name: V.minLength 5, text: F.noValidation }

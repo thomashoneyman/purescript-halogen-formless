@@ -55,7 +55,7 @@ component = H.mkComponent
       ]
 
   formComponent :: F.Component Form (Const Void) () Unit BankUser Aff
-  formComponent = F.component (const formInput) $ F.defaultSpec { render = renderForm, handleMessage = F.raiseResult }
+  formComponent = F.component (const formInput) $ F.defaultSpec { render = renderForm, handleEvent = F.raiseResult }
     where
     formInput =
       { validators: Form
