@@ -17,7 +17,7 @@ import Record as Record
 import Record.Builder (Builder)
 import Record.Builder as Builder
 import Record.Unsafe (unsafeGet, unsafeSet)
-import Type.Row (RLProxy(..))
+import Type.Data.RowList (RLProxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 
 ----------
@@ -429,7 +429,7 @@ instance replaceFormFieldInputsTouchedCons
      )
   => ReplaceFormFieldInputs is (RL.Cons name (FormField e i o) tail) row to where
   replaceFormFieldInputsBuilder ir _ fr = first <<< rest
-		where
+    where
       _name = SProxy :: SProxy name
       i = Record.get _name ir
       f = unwrap $ Record.get _name fr
