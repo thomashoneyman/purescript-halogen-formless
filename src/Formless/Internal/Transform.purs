@@ -17,7 +17,7 @@ import Record as Record
 import Record.Builder (Builder)
 import Record.Builder as Builder
 import Record.Unsafe (unsafeGet, unsafeSet)
-import Type.Data.RowList (RLProxy(..))
+import Type.Row (RLProxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 
 ----------
