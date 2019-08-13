@@ -8,9 +8,9 @@ import Data.Generic.Rep.Show (genericShow)
 import Data.Lens (preview)
 import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype)
-import Data.Symbol (SProxy(..))
 import Data.String.CodeUnits (length)
-import Formless (FormFieldResult, Validation, _Error, hoistFnE_)
+import Data.Symbol (SProxy(..))
+import Formless (class Initial, FormFieldResult, Validation, _Error, hoistFnE_)
 
 -- Data type for one of our fields
 
@@ -18,10 +18,18 @@ newtype Name = Name String
 derive instance newtypeName :: Newtype Name _
 derive newtype instance showName :: Show Name
 
-type NAME_FIELD f r = (name :: f FieldError String String | r)
+                                          -- input  output
+type NAME_FIELD f r = ( name :: f FieldError String Name | r)
 
+-- The value following 'SProxy' must be the same as the
+-- label in the above row kind, so that we can use `_name`
+-- to refer to same label in a record or Variant
 _name :: SProxy "name"
 _name = SProxy
+
+-- Specifies the initial value that the field will have when it is initialized.
+instance initialName :: Initial Name where
+  initial = Name "Nobody"
 
 -- Error type for one of our fields
 data FieldError
@@ -29,13 +37,13 @@ data FieldError
 
 derive instance genericFieldError :: Generic FieldError _
 instance showFieldError :: Show FieldError where
-  show = genericShow
+  show x = genericShow x
 
 -- | Function for validating one of our field's data
-minLength :: ∀ form m. Monad m => Int -> Validation form m FieldError String String
+minLength :: ∀ form m. Monad m => Int -> Validation form m FieldError String Name
 minLength n = hoistFnE_ $ \str ->
   let n' = length str
-   in if n' < n then Left (TooShort n) else Right str
+  in if n' < n then Left (TooShort n) else Right (Name str)
 
 -- | This could be a type class, but we'll just use a function instead.
 toErrorText :: FieldError -> String

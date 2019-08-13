@@ -7,7 +7,6 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Effect.Aff (Aff)
 import Formless as F
-import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
@@ -27,7 +26,7 @@ derive instance newtypeForm' :: Newtype (Form r f) _
 -- Form component types
 
 type Input = Unit
-type AddedState = ()
+type AddedState = ( additionalState :: Maybe Int )
 data Action
   = DoStuff
   | Initialize
@@ -57,10 +56,14 @@ component = F.component mkInput $ F.defaultSpec
   where
   mkInput :: Input -> F.Input Form AddedState Aff
   mkInput _ =
+    -- the two values here are for Formless
     { validators: Form
         { name: minLength 7
         }
-    , initialInputs: Nothing
+    , initialInputs: Nothing -- when Nothing, will use `Initial` type class
+
+    -- everything else below comes from our `AddedState` rows:
+    , additionalState: Just 5
     }
 
   render :: F.PublicState Form AddedState -> F.ComponentHTML Form Action ChildSlots Aff
@@ -71,13 +74,14 @@ component = F.component mkInput $ F.defaultSpec
       , HH.p_ [ HH.text $ "Being Submitted: " <> show st.submitting ]
       , HH.p_ [ HH.text $ "Number of Errors: " <> show st.errors ]
       , HH.p_ [ HH.text $ "Number of Submit attempts: " <> show st.submitAttempts ]
-      -- not sure how to use this value: `st.form`
+      , HH.p_ [ HH.text $ "Additional state was: " <> show st.additionalState ]
+
       , HH.div_
         [ HH.text "Label" ]
       , HH.input
         [ HP.type_ InputText
         , HP.placeholder "Michael"
-        , HP.value (F.getInput _name st.form)
+        , HP.value (F.getInput _name st.form) -- access one value in form
         , HE.onValueInput (Just <<< F.setValidate _name)
         ]
       , HH.button
@@ -92,8 +96,16 @@ component = F.component mkInput $ F.defaultSpec
               -> F.HalogenM Form AddedState Action ChildSlots Message MonadType Unit
   handleEvent = case _ of
     F.Submitted formContent -> do
-      let sendFormDataToParent = H.raise $ F.unwrapOutputFields formContent
-      -- but we don't call it in case you want a different message type
+      -- This is how to get the output values of the form.
+      let formFields = F.unwrapOutputFields formContent
+
+      -- We won't do this here, but this is how most will handle a form
+      -- submission: raise it as an event to their parent.
+      --      H.raise formFiels
+
+      -- Alternatively, one could do something custom with the output values.
+
+      -- This line exists so the code compiles.
       pure unit
     F.Changed formState -> do
       void $ pure formState
