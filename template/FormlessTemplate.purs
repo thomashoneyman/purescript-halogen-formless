@@ -66,7 +66,9 @@ component = F.component mkInput $ F.defaultSpec
     , additionalState: Just 5
     }
 
-  render :: F.PublicState Form AddedState -> F.ComponentHTML Form Action ChildSlots Aff
+  render
+    :: F.PublicState Form AddedState
+    -> F.ComponentHTML Form Action ChildSlots Aff
   render st =
     HH.div_
       [ HH.p_ [ HH.text $ "Validity: " <> show st.validity ]
@@ -92,8 +94,9 @@ component = F.component mkInput $ F.defaultSpec
         [ HH.text "Submit" ]
       ]
 
-  handleEvent :: F.Event Form AddedState
-              -> F.HalogenM Form AddedState Action ChildSlots Message MonadType Unit
+  handleEvent
+    :: F.Event Form AddedState
+    -> F.HalogenM Form AddedState Action ChildSlots Message MonadType Unit
   handleEvent = case _ of
     F.Submitted formContent -> do
       -- This is how to get the output values of the form.
@@ -110,7 +113,9 @@ component = F.component mkInput $ F.defaultSpec
     F.Changed formState -> do
       void $ pure formState
 
-  handleAction :: Action -> F.HalogenM Form AddedState Action ChildSlots Message MonadType Unit
+  handleAction
+    :: Action
+    -> F.HalogenM Form AddedState Action ChildSlots Message MonadType Unit
   handleAction = case _ of
     DoStuff -> do
       pure unit
@@ -121,7 +126,10 @@ component = F.component mkInput $ F.defaultSpec
     Finalize -> do
       pure unit
 
-  handleQuery :: forall a. Query a -> F.HalogenM Form AddedState Action ChildSlots Message MonadType (Maybe a)
+  handleQuery
+    :: forall a
+     . Query a
+    -> F.HalogenM Form AddedState Action ChildSlots Message MonadType (Maybe a)
   handleQuery = case _ of
     Reply reply -> do
       pure $ Just $ reply unit
