@@ -104,7 +104,7 @@ component = F.component mkInput $ F.defaultSpec
 
       -- We won't do this here, but this is how most will handle a form
       -- submission: raise it as an event to their parent.
-      --      H.raise formFiels
+      --      H.raise formFields
 
       -- Alternatively, one could do something custom with the output values.
 
