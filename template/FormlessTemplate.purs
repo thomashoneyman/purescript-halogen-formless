@@ -56,6 +56,8 @@ component = F.component mkInput $ F.defaultSpec
   , receive = Just <<< Receive
   }
   where
+  -- Converts the Input value passed in by the parent component
+  -- into the Formless' Input value.
   mkInput :: Input -> F.Input Form AddedState m
   mkInput _ =
     -- the two values here are for Formless
