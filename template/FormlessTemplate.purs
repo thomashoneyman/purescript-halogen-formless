@@ -5,7 +5,7 @@ import Prelude
 import DOM.HTML.Indexed.InputType (InputType(..))
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
-import Effect.Aff (Aff)
+import Effect.Aff.Class (class MonadAff)
 import Formless as F
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -40,10 +40,12 @@ data Query a
 type Message = FormFields
 type ChildSlots =
   ()
-type MonadType = Aff
 type SelfSlot index = F.Slot Form Query ChildSlots Message index
 
-component :: F.Component Form Query ChildSlots Input FormFields Aff
+component
+  :: forall m
+   . MonadAff m
+  => F.Component Form Query ChildSlots Input FormFields m
 component = F.component mkInput $ F.defaultSpec
   { render = render
   , handleAction = handleAction
@@ -54,7 +56,7 @@ component = F.component mkInput $ F.defaultSpec
   , receive = Just <<< Receive
   }
   where
-  mkInput :: Input -> F.Input Form AddedState Aff
+  mkInput :: Input -> F.Input Form AddedState m
   mkInput _ =
     -- the two values here are for Formless
     { validators: Form
@@ -68,7 +70,7 @@ component = F.component mkInput $ F.defaultSpec
 
   render
     :: F.PublicState Form AddedState
-    -> F.ComponentHTML Form Action ChildSlots Aff
+    -> F.ComponentHTML Form Action ChildSlots m
   render st =
     HH.div_
       [ HH.p_ [ HH.text $ "Validity: " <> show st.validity ]
@@ -96,7 +98,7 @@ component = F.component mkInput $ F.defaultSpec
 
   handleEvent
     :: F.Event Form AddedState
-    -> F.HalogenM Form AddedState Action ChildSlots Message MonadType Unit
+    -> F.HalogenM Form AddedState Action ChildSlots Message m Unit
   handleEvent = case _ of
     F.Submitted formContent -> do
       -- This is how to get the output values of the form.
@@ -115,7 +117,7 @@ component = F.component mkInput $ F.defaultSpec
 
   handleAction
     :: Action
-    -> F.HalogenM Form AddedState Action ChildSlots Message MonadType Unit
+    -> F.HalogenM Form AddedState Action ChildSlots Message m Unit
   handleAction = case _ of
     DoStuff -> do
       pure unit
@@ -129,7 +131,7 @@ component = F.component mkInput $ F.defaultSpec
   handleQuery
     :: forall a
      . Query a
-    -> F.HalogenM Form AddedState Action ChildSlots Message MonadType (Maybe a)
+    -> F.HalogenM Form AddedState Action ChildSlots Message m (Maybe a)
   handleQuery = case _ of
     Reply reply -> do
       pure $ Just $ reply unit
