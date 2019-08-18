@@ -87,7 +87,11 @@ component = F.component mkInput $ F.defaultSpec
       , HH.input
         [ HP.type_ InputText
         , HP.placeholder "Michael"
-        , HP.value (F.getInput _name st.form) -- access one value in form
+
+        -- gets the value of `_name` in the form's state
+        , HP.value (F.getInput _name st.form)
+
+        -- sets the value of `_name` and then validates it
         , HE.onValueInput (Just <<< F.setValidate _name)
         ]
       , HH.button
