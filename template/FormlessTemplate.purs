@@ -96,6 +96,9 @@ component = F.component mkInput $ F.defaultSpec
         [ HH.text "Submit" ]
       ]
 
+  -- Decide what, if anything, to do when Formless events occur.
+  -- For example, if you would like to raise events as messages,
+  -- then use `F.raiseResult` as your `handleEvent` function.
   handleEvent
     :: F.Event Form AddedState
     -> F.HalogenM Form AddedState Action ChildSlots Message m Unit
