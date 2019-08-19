@@ -75,11 +75,29 @@ component = F.component mkInput $ F.defaultSpec
     -> F.ComponentHTML Form Action ChildSlots m
   render st =
     HH.div_
+      -- Indicates whether the form's values are valid
+      -- (i.e. validation has passed for all fields)
       [ HH.p_ [ HH.text $ "Validity: " <> show st.validity ]
+
+      -- Indicates whether any field in the form has been changed from
+      -- its initial state
       , HH.p_ [ HH.text $ "Dirty: " <> show st.dirty ]
+
+      -- Indicates whether the 'submit' button has been clicked and the
+      -- form's content is still being validated one last time before
+      -- submission is accepted.
       , HH.p_ [ HH.text $ "Being Submitted: " <> show st.submitting ]
+
+      -- Indicates the number of errors due to validation failing that
+      -- need to be fixed before submission is accepted
       , HH.p_ [ HH.text $ "Number of Errors: " <> show st.errors ]
+
+      -- Indicates the number of times user has attempted to submit the form
       , HH.p_ [ HH.text $ "Number of Submit attempts: " <> show st.submitAttempts ]
+
+      -- We can also refer to any additional labels we used to extend the
+      -- form's state; in this case, that means any field from our
+      -- `AddedState` type.
       , HH.p_ [ HH.text $ "Additional state was: " <> show st.additionalState ]
 
       , HH.div_
@@ -109,6 +127,7 @@ component = F.component mkInput $ F.defaultSpec
     :: F.Event Form AddedState
     -> F.HalogenM Form AddedState Action ChildSlots Message m Unit
   handleEvent = case _ of
+    -- Indicates that the form has been successfully submitted.
     F.Submitted formContent -> do
       -- This is how to get the output values of the form.
       let formFields = F.unwrapOutputFields formContent
@@ -121,6 +140,10 @@ component = F.component mkInput $ F.defaultSpec
 
       -- This line exists so the code compiles.
       pure unit
+
+    -- Indicates that the form's content has been changed.
+    -- This event is triggered anytime a field is changed,
+    -- whether it passes validation or not.
     F.Changed formState -> do
       void $ pure formState
 
