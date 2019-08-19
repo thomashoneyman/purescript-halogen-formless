@@ -119,7 +119,7 @@ derive instance ordTASlot :: Ord TASlot
 -- Form spec
 
 prx :: F.SProxies GroupForm
-prx = F.mkSProxies $ F.FormProxy :: _ GroupForm
+prx = F.mkSProxies (F.FormProxy :: _ GroupForm)
 
 component :: F.Component GroupForm (Const Void) ChildSlots Unit Group Aff
 component = F.component (const input) $ F.defaultSpec
@@ -302,10 +302,10 @@ component = F.component (const input) $ F.defaultSpec
       , help: F.getResult prx.admin form # UI.resultToHelp
           "Choose an administrator for the account"
       }
-      [ HH.slot DD._dropdown unit (Select.component DD.spec) ddInput handler ]
+      [ HH.slot DD._dropdown unit (Select.component DD.input DD.spec) ddInput handler ]
       where
       handler = Just <<< F.injAction <<< HandleDropdown
-      ddInput = DD.input
+      ddInput =
         { placeholder: "Choose an admin"
         , items: map (Admin <<< { id: _ })
             [ Nothing
@@ -323,10 +323,10 @@ component = F.component (const input) $ F.defaultSpec
       , help: F.getResult prx.whiskey form # UI.resultToHelp
           "Choose a whiskey to be awarded"
       }
-      [ HH.slot TA._typeaheadSingle unit (Select.component TA.single) taInput handler ]
+      [ HH.slot TA._typeaheadSingle unit (Select.component TA.input TA.single) taInput handler ]
       where
       handler = Just <<< F.injAction <<< HandleTASingle
-      taInput = TA.input
+      taInput =
         { placeholder: "Choose a whiskey"
         , items:
             [ "Laphroiag 10"
@@ -343,9 +343,9 @@ component = F.component (const input) $ F.defaultSpec
       }
       [ HH.slot TA._typeaheadMulti Pixels selectComponent taInput handler ]
       where
-      selectComponent = Select.component TA.multi
+      selectComponent = Select.component TA.input TA.multi
       handler = Just <<< F.injAction <<< HandleTAMulti Pixels
-      taInput = TA.input
+      taInput =
         { placeholder: "Search pixels"
         , items:
             [ "My favorite pixel"
@@ -362,9 +362,9 @@ component = F.component (const input) $ F.defaultSpec
       }
       [ HH.slot TA._typeaheadMulti Applications selectComponent taInput handler ]
       where
-      selectComponent = Select.component TA.multi
+      selectComponent = Select.component TA.input TA.multi
       handler = Just <<< F.injAction <<< HandleTAMulti Applications
-      taInput = TA.input
+      taInput =
         { placeholder: "Search one or more applications"
         , items: [ "Facebook", "Google", "Twitter", "Pinterest" ]
         }

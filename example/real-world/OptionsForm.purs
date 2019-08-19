@@ -109,7 +109,7 @@ type ChildSlots =
 -- Form spec
 
 prx :: F.SProxies OptionsForm
-prx = F.mkSProxies $ F.FormProxy :: _ OptionsForm
+prx = F.mkSProxies (F.FormProxy :: _ OptionsForm)
 
 component :: F.Component OptionsForm (Const Void) ChildSlots Unit Message Aff
 component = F.component (const input) $ F.defaultSpec
@@ -163,7 +163,7 @@ component = F.component (const input) $ F.defaultSpec
       when (st.prevEnabled /= enabled) case enabled of
         true -> do
           let
-            initial = F.mkInputFields $ F.FormProxy :: _ OptionsForm
+            initial = F.mkInputFields (F.FormProxy :: _ OptionsForm)
             new = over OptionsForm (_ { enable = F.InputField true }) initial
           eval $ F.loadForm new
         _ ->
@@ -212,10 +212,10 @@ component = F.component (const input) $ F.defaultSpec
       , help: F.getResult prx.metric form # UI.resultToHelp
           "Choose a metric to optimize for."
       }
-      [ HH.slot DD._dropdown unit (Select.component DD.spec) ddInput handler ]
+      [ HH.slot DD._dropdown unit (Select.component DD.input DD.spec) ddInput handler ]
       where
       handler = Just <<< F.injAction <<< HandleDropdown
-      ddInput = DD.input
+      ddInput =
         { placeholder: "Choose a metric"
         , items: [ ViewCost, ClickCost, InstallCost ]
         }
