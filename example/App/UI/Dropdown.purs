@@ -56,15 +56,15 @@ data Message item
   | Cleared
 
 spec 
-  :: forall item m
+  :: forall item m i
    . MonadAff m 
   => ToText item
   => Eq item
-  => Select.Spec (State item) Query Void () (Message item) m
+  => Select.Spec (State item) Query Void () i (Message item) m
 spec = Select.defaultSpec
   { render = render 
   , handleQuery = handleQuery 
-  , handleMessage = handleMessage
+  , handleEvent = handleEvent
   }
   where
   render st =
@@ -79,7 +79,7 @@ spec = Select.defaultSpec
       H.raise Cleared
       pure (Just a)
 
-  handleMessage = case _ of
+  handleEvent = case _ of
     Select.Selected ix -> do
       st <- H.get
       let mbItem = st.available !! ix

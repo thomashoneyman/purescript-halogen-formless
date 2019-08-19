@@ -200,6 +200,6 @@ component = F.component (const defaultInput) $ F.defaultSpec
       ]
 
     singleTypeahead slot input =
-      HH.slot TA._typeahead slot (Select.component TA.single) (TA.input input) handler
+      HH.slot TA._typeahead slot (Select.component TA.input TA.single) input handler
       where
       handler = Just <<< F.injAction <<< HandleTypeahead slot

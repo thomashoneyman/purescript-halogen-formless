@@ -71,12 +71,12 @@ data Message f item
 -- Premade
 
 single
-  :: ∀ item m
+  :: ∀ item i m
    . MonadAff m
   => ToText item
   => Eq item
   => Semigroup item
-  => Select.Spec (State Maybe item) (Query item) (Action item) () (Message Maybe item) m
+  => Select.Spec (State Maybe item) (Query item) (Action item) () i (Message Maybe item) m
 single = spec' (\i av -> const (av !! i)) (const $ const Nothing) filter' render
   where
   filter' items Nothing = items
@@ -109,11 +109,11 @@ single = spec' (\i av -> const (av !! i)) (const $ const Nothing) filter' render
         ]
 
 multi
-  :: ∀ item m
+  :: ∀ item i m
    . MonadAff m
   => ToText item
   => Eq item
-  => Select.Spec (State Array item) (Query item) (Action item) () (Message Array item) m
+  => Select.Spec (State Array item) (Query item) (Action item) () i (Message Array item) m
 multi = spec' selectByIndex (filter <<< (/=)) difference render
   where
   selectByIndex ix available selected = case available !! ix of
@@ -154,7 +154,7 @@ multi = spec' selectByIndex (filter <<< (/=)) difference render
 -- Base component
 
 spec'
-  :: ∀ item f m
+  :: ∀ item f i m
    . MonadAff m
   => Functor f
   => Monoid (f item)
@@ -166,15 +166,15 @@ spec'
   -> (Select.State (State f item) 
        -> H.ComponentHTML (Select.Action (Action item)) () m
      )
-  -> Select.Spec (State f item) (Query item) (Action item) () (Message f item) m
+  -> Select.Spec (State f item) (Query item) (Action item) () i (Message f item) m
 spec' select' remove' filter' render' = Select.defaultSpec
   { render = render' 
-  , handleMessage = handleMessage 
+  , handleEvent = handleEvent
   , handleQuery = handleQuery
   , handleAction = handleAction
   }
   where
-  handleMessage = case _ of
+  handleEvent = case _ of
     Select.Searched string -> do
       st <- H.get
       let items = filter (String.contains (String.Pattern string) <<< toText) st.items
