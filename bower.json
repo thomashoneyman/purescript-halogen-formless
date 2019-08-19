@@ -19,17 +19,15 @@
     "tests"
   ],
   "dependencies": {
-    "purescript-halogen": "^4.0.0",
-    "purescript-halogen-renderless": "^0.0.3",
-    "purescript-variant": "^5.0.0",
-    "purescript-heterogeneous": "^0.3.0",
-    "purescript-generics-rep": "^6.1.0"
+    "purescript-halogen": "^5.0.0-rc.6",
+    "purescript-variant": "^6.0.0",
+    "purescript-heterogeneous": "^0.4.0",
+    "purescript-generics-rep": "^6.1.0",
+    "purescript-profunctor-lenses": "^6.2.0"
   },
   "devDependencies": {
-    "purescript-halogen-storybook": "^0.4.0",
     "purescript-debug": "^4.0.0",
-    "purescript-test-unit": "^14.0.0",
-    "purescript-read": "^1.0.1",
-    "purescript-halogen-select": "^2.0.0"
+    "purescript-halogen-select": "master",
+    "purescript-halogen-storybook": "master"
   }
 }

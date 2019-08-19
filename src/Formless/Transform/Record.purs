@@ -56,4 +56,3 @@ wrapInputFunctions
   => { | ifs }
   -> form Record InputFunction
 wrapInputFunctions = wrap <<< wrapRecord
-

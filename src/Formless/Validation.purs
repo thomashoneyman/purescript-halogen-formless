@@ -58,19 +58,6 @@ instance categoryValidation :: Monad m => Category (Validation form m e) where
 runValidation :: ∀ form m e i o. Monad m => Validation form m e i o -> form Record FormField -> i -> m (Either e o)
 runValidation = unwrap
 
--- | A function to create a record of validators that simply pass through all inputs
--- | for when no validation is needed. Provide this as your `validators` function.
-noValidation
-  :: ∀ form fields m vs xs
-   . Monad m
-  => RowToList fields xs
-  => Newtype (form Record (Validation form m)) { | vs }
-  => Newtype (form Record InputField) { | fields }
-  => MapRecordWithIndex xs (ConstMapping EmptyValidators) fields vs
-  => form Record InputField
-  -> form Record (Validation form m)
-noValidation = wrap <<< hmap EmptyValidators <<< unwrap
-
 -- | Turn a function from (form Record FormField -> i -> o) into a proper Validation
 hoistFn :: ∀ form m e i o. Monad m => (form Record FormField -> i -> o) -> Validation form m e i o
 hoistFn f = Validation $ \form -> pure <<< pure <<< f form
@@ -95,6 +82,26 @@ hoistFnME = Validation
 hoistFnME_ :: ∀ form m e i o. Monad m => (i -> m (Either e o)) -> Validation form m e i o
 hoistFnME_ = Validation <<< const
 
+----------
+-- Common validation
+
+-- | A function to create a record of validators that simply pass through all inputs
+-- | for when no validation is needed. Provide this as your `validators` function.
+noValidators
+  :: ∀ form fields m vs xs
+   . Monad m
+  => RowToList fields xs
+  => Newtype (form Record (Validation form m)) { | vs }
+  => Newtype (form Record InputField) { | fields }
+  => MapRecordWithIndex xs (ConstMapping EmptyValidators) fields vs
+  => form Record InputField
+  -> form Record (Validation form m)
+noValidators = wrap <<< hmap EmptyValidators <<< unwrap
+
+-- | A validation function which simply passes through its input value as its
+-- | output value. Use on individual fields which do not need any validation.
+noValidation :: ∀ form m e i. Monad m => Validation form m e i i
+noValidation = hoistFn_ identity
 
 ----------
 -- Helper Types
