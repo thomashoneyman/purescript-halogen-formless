@@ -48,7 +48,7 @@ jobs:
 
       # Persist generated files into the workspace
       - run:
-          name: Replace symlinks with actual files
+          name: Copy Storybook CSS into dist
           command: |
             mv ~/formless/bower_components/purescript-halogen-storybook/examples/src/Storybook.css ~/formless/dist/storybook.css
 
