@@ -6,6 +6,7 @@ import Data.List (List)
 import Data.Map (Map)
 import Data.Maybe (Maybe(..))
 import Data.Monoid (class MonoidRecord)
+import Data.Set (Set)
 import Data.Tuple (Tuple(..))
 import Prim.RowList (class RowToList) as RL
 
@@ -47,6 +48,9 @@ instance initialList :: Initial (List a) where
   initial = mempty
 
 instance initialMap :: Ord k => Initial (Map k v) where
+  initial = mempty
+
+instance initialSet :: Ord a => Initial (Set a) where
   initial = mempty
 
 instance initialFn :: Monoid b => Initial (a -> b) where
