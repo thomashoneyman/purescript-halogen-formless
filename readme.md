@@ -2,6 +2,7 @@
 
 [![CircleCI](https://circleci.com/gh/thomashoneyman/purescript-halogen-formless/tree/master.svg?style=shield)](https://circleci.com/gh/thomashoneyman/purescript-halogen-formless/tree/master)
 [![Latest release](http://img.shields.io/github/release/thomashoneyman/purescript-halogen-formless.svg)](https://github.com/thomashoneyman/purescript-halogen-formless/releases)
+[![Latest package set](https://img.shields.io/endpoint.svg?url=https://package-sets-badge-0lf69kxs4fbd.runkit.sh/halogen-formless)](https://github.com/purescript/package-sets)
 [![Maintainer: thomashoneyman](https://img.shields.io/badge/maintainer-thomashoneyman-lightgrey.svg)](http://github.com/thomashoneyman)
 
 Formless is a flexible, extensible, type-safe Halogen component for building forms without boilerplate.
@@ -68,7 +69,7 @@ import Halogen.HTML.Properties as HP
 import Formless as F
 
 spec :: forall m. Monad m => F.Spec' DogForm Dog m
-spec = F.defaultSpec { render, handleMessage = F.raiseResult }
+spec = F.defaultSpec { render, handleEvent = F.raiseResult }
   where
   render st@{ form } =
     HH.form_
