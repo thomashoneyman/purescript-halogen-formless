@@ -69,7 +69,7 @@ import Halogen.HTML.Properties as HP
 import Formless as F
 
 spec :: forall m. Monad m => F.Spec' DogForm Dog m
-spec = F.defaultSpec { render, handleEvent = F.raiseResult }
+spec = F.defaultSpec { render = render, handleEvent = F.raiseResult }
   where
   render st@{ form } =
     HH.form_
