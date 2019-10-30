@@ -2637,7 +2637,7 @@ var PS = {};
               if (v instanceof Done) {
                   return v.value0;
               };
-              throw new Error("Failed pattern match at Control.Monad.Rec.Class (line 111, column 30 - line 111, column 44): " + [ v.constructor.name ]);
+              throw new Error("Failed pattern match at Control.Monad.Rec.Class (line 113, column 30 - line 113, column 44): " + [ v.constructor.name ]);
           };
           return function __do() {
               var v = Control_Bind.bindFlipped(Effect.bindEffect)(Effect_Ref["new"])(f(a))();
@@ -2652,7 +2652,7 @@ var PS = {};
                       if (v1 instanceof Done) {
                           return true;
                       };
-                      throw new Error("Failed pattern match at Control.Monad.Rec.Class (line 102, column 22 - line 107, column 28): " + [ v1.constructor.name ]);
+                      throw new Error("Failed pattern match at Control.Monad.Rec.Class (line 104, column 22 - line 109, column 28): " + [ v1.constructor.name ]);
                   })()) {
 
                   };
@@ -2782,12 +2782,12 @@ var PS = {};
                   };
                   if (v instanceof Bind) {
                       return Data_Exists.runExists(function (v1) {
-                          return bound(v1.value0)(function ($104) {
-                              return Data_Functor.map(functorFreeT(dictFunctor)(dictFunctor1))(f)(v1.value1($104));
+                          return bound(v1.value0)(function ($123) {
+                              return Data_Functor.map(functorFreeT(dictFunctor)(dictFunctor1))(f)(v1.value1($123));
                           });
                       })(v.value0);
                   };
-                  throw new Error("Failed pattern match at Control.Monad.Free.Trans (line 57, column 1 - line 57, column 71): " + [ f.constructor.name, v.constructor.name ]);
+                  throw new Error("Failed pattern match at Control.Monad.Free.Trans (line 59, column 1 - line 59, column 71): " + [ f.constructor.name, v.constructor.name ]);
               };
           });
       };
@@ -2869,7 +2869,7 @@ var PS = {};
                                       return Control_Bind.bind(bindFreeT(dictFunctor)(dictMonadRec.Monad0()))(h)(v1.value1);
                                   })(v3.value0))));
                               };
-                              throw new Error("Failed pattern match at Control.Monad.Free.Trans (line 52, column 20 - line 54, column 67): " + [ v3.constructor.name ]);
+                              throw new Error("Failed pattern match at Control.Monad.Free.Trans (line 54, column 20 - line 56, column 67): " + [ v3.constructor.name ]);
                           });
                       };
                       if (v2 instanceof Bind) {
@@ -2879,10 +2879,10 @@ var PS = {};
                               })));
                           })(v2.value0);
                       };
-                      throw new Error("Failed pattern match at Control.Monad.Free.Trans (line 50, column 5 - line 55, column 98): " + [ v2.constructor.name ]);
+                      throw new Error("Failed pattern match at Control.Monad.Free.Trans (line 52, column 5 - line 57, column 98): " + [ v2.constructor.name ]);
                   })(v.value0);
               };
-              throw new Error("Failed pattern match at Control.Monad.Free.Trans (line 47, column 3 - line 47, column 75): " + [ v.constructor.name ]);
+              throw new Error("Failed pattern match at Control.Monad.Free.Trans (line 49, column 3 - line 49, column 75): " + [ v.constructor.name ]);
           };
           return Control_Monad_Rec_Class.tailRecM(dictMonadRec)(go);
       };
@@ -2897,7 +2897,7 @@ var PS = {};
                   if (v instanceof Data_Either.Right) {
                       return Data_Functor.map((((dictMonadRec.Monad0()).Bind1()).Apply0()).Functor0())(Control_Monad_Rec_Class.Loop.create)(interp(v.value0));
                   };
-                  throw new Error("Failed pattern match at Control.Monad.Free.Trans (line 126, column 3 - line 126, column 63): " + [ v.constructor.name ]);
+                  throw new Error("Failed pattern match at Control.Monad.Free.Trans (line 141, column 3 - line 141, column 63): " + [ v.constructor.name ]);
               };
               return Control_Monad_Rec_Class.tailRecM(dictMonadRec)(Control_Bind.composeKleisliFlipped((dictMonadRec.Monad0()).Bind1())(go)(resume(dictFunctor)(dictMonadRec)));
           };
@@ -2916,7 +2916,7 @@ var PS = {};
                       if (v instanceof Control_Monad_Rec_Class.Done) {
                           return Control_Applicative.pure(applicativeFreeT(dictFunctor)(dictMonad))(v.value0);
                       };
-                      throw new Error("Failed pattern match at Control.Monad.Free.Trans (line 80, column 15 - line 82, column 25): " + [ v.constructor.name ]);
+                      throw new Error("Failed pattern match at Control.Monad.Free.Trans (line 82, column 15 - line 84, column 25): " + [ v.constructor.name ]);
                   });
               };
               return go;
@@ -3398,7 +3398,7 @@ var PS = {};
                 delete fibers[fid];
               };
             }
-          });
+          })();
           fibers[fid] = fiber;
           count++;
         },
@@ -3512,12 +3512,18 @@ var PS = {};
           switch (status) {
           case STEP_BIND:
             status = CONTINUE;
-            step   = bhead(step);
-            if (btail === null) {
-              bhead = null;
-            } else {
-              bhead = btail._1;
-              btail = btail._2;
+            try {
+              step   = bhead(step);
+              if (btail === null) {
+                bhead = null;
+              } else {
+                bhead = btail._1;
+                btail = btail._2;
+              }
+            } catch (e) {
+              status = RETURN;
+              fail   = util.left(e);
+              step   = null;
             }
             break;
 
@@ -10631,29 +10637,29 @@ var PS = {};
   var mouseHandler = Unsafe_Coerce.unsafeCoerce;
   var keyHandler = Unsafe_Coerce.unsafeCoerce;
   var handler = function (et) {
-      return function ($0) {
-          return Halogen_HTML_Core.handler(et)(Data_Functor.map(Data_Functor.functorFn)(Data_Functor.map(Data_Maybe.functorMaybe)(Halogen_Query_Input.Action.create))($0));
+      return function ($1) {
+          return Halogen_HTML_Core.handler(et)(Data_Functor.map(Data_Functor.functorFn)(Data_Functor.map(Data_Maybe.functorMaybe)(Halogen_Query_Input.Action.create))($1));
       };
   };                             
   var onChange = handler(Web_HTML_Event_EventTypes.change);
-  var onClick = function ($1) {
-      return handler(Web_UIEvent_MouseEvent_EventTypes.click)(mouseHandler($1));
+  var onClick = function ($2) {
+      return handler(Web_UIEvent_MouseEvent_EventTypes.click)(mouseHandler($2));
   };                                                         
-  var onKeyDown = function ($3) {
-      return handler(Web_UIEvent_KeyboardEvent_EventTypes.keydown)(keyHandler($3));
+  var onKeyDown = function ($6) {
+      return handler(Web_UIEvent_KeyboardEvent_EventTypes.keydown)(keyHandler($6));
   };                                                   
-  var onMouseDown = function ($5) {
-      return handler(Web_UIEvent_MouseEvent_EventTypes.mousedown)(mouseHandler($5));
+  var onMouseDown = function ($8) {
+      return handler(Web_UIEvent_MouseEvent_EventTypes.mousedown)(mouseHandler($8));
   };
-  var onMouseOver = function ($10) {
-      return handler(Web_UIEvent_MouseEvent_EventTypes.mouseover)(mouseHandler($10));
+  var onMouseOver = function ($13) {
+      return handler(Web_UIEvent_MouseEvent_EventTypes.mouseover)(mouseHandler($13));
   };
   var focusHandler = Unsafe_Coerce.unsafeCoerce;
-  var onBlur = function ($19) {
-      return handler(Web_HTML_Event_EventTypes.blur)(focusHandler($19));
+  var onBlur = function ($22) {
+      return handler(Web_HTML_Event_EventTypes.blur)(focusHandler($22));
   };
-  var onFocus = function ($20) {
-      return handler(Web_UIEvent_FocusEvent_EventTypes.focus)(focusHandler($20));
+  var onFocus = function ($23) {
+      return handler(Web_UIEvent_FocusEvent_EventTypes.focus)(focusHandler($23));
   };
   var addForeignPropHandler = function (key) {
       return function (prop) {
@@ -11308,8 +11314,8 @@ var PS = {};
                       };
                       return HalogenM(Control_Monad_Free.liftF(ChildQuery.create(Halogen_Query_ChildQuery.mkChildQueryBox(new Halogen_Query_ChildQuery.ChildQuery(function (dictApplicative) {
                           return function (k) {
-                              return function ($129) {
-                                  return Data_Functor.map((dictApplicative.Apply0()).Functor0())(catMapMaybes(dictOrd))(Data_Traversable.traverse(Data_Map_Internal.traversableMap)(dictApplicative)(k)(Halogen_Data_Slot.slots(dictCons)(dictIsSymbol)(dictOrd)(label)($129)));
+                              return function ($131) {
+                                  return Data_Functor.map((dictApplicative.Apply0()).Functor0())(catMapMaybes(dictOrd))(Data_Traversable.traverse(Data_Map_Internal.traversableMap)(dictApplicative)(k)(Halogen_Data_Slot.slots(dictCons)(dictIsSymbol)(dictOrd)(label)($131)));
                               };
                           };
                       }, q, Control_Category.identity(Control_Category.categoryFn))))));
@@ -11326,8 +11332,8 @@ var PS = {};
                       return function (q) {
                           return HalogenM(Control_Monad_Free.liftF(ChildQuery.create(Halogen_Query_ChildQuery.mkChildQueryBox(new Halogen_Query_ChildQuery.ChildQuery(function (dictApplicative) {
                               return function (k) {
-                                  return function ($130) {
-                                      return Data_Maybe.maybe(Control_Applicative.pure(dictApplicative)(Data_Maybe.Nothing.value))(k)(Halogen_Data_Slot.lookup(dictCons)(dictIsSymbol)(dictOrd)(label)(p)($130));
+                                  return function ($132) {
+                                      return Data_Maybe.maybe(Control_Applicative.pure(dictApplicative)(Data_Maybe.Nothing.value))(k)(Halogen_Data_Slot.lookup(dictCons)(dictIsSymbol)(dictOrd)(label)(p)($132));
                                   };
                               };
                           }, q, Control_Category.identity(Control_Category.categoryFn))))));
@@ -11340,28 +11346,28 @@ var PS = {};
   var ordSubscriptionId = Data_Ord.ordInt;
   var ordForkId = Data_Ord.ordInt;
   var monadTransHalogenM = new Control_Monad_Trans_Class.MonadTrans(function (dictMonad) {
-      return function ($131) {
-          return HalogenM(Control_Monad_Free.liftF(Lift.create($131)));
+      return function ($133) {
+          return HalogenM(Control_Monad_Free.liftF(Lift.create($133)));
       };
   });
   var monadHalogenM = Control_Monad_Free.freeMonad;
   var monadStateHalogenM = new Control_Monad_State_Class.MonadState(function () {
       return monadHalogenM;
-  }, function ($132) {
-      return HalogenM(Control_Monad_Free.liftF(State.create($132)));
+  }, function ($134) {
+      return HalogenM(Control_Monad_Free.liftF(State.create($134)));
   });
   var monadEffectHalogenM = function (dictMonadEffect) {
       return new Effect_Class.MonadEffect(function () {
           return monadHalogenM;
-      }, function ($135) {
-          return HalogenM(Control_Monad_Free.liftF(Lift.create(Effect_Class.liftEffect(dictMonadEffect)($135))));
+      }, function ($137) {
+          return HalogenM(Control_Monad_Free.liftF(Lift.create(Effect_Class.liftEffect(dictMonadEffect)($137))));
       });
   };
   var monadAffHalogenM = function (dictMonadAff) {
       return new Effect_Aff_Class.MonadAff(function () {
           return monadEffectHalogenM(dictMonadAff.MonadEffect0());
-      }, function ($136) {
-          return HalogenM(Control_Monad_Free.liftF(Lift.create(Effect_Aff_Class.liftAff(dictMonadAff)($136))));
+      }, function ($138) {
+          return HalogenM(Control_Monad_Free.liftF(Lift.create(Effect_Aff_Class.liftAff(dictMonadAff)($138))));
       });
   };
   var kill = function (fid) {
