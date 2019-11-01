@@ -123,4 +123,20 @@ Ready to move past this simple example? Check out the examples, which vary in th
 - [Live examples / docs site](https://thomashoneyman.github.io/purescript-halogen-formless/)
 - [Source code for examples](https://github.com/thomashoneyman/purescript-halogen-formless/tree/master/example)
 
+## Running the examples locally
+
+```bash
+cd into-the-repository
+npm i
+npm run watch-all
+```
+
+Open a second console to start a webserver
+```bash
+cd into-the-repository
+pulp server
+```
+
+Now open the examples at http://localhost:1337/dist/.
+
 Have any comments about the library or any ideas to improve it for your use case? Please file an issue or reach out on the [PureScript user group](https://discourse.purescript.org).
