@@ -125,18 +125,21 @@ Ready to move past this simple example? Check out the examples, which vary in th
 
 ## Running the examples locally
 
-```bash
-cd into-the-repository
+If you'd like to explore the example forms locally, you can run them by cloning this repository and then running these commands in the root of the project:
+
+```sh
 npm i
 npm run watch-all
 ```
 
-Open a second console to start a webserver
-```bash
-cd into-the-repository
+Open a second console to start a webserver.
+
+```sh
 pulp server
 ```
 
-Now open the examples at http://localhost:1337/dist/.
+The examples will be live at http://localhost:1337/dist/. You can also skip the webserver and simply open the `index.html` file in your web browser directly.
+
+## Comments & Improvements
 
 Have any comments about the library or any ideas to improve it for your use case? Please file an issue or reach out on the [PureScript user group](https://discourse.purescript.org).
