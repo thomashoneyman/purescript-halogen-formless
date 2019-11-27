@@ -115,7 +115,7 @@ import Halogen as H
 
 data Action = HandleDogForm Dog
 
-page :: forall q i o m. MonadAff m => H.Component q i o m
+page :: forall q i o m. MonadAff m => H.Component HH.HTML q i o m
 page = H.mkComponent
   { initialState: const unit
   , render: const render
