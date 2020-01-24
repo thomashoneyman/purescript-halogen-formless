@@ -237,9 +237,10 @@ handleAction handleAction' handleEvent action = flip match action
   , validate: \variant -> do
       st <- H.get
       let validators = (unwrap st.internal).validators
-      form <- H.lift do
+      formProcessor <- H.lift do
         IT.unsafeRunValidationVariant variant validators st.form
-      H.modify_ _ { form = form }
+      st' <- H.get
+      H.modify_ _ { form = formProcessor st'.form }
       handleAction handleAction' handleEvent sync
 
   , modifyValidate: \(Tuple milliseconds variant) -> do
@@ -255,10 +256,12 @@ handleAction handleAction' handleEvent action = flip match action
         validate = do
           st <- H.get
           let vs = (unwrap st.internal).validators
-          form <- H.lift do
+          formProcessor <- H.lift do
             IT.unsafeRunValidationVariant (unsafeCoerce variant) vs st.form
-          H.modify_ _ { form = form }
-          pure form
+          st' <- H.get
+          let newForm = formProcessor st'.form
+          H.modify_ _ { form = newForm }
+          pure newForm
 
       case milliseconds of
         Nothing ->
