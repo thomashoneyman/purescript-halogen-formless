@@ -20,6 +20,7 @@ import Type.Row (type (+))
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.Query.ChildQuery (ChildQueryBox)
+import Halogen.Query.HalogenM (ForkId)
 
 -- | A type representing the various functions that can be provided to extend
 -- | the Formless component. Usually only the `render` function is required,
@@ -160,6 +161,7 @@ derive instance newtypeInternalState :: Newtype (InternalState form m) _
 type Debouncer =
   { var :: AVar Unit
   , fiber :: Fiber Unit
+  , forkId :: ForkId
   }
 
 -- | A type to represent validation status

@@ -11,8 +11,9 @@ import Effect.Aff.AVar as AVar
 import Effect.Aff.Class (class MonadAff)
 import Effect.Ref (Ref)
 import Effect.Ref as Ref
-import Formless.Types.Component (HalogenM)
+import Formless.Types.Component (HalogenM, Debouncer)
 import Formless.Types.Form (FormField)
+import Halogen (ForkId)
 import Halogen as H
 
 -- | A helper function to debounce actions on the form and form fields. Implemented
@@ -42,19 +43,19 @@ debounceForm ms pre post last = do
       var <- H.liftAff $ AVar.empty
       fiber <- mkFiber var
 
-      _ <- H.fork do
-        void $ H.liftAff (AVar.take var)
-        H.liftEffect $ traverse_ (Ref.write Nothing) dbRef
-        atomic post (Just last)
+      forkId <- processAfterDelay var dbRef
 
-      H.liftEffect $ for_ dbRef $ Ref.write (Just { var, fiber })
+      H.liftEffect $ for_ dbRef $ Ref.write (Just { var, fiber, forkId })
       atomic pre Nothing
 
     Just db -> do
       let var = db.var
+          forkId' = db.forkId
       void $ killFiber' db.fiber
+      void $ H.kill forkId'
       fiber <- mkFiber var
-      H.liftEffect $ for_ dbRef $ Ref.write (Just { var, fiber })
+      forkId <- processAfterDelay var dbRef 
+      H.liftEffect $ for_ dbRef $ Ref.write (Just { var, fiber, forkId })
 
   where
   mkFiber :: AVar Unit -> HalogenM form st act ps msg m (Fiber Unit)
@@ -68,6 +69,12 @@ debounceForm ms pre post last = do
   readRef :: forall x n. MonadAff n => Maybe (Ref (Maybe x)) -> n (Maybe x)
   readRef = H.liftEffect <<< map join <<< traverse Ref.read
 
+  processAfterDelay :: AVar Unit -> (Maybe (Ref (Maybe Debouncer))) -> HalogenM form st act ps msg m ForkId
+  processAfterDelay var dbRef = H.fork do
+    void $ H.liftAff (AVar.take var)
+    H.liftEffect $ traverse_ (Ref.write Nothing) dbRef
+    atomic post (Just last)
+  
   atomic
     :: forall n
      . MonadAff n

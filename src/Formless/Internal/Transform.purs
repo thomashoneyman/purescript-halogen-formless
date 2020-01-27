@@ -184,19 +184,18 @@ unsafeRunValidationVariant
   => form Variant U
   -> form Record (Validation form m)
   -> form Record FormField
-  -> m (form Record FormField)
+  -> m ((form Record FormField) -> (form Record FormField))
 unsafeRunValidationVariant var vs rec = rec2
   where
     label :: String
     label = case unsafeCoerce (unwrap var) of
       VariantRep x -> x.type
 
-    rec2 :: m (form Record FormField)
+    rec2 :: m ((form Record FormField) -> (form Record FormField))
     rec2 = case unsafeGet label (unwrap rec) of
       FormField x -> do
         res <- runValidation (unsafeGet label $ unwrap vs) rec x.input
-        let rec' = unsafeSet label (FormField $ x { result = fromEither res }) (unwrap rec)
-        pure (wrap rec')
+        pure (\newRec -> wrap $ unsafeSet label (FormField $ x { result = fromEither res }) (unwrap newRec))
 
 -----
 -- Classes (Internal)
