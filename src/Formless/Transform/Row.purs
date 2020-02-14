@@ -37,7 +37,7 @@ mkInputFields _ = wrap $ fromScratch builder
 -- | The class that provides the Builder implementation to efficiently
 -- | transform a row into a proper InputFields by wrapping it in newtypes and
 -- | supplying initial values
-class MakeInputFieldsFromRow (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
+class MakeInputFieldsFromRow (xs :: RL.RowList Type) (row :: Row Type) (to :: Row Type) | xs -> to where
   mkInputFieldsFromRowBuilder :: RLProxy xs -> RProxy row -> FromScratch to
 
 instance mkInputFieldsFromRowNil :: MakeInputFieldsFromRow RL.Nil row () where
@@ -83,7 +83,7 @@ mkSProxies _ = fromScratch builder
 
 -- | The class used to build up a new record of symbol proxies from an
 -- | input row list.
-class MakeSProxies (xs :: RL.RowList) (to :: # Type) | xs -> to where
+class MakeSProxies (xs :: RL.RowList Type) (to :: Row Type) | xs -> to where
   makeSProxiesBuilder :: RLProxy xs -> FromScratch to
 
 instance makeSProxiesNil :: MakeSProxies RL.Nil () where

@@ -201,7 +201,7 @@ unsafeRunValidationVariant var vs rec = rec2
 -- Classes (Internal)
 
 -- | The class that provides the Builder implementation to set all form fields touched
-class SetFormFieldsTouched (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
+class SetFormFieldsTouched (xs :: RL.RowList Type) (row :: Row Type) (to :: Row Type) | xs -> to where
   setFormFieldsTouchedBuilder :: RLProxy xs -> Record row -> FromScratch to
 
 instance setFormFieldsTouchedNil :: SetFormFieldsTouched RL.Nil row () where
@@ -227,7 +227,7 @@ instance setFormFieldsTouchedCons
 
 -- | The class that provides the Builder implementation to efficiently transform the record
 -- | of FormField to record of InputField.
-class FormFieldsToInputFields (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
+class FormFieldsToInputFields (xs :: RL.RowList Type) (row :: Row Type) (to :: Row Type) | xs -> to where
   formFieldsToInputFieldsBuilder :: RLProxy xs -> Record row -> FromScratch to
 
 instance inputFieldsToInputNil :: FormFieldsToInputFields RL.Nil row () where
@@ -254,7 +254,7 @@ instance inputFieldsToInputCons
 
 -- | The class that provides the Builder implementation to efficiently transform the record
 -- | of InputField to record of FormField.
-class InputFieldsToFormFields (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
+class InputFieldsToFormFields (xs :: RL.RowList Type) (row :: Row Type) (to :: Row Type) | xs -> to where
   inputFieldsToFormFieldsBuilder :: RLProxy xs -> Record row -> FromScratch to
 
 instance inputFieldsToFormFieldsNil :: InputFieldsToFormFields RL.Nil row () where
@@ -282,7 +282,7 @@ instance inputFieldsToFormFieldsCons
 -- | The class that provides the Builder implementation to efficiently transform the record
 -- | of MaybeOutput to a record of OutputField, but only if all fs were successfully
 -- | validated.
-class FormFieldToMaybeOutput (xs :: RL.RowList) (row :: # Type) (to :: # Type) | xs -> to where
+class FormFieldToMaybeOutput (xs :: RL.RowList Type) (row :: Row Type) (to :: Row Type) | xs -> to where
   formFieldsToMaybeOutputBuilder :: RLProxy xs -> Record row -> Maybe (FromScratch to)
 
 instance formFieldsToMaybeOutputNil :: FormFieldToMaybeOutput RL.Nil row () where
@@ -310,7 +310,7 @@ instance formFieldsToMaybeOutputCons
       transform v builder' = Builder.insert _name v <<< builder'
 
 -- | A class to check if all fs in an FormField record have been touched or not
-class CountErrors (rl :: RL.RowList) (r :: # Type) where
+class CountErrors (rl :: RL.RowList Type) (r :: Row Type) where
   countErrorsImpl :: RLProxy rl -> Record r -> Int
 
 instance nilCountErrors :: CountErrors RL.Nil r where
@@ -333,7 +333,7 @@ instance consCountErrors
 -- Check if all form fields are touched
 
 -- | A class to check if all fs in an FormField record have been touched or not
-class AllTouched (rl :: RL.RowList) (r :: # Type) where
+class AllTouched (rl :: RL.RowList Type) (r :: Row Type) where
   allTouchedImpl :: RLProxy rl -> Record r -> Boolean
 
 instance nilAllTouched :: AllTouched RL.Nil r where
@@ -355,7 +355,7 @@ instance consAllTouched
 -- Apply form field validation
 
 -- | A class that applies the current state to the unwrapped version of every validator
-class ValidateAll (vs :: # Type) (xs :: RL.RowList) (row :: # Type) (to :: # Type) m | xs -> to where
+class ValidateAll (vs :: Row Type) (xs :: RL.RowList Type) (row :: Row Type) (to :: Row Type) m | xs -> to where
   validateAllBuilder :: Record vs -> RLProxy xs -> Record row -> m (FromScratch to)
 
 instance applyToValidationNil :: Monad m => ValidateAll vs RL.Nil row () m where
@@ -387,7 +387,7 @@ instance applyToValidationCons
 --------
 -- Apply modifications across a record
 
-class ModifyAll (ifs :: # Type) (xs :: RL.RowList) (fs :: # Type) (to :: # Type) | xs -> to where
+class ModifyAll (ifs :: Row Type) (xs :: RL.RowList Type) (fs :: Row Type) (to :: Row Type) | xs -> to where
   modifyAllBuilder ::  Record ifs -> RLProxy xs -> Record fs -> FromScratch to
 
 instance modifyAllNil :: ModifyAll ifs RL.Nil fs () where
@@ -414,7 +414,7 @@ instance modifyAllCons
 ----------
 -- Replace all form field inputs
 
-class ReplaceFormFieldInputs (is :: # Type) (xs :: RL.RowList) (fs :: # Type) (to :: # Type) | xs -> to where
+class ReplaceFormFieldInputs (is :: Row Type) (xs :: RL.RowList Type) (fs :: Row Type) (to :: Row Type) | xs -> to where
   replaceFormFieldInputsBuilder ::  Record is -> RLProxy xs -> Record fs -> FromScratch to
 
 instance replaceFormFieldInputsTouchedNil :: ReplaceFormFieldInputs is RL.Nil fs () where
