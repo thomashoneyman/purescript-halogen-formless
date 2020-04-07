@@ -8,6 +8,7 @@ import Data.Time.Duration (Milliseconds)
 import Data.Tuple.Nested ((/\))
 import Effect.Aff.Class (class MonadAff)
 import Formless.Data.FormFieldResult (FormFieldResult(..), fromEither)
+import Formless.Data.FormFieldResult as FormFieldResult
 import Halogen.Hooks (Hook, HookM, UseState, useState)
 import Halogen.Hooks as Hooks
 import Halogen.Hooks.Extra.Hooks.UseDebouncer (UseDebouncer, useDebouncer)
@@ -86,10 +87,7 @@ useField' inputEqFn errorEqFn aEqFn debounceTime initialInput validator =
       mbResult <- runExceptT (validator input)
       oldValidation <- Hooks.get tValid
       let newValidation = fromEither mbResult
-      when (not (oldValidation `equals` newValidation)) do
+      when (not (oldValidation `validationEquals` newValidation)) do
         Hooks.put tValid newValidation
 
-    equals l r = case l, r of
-      Success l', Success r' -> aEqFn l' r'
-      Error l', Error r' -> errorEqFn l' r'
-      _, _ -> true
+    validationEquals = FormFieldResult.equalsWith errorEqFn aEqFn

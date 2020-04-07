@@ -50,6 +50,18 @@ toMaybe = case _ of
   Success v -> Just v
   _ -> Nothing
 
+equalsWith
+  :: forall e o
+   . (e -> e -> Boolean)
+  -> (o -> o -> Boolean)
+  -> (FormFieldResult e o -> FormFieldResult e o -> Boolean)
+equalsWith errorEquals outputEquals = case _, _ of
+  Success l, Success r -> l `outputEquals` r
+  Error l, Error r -> l `errorEquals` r
+  Validating, Validating -> true
+  NotValidated, NotValidated -> true
+  _, _ -> false
+
 _Error :: forall e o. Prism' (FormFieldResult e o) e
 _Error = prism' Error case _ of
   Error e -> Just e
