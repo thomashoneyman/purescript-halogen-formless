@@ -22,7 +22,7 @@ derive instance newtypeUseField :: Newtype (UseField i e a hooks) _
 
 type FieldReturn slots output m input error a =
   { input :: Maybe input
-  , validation :: FormFieldResult error a
+  , valid :: FormFieldResult error a
   , touched :: Boolean
   , handleInput :: input -> HookM slots output m Unit
   , validate :: HookM slots output m Unit
@@ -54,21 +54,21 @@ useField' errorEqFn aEqFn debounceTime initialInput validator =
   Hooks.wrap Hooks.do
     input /\ tInput <- useState initialInput
     touched /\ tTouched <- useState false
-    validation /\ tValidation <- useState NotValidated
+    valid /\ tValid <- useState NotValidated
     setValidate <- useDebouncer debounceTime \finalInput -> do
       touched' <- Hooks.get tTouched
       unless touched' $ Hooks.put tTouched true
       Hooks.put tInput (Just finalInput)
       mbResult <- runExceptT (validator finalInput)
-      Hooks.put tValidation (fromEither mbResult)
+      Hooks.put tValid (fromEither mbResult)
 
     Hooks.pure
       { input
-      , validation
+      , valid
       , touched
       , handleInput: handleInput tTouched setValidate
-      , validate: validate tInput tValidation
-      , reset: reset tInput tTouched tValidation
+      , validate: validate tInput tValid
+      , reset: reset tInput tTouched tValid
       }
   where
     handleInput tTouched setValidate input = do
@@ -76,19 +76,19 @@ useField' errorEqFn aEqFn debounceTime initialInput validator =
       unless touched' $ Hooks.put tTouched true
       setValidate input
 
-    reset tInput tTouched tValidation = do
+    reset tInput tTouched tValid = do
       Hooks.put tInput initialInput
       Hooks.put tTouched false
-      Hooks.put tValidation NotValidated
+      Hooks.put tValid NotValidated
 
-    validate tInput tValidation = do
+    validate tInput tValid = do
       input <- Hooks.get tInput
       for_ input \i -> do
         mbResult <- runExceptT (validator i)
-        oldValidation <- Hooks.get tValidation
+        oldValidation <- Hooks.get tValid
         let newValidation = fromEither mbResult
         when (not (oldValidation `equals` newValidation)) do
-          Hooks.put tValidation newValidation
+          Hooks.put tValid newValidation
 
     equals l r = case l, r of
       Success l', Success r' -> aEqFn l' r'
