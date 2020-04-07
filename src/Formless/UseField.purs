@@ -30,6 +30,7 @@ type FieldReturn slots output m input error a =
 useField
   :: forall slots output m input error a
    . MonadAff m
+  => Eq input
   => Eq error
   => Eq a
   => Milliseconds
@@ -37,24 +38,24 @@ useField
   -> (input -> ExceptT error (HookM slots output m) a)
   -> Hook slots output m (UseField input error a) (FieldReturn slots output m input error a)
 useField debounceTime initialInput validator =
-  useField' (==) (==) debounceTime initialInput validator
+  useField' (==) (==) (==) debounceTime initialInput validator
 
 useField'
   :: forall slots output m input error a
    . MonadAff m
-  => (error -> error -> Boolean)
+  => (input -> input -> Boolean)
+  -> (error -> error -> Boolean)
   -> (a -> a -> Boolean)
   -> Milliseconds
   -> input
   -> (input -> ExceptT error (HookM slots output m) a)
   -> Hook slots output m (UseField input error a) (FieldReturn slots output m input error a)
-useField' errorEqFn aEqFn debounceTime initialInput validator =
+useField' inputEqFn errorEqFn aEqFn debounceTime initialInput validator =
   Hooks.wrap Hooks.do
     input /\ tInput <- useState initialInput
     touched /\ tTouched <- useState false
     valid /\ tValid <- useState NotValidated
     setValidate <- useDebouncer debounceTime \finalInput -> do
-      Hooks.put tInput finalInput
       mbResult <- runExceptT (validator finalInput)
       Hooks.put tValid (fromEither mbResult)
 
@@ -62,15 +63,18 @@ useField' errorEqFn aEqFn debounceTime initialInput validator =
       { input
       , valid
       , touched
-      , handleInput: handleInput tTouched setValidate
+      , handleInput: handleInput tInput tTouched setValidate
       , validate: validate tInput tValid
       , reset: reset tInput tTouched tValid
       }
   where
-    handleInput tTouched setValidate input = do
+    handleInput tInput tTouched setValidate input = do
       touched' <- Hooks.get tTouched
       unless touched' $ Hooks.put tTouched true
-      setValidate input
+      input' <- Hooks.get tInput
+      when (inputEqFn input' input) do
+        Hooks.put tInput input
+        setValidate input
 
     reset tInput tTouched tValid = do
       Hooks.put tInput initialInput
