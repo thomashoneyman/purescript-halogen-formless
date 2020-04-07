@@ -3,8 +3,6 @@ module Formless.UseField where
 import Prelude
 
 import Control.Monad.Except (ExceptT, runExceptT)
-import Data.Foldable (for_)
-import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Data.Time.Duration (Milliseconds)
 import Data.Tuple.Nested ((/\))
@@ -16,12 +14,12 @@ import Halogen.Hooks.Extra.Hooks.UseDebouncer (UseDebouncer, useDebouncer)
 
 newtype UseField input error a hooks =
   UseField (UseDebouncer input (UseState (FormFieldResult error a)
-    (UseState Boolean (UseState (Maybe input) hooks))))
+    (UseState Boolean (UseState input hooks))))
 
 derive instance newtypeUseField :: Newtype (UseField i e a hooks) _
 
 type FieldReturn slots output m input error a =
-  { input :: Maybe input
+  { input :: input
   , valid :: FormFieldResult error a
   , touched :: Boolean
   , handleInput :: input -> HookM slots output m Unit
@@ -35,7 +33,7 @@ useField
   => Eq error
   => Eq a
   => Milliseconds
-  -> Maybe input
+  -> input
   -> (input -> ExceptT error (HookM slots output m) a)
   -> Hook slots output m (UseField input error a) (FieldReturn slots output m input error a)
 useField debounceTime initialInput validator =
@@ -47,7 +45,7 @@ useField'
   => (error -> error -> Boolean)
   -> (a -> a -> Boolean)
   -> Milliseconds
-  -> Maybe input
+  -> input
   -> (input -> ExceptT error (HookM slots output m) a)
   -> Hook slots output m (UseField input error a) (FieldReturn slots output m input error a)
 useField' errorEqFn aEqFn debounceTime initialInput validator =
@@ -56,7 +54,7 @@ useField' errorEqFn aEqFn debounceTime initialInput validator =
     touched /\ tTouched <- useState false
     valid /\ tValid <- useState NotValidated
     setValidate <- useDebouncer debounceTime \finalInput -> do
-      Hooks.put tInput (Just finalInput)
+      Hooks.put tInput finalInput
       mbResult <- runExceptT (validator finalInput)
       Hooks.put tValid (fromEither mbResult)
 
@@ -81,12 +79,11 @@ useField' errorEqFn aEqFn debounceTime initialInput validator =
 
     validate tInput tValid = do
       input <- Hooks.get tInput
-      for_ input \i -> do
-        mbResult <- runExceptT (validator i)
-        oldValidation <- Hooks.get tValid
-        let newValidation = fromEither mbResult
-        when (not (oldValidation `equals` newValidation)) do
-          Hooks.put tValid newValidation
+      mbResult <- runExceptT (validator input)
+      oldValidation <- Hooks.get tValid
+      let newValidation = fromEither mbResult
+      when (not (oldValidation `equals` newValidation)) do
+        Hooks.put tValid newValidation
 
     equals l r = case l, r of
       Success l', Success r' -> aEqFn l' r'
