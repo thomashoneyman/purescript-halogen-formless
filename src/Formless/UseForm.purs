@@ -19,34 +19,28 @@ newtype UseForm hooks =
 
 derive instance newtypeUseForm :: Newtype (UseForm hooks) _
 
-type FormFields slots output m rows =
+type FormState slots output m rows =
   { touched :: Boolean
   , validate :: HookM slots output m Unit
   , reset :: HookM slots output m Unit
   | rows
   }
 
-type FormReturn slots output m =
-  { allTouched :: Boolean
-  , validateAll :: HookM slots output m Unit
-  , resetAll :: HookM slots output m Unit
-  }
-
 useForm
-  :: forall slots output m rows
-   . Array (FormFields slots output m rows)
-  -> Hook slots output m (UseState Int) _
+  :: forall slots output m rows otherRows
+   . Array (FormState slots output m rows)
+  -> Hook slots output m (UseState Int) (FormState slots output m otherRows)
 useForm fields =
   Hooks.do
     submitAttempts /\ tSubmitAttempts <- useState 0
-    allTouched /\ tAllTouched <- useState false
+    touched /\ tTouched <- useState false
     dirty /\ tDirty <- useState false
     valid /\ tValid <- useState Inva
     submitting /\ tSubmitting <- useState false
 
     Hooks.pure
       -- state
-      { allTouched
+      { touched
       , errors: -- foldl (\acc next -> acc + (if isError next then 1 else 0) 0 fields
       , dirty: -- any (_.dirty) fields
       , valid: -- all (isSuccess <<< _.valid) fields
@@ -56,8 +50,8 @@ useForm fields =
       -- actions
       , resyncState -- recalculate state values to ensure they are accurate
                     -- maybe this should be done via useEvent?
-      , validateAll: traverse_ (_.validate) fields
-      , resetAll: traverse_ (_.reset) fields
+      , validate: traverse_ (_.validate) fields
+      , reset: traverse_ (_.reset) fields
       , submit
       }
   where
