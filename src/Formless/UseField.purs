@@ -56,8 +56,6 @@ useField' errorEqFn aEqFn debounceTime initialInput validator =
     touched /\ tTouched <- useState false
     valid /\ tValid <- useState NotValidated
     setValidate <- useDebouncer debounceTime \finalInput -> do
-      touched' <- Hooks.get tTouched
-      unless touched' $ Hooks.put tTouched true
       Hooks.put tInput (Just finalInput)
       mbResult <- runExceptT (validator finalInput)
       Hooks.put tValid (fromEither mbResult)
