@@ -72,7 +72,7 @@ useField' inputEqFn errorEqFn aEqFn debounceTime initialInput validator =
       touched' <- Hooks.get tTouched
       unless touched' $ Hooks.put tTouched true
       oldInput <- Hooks.get tInput
-      when (inputEqFn oldInput newInput) do
+      when (not (inputEqFn oldInput newInput)) do
         Hooks.put tInput newInput
         setValidate newInput
 
