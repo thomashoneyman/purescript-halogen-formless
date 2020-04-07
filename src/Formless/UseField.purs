@@ -68,13 +68,13 @@ useField' inputEqFn errorEqFn aEqFn debounceTime initialInput validator =
       , reset: reset tInput tTouched tValid
       }
   where
-    handleInput tInput tTouched setValidate input = do
+    handleInput tInput tTouched setValidate newInput = do
       touched' <- Hooks.get tTouched
       unless touched' $ Hooks.put tTouched true
-      input' <- Hooks.get tInput
-      when (inputEqFn input' input) do
-        Hooks.put tInput input
-        setValidate input
+      oldInput <- Hooks.get tInput
+      when (inputEqFn oldInput newInput) do
+        Hooks.put tInput newInput
+        setValidate newInput
 
     reset tInput tTouched tValid = do
       Hooks.put tInput initialInput
