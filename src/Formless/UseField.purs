@@ -57,8 +57,10 @@ useField' inputEqFn errorEqFn aEqFn debounceTime initialInput validator =
     touched /\ tTouched <- useState false
     valid /\ tValid <- useState NotValidated
     setValidate <- useDebouncer debounceTime \finalInput -> do
+      Hooks.put tValid Validating
       mbResult <- runExceptT (validator finalInput)
-      Hooks.put tValid (fromEither mbResult)
+      let newValidation = fromEither mbResult
+      Hooks.put tValid newValidation
 
     Hooks.pure
       { input
@@ -84,10 +86,9 @@ useField' inputEqFn errorEqFn aEqFn debounceTime initialInput validator =
 
     validate tInput tValid = do
       input <- Hooks.get tInput
+      Hooks.put tValid Validating
       mbResult <- runExceptT (validator input)
-      oldValidation <- Hooks.get tValid
       let newValidation = fromEither mbResult
-      when (not (oldValidation `validationEquals` newValidation)) do
-        Hooks.put tValid newValidation
+      Hooks.put tValid newValidation
 
     validationEquals = FormFieldResult.equalsWith errorEqFn aEqFn
