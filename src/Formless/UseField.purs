@@ -14,8 +14,12 @@ import Halogen.Hooks as Hooks
 import Halogen.Hooks.Extra.Hooks.UseDebouncer (UseDebouncer, useDebouncer)
 
 newtype UseField input error a hooks =
-  UseField (UseDebouncer input (UseState (FormFieldResult error a)
-    (UseState Boolean (UseState input hooks))))
+  UseField
+   (UseDebouncer input
+   (UseState Boolean
+   (UseState (FormFieldResult error a)
+   (UseState Boolean
+   (UseState input hooks)))))
 
 derive instance newtypeUseField :: Newtype (UseField i e a hooks) _
 
@@ -23,6 +27,7 @@ type FieldReturn slots output m input error a =
   { input :: input
   , valid :: FormFieldResult error a
   , touched :: Boolean
+  , dirty :: Boolean
   , handleInput :: input -> HookM slots output m Unit
   , validate :: HookM slots output m Unit
   , reset :: HookM slots output m Unit
@@ -56,6 +61,7 @@ useField' inputEqFn errorEqFn aEqFn debounceTime initialInput validator =
     input /\ tInput <- useState initialInput
     touched /\ tTouched <- useState false
     valid /\ tValid <- useState NotValidated
+    dirty /\ tDirty <- useState false
     setValidate <- useDebouncer debounceTime \finalInput -> do
       Hooks.put tValid Validating
       mbResult <- runExceptT (validator finalInput)
@@ -66,22 +72,31 @@ useField' inputEqFn errorEqFn aEqFn debounceTime initialInput validator =
       { input
       , valid
       , touched
-      , handleInput: handleInput tInput tTouched setValidate
+      , dirty
+      , handleInput: handleInput tInput tTouched tDirty setValidate
       , validate: validate tInput tValid
-      , reset: reset tInput tTouched tValid
+      , reset: reset tInput tTouched tDirty tValid
       }
   where
-    handleInput tInput tTouched setValidate newInput = do
+    handleInput tInput tTouched tDirty setValidate newInput = do
       touched' <- Hooks.get tTouched
       unless touched' $ Hooks.put tTouched true
+
       oldInput <- Hooks.get tInput
       when (not (inputEqFn oldInput newInput)) do
         Hooks.put tInput newInput
+
+        dirty <- Hooks.get tDirty
+        let notDirty = not (inputEqFn newInput initialInput)
+        when (dirty /= notDirty) do
+          Hooks.put tDirty notDirty
+
         setValidate newInput
 
-    reset tInput tTouched tValid = do
+    reset tInput tTouched tDirty tValid = do
       Hooks.put tInput initialInput
       Hooks.put tTouched false
+      Hooks.put tDirty false
       Hooks.put tValid NotValidated
 
     validate tInput tValid = do
