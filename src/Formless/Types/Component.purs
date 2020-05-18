@@ -144,3 +144,33 @@ useFormless :: forall m. Hook m UseFormless Unit
 useFormless = Hooks.wrap Hooks.do
   _ <- useState unit
   Hooks.pure unit
+  -- where
+  --   modify :: form Variant InputFunction
+  --   modify
+  --
+  --   validate :: form Variant U
+  --   validate
+  --
+  --   modifyValidate :: Tuple (Maybe Milliseconds) (form Variant InputFunction)
+  --   modifyValidate
+  --
+  --   reset :: form Variant InputFunction
+  --   reset
+  --
+  --   setAll :: Tuple (form Record InputField) Boolean
+  --   setAll
+  --
+  --   modifyAll :: Tuple (form Record InputFunction) Boolean
+  --   modifyAll
+  --
+  --   validateAll :: Unit
+  --   validateAll
+  --
+  --   resetAll :: Unit
+  --   resetAll
+  --
+  --   submit :: Unit
+  --   submit
+  --
+  --   loadForm :: form Record InputField
+  --   loadForm
