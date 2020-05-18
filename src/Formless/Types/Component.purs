@@ -152,6 +152,8 @@ useFormless
 useFormless inputRec = Hooks.wrap Hooks.do
   _ <- useState unit
   -- state /\ stateId <- useState {- FormlessState args -}
+  -- internal /\ internalId <- useState {- InternalState arg -}
+
   Hooks.pure unit
   -- where
   --   modify :: form Variant InputFunction
