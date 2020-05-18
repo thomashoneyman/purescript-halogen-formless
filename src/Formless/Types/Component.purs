@@ -136,12 +136,18 @@ type Event' form = Event form ()
 -- | ```
 _formless = SProxy :: SProxy "formless"
 
+type FormlessInput form m = Input form () m
+
 newtype UseFormless hooks = UseFormless (UseState Unit hooks)
 
 derive instance newtypeUseFormless :: Newtype (UseFormless hooks) _
 
-useFormless :: forall m. Hook m UseFormless Unit
-useFormless = Hooks.wrap Hooks.do
+useFormless
+  :: forall form m
+   . Monad m
+  => FormlessInput form m
+  -> Hook m UseFormless Unit
+useFormless inputRec = Hooks.wrap Hooks.do
   _ <- useState unit
   Hooks.pure unit
   -- where
