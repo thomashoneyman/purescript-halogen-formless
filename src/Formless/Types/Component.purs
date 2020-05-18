@@ -138,6 +138,8 @@ _formless = SProxy :: SProxy "formless"
 
 type FormlessInput form m = Input form () m
 
+type FormlessState form = { | StateRow form () }
+
 newtype UseFormless hooks = UseFormless (UseState Unit hooks)
 
 derive instance newtypeUseFormless :: Newtype (UseFormless hooks) _
@@ -149,6 +151,7 @@ useFormless
   -> Hook m UseFormless Unit
 useFormless inputRec = Hooks.wrap Hooks.do
   _ <- useState unit
+  -- state /\ stateId <- useState {- FormlessState args -}
   Hooks.pure unit
   -- where
   --   modify :: form Variant InputFunction
