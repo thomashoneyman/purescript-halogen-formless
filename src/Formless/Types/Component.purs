@@ -19,6 +19,8 @@ import Formless.Validation (Validation)
 import Type.Row (type (+))
 import Halogen as H
 import Halogen.HTML as HH
+import Halogen.Hooks (Hook, UseState, useState)
+import Halogen.Hooks as Hooks
 import Halogen.Query.ChildQuery (ChildQueryBox)
 import Halogen.Query.HalogenM (ForkId)
 
@@ -216,3 +218,12 @@ type Slot' form msg = H.Slot (Query' form) msg
 -- | HH.slot F._formless unit (F.component spec) input handler
 -- | ```
 _formless = SProxy :: SProxy "formless"
+
+newtype UseFormless hooks = UseFormless (UseState Unit hooks)
+
+derive instance newtypeUseFormless :: Newtype (UseFormless hooks) _
+
+useFormless :: forall m. Hook m UseFormless Unit
+useFormless = Hooks.wrap Hooks.do
+  _ <- useState unit
+  Hooks.pure unit
