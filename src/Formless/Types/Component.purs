@@ -137,14 +137,6 @@ data Event form st
 
 type Event' form = Event form ()
 
--- | A slot type that can be used in the ChildSlots definition for your parent
--- | component
-type Slot form query slots msg = H.Slot (Query form query slots) msg
-
--- | A simple Slot type when the component does not need extension, besides a
--- | custom output message
-type Slot' form msg = H.Slot (Query' form) msg
-
 -- | A convenience export of formless as a symbol for use when mounting Formless
 -- | as a child component
 -- |
