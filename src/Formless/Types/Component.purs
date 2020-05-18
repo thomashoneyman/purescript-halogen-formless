@@ -24,25 +24,6 @@ import Halogen.Query.ChildQuery (ChildQueryBox)
 import Halogen.Query.HalogenM (ForkId)
 import Type.Row (type (+))
 
--- | A type representing the various functions that can be provided to extend
--- | the Formless component. Usually only the `render` function is required,
--- | but you may also provide others. For example, if you have child components,
--- | you can tell Formless how to manage those child components by adding a
--- | handler action and `handleAction` case.
-type Spec form st query act slots input msg m =
-  { render :: PublicState form st -> ComponentHTML form act slots m
-  , handleAction :: act -> HalogenM form st act slots msg m Unit
-  , handleQuery :: forall a. query a -> HalogenM form st act slots msg m (Maybe a)
-  , handleEvent :: Event form st -> HalogenM form st act slots msg m Unit
-  , receive :: input -> Maybe act
-  , initialize :: Maybe act
-  , finalize :: Maybe act
-  }
-
--- | A simplified type when the component has only a form spec, some output, and runs
--- | in some monad `m`
-type Spec' form msg input m = Spec form () (Const Void) Void () input msg m
-
 -- | The component action type. While actions are typically considered
 -- | internal to a component, in Formless you write the render function and will
 -- | need to be able to use these directly. Many of these are shared with queries
