@@ -59,28 +59,6 @@ type InternalAction act r =
 -- | A simple action type when the component does not need extension
 type Action' form = Action form Void
 
--- | The internals of the public component query type. Many of these are shared
--- | with actions of the same name so they can be used in rendering. See
--- | `Formless.Action` and `Formless.Query` for more.
-data QueryF form slots a
-  = SubmitReply (Maybe (form Record OutputField) -> a)
-  -- Query a child component of Formless through Formless
-  | SendQuery (ChildQueryBox slots (Maybe a))
-  -- Run a Formless action as a query
-  | AsQuery (Variant (PublicAction form)) a
-
-derive instance functorQueryF :: Functor (QueryF form slots)
-
--- | The component query type, which you can freely extend with your own queries
--- | using `injQuery` from `Formless.Query`.
-type Query form query slots = VariantF
-  ( query :: FProxy (QueryF form slots)
-  , userQuery :: FProxy query
-  )
-
--- | A simple query type when the component does not need extension
-type Query' form = Query form (Const Void) ()
-
 -- | The component type
 type Component form query slots input msg m =
   H.Component HH.HTML (Query form query slots) input msg m
