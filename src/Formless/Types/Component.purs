@@ -56,9 +56,6 @@ type InternalAction act r =
   | r
   )
 
--- | A simple action type when the component does not need extension
-type Action' form = Action form Void
-
 -- | The component local state
 type State form st m =
   { | StateRow form (internal :: InternalState form m | st) }
@@ -124,9 +121,6 @@ type Input form st m =
   , validators :: form Record (Validation form m)
   | st
   }
-
--- | A simple Input type when the component does not need extension
-type Input' form m = Input form () m
 
 -- | The component tries to require as few messages to be handled as possible. You
 -- | can always use the *Reply variants of queries to perform actions and receive
