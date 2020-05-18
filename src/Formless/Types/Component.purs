@@ -59,30 +59,6 @@ type InternalAction act r =
 -- | A simple action type when the component does not need extension
 type Action' form = Action form Void
 
--- | The component type
-type Component form query slots input msg m =
-  H.Component HH.HTML (Query form query slots) input msg m
-
--- | A simple component type when the component does not need extension
-type Component' form input m =
-  Component form (Const Void) () input Void m
-
--- | The component's HTML type, the result of the render function.
-type ComponentHTML form act slots m =
-  H.ComponentHTML (Action form act) slots m
-
--- | A simple component HTML type when the component does not need extension
-type ComponentHTML' form m =
-  ComponentHTML form Void () m
-
--- | The component's eval type
-type HalogenM form st act slots msg m =
-  H.HalogenM (State form st m) (Action form act) slots msg m
-
--- | A simple component eval type when the component does not need extension
-type HalogenM' form msg m =
-  HalogenM form () Void () msg m
-
 -- | The component local state
 type State form st m =
   { | StateRow form (internal :: InternalState form m | st) }
