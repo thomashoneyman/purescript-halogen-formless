@@ -16,13 +16,13 @@ import Effect.Aff.AVar (AVar)
 import Effect.Ref (Ref)
 import Formless.Types.Form (FormField, InputField, InputFunction, OutputField, U)
 import Formless.Validation (Validation)
-import Type.Row (type (+))
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.Hooks (Hook, UseState, useState)
 import Halogen.Hooks as Hooks
 import Halogen.Query.ChildQuery (ChildQueryBox)
 import Halogen.Query.HalogenM (ForkId)
+import Type.Row (type (+))
 
 -- | A type representing the various functions that can be provided to extend
 -- | the Formless component. Usually only the `render` function is required,
