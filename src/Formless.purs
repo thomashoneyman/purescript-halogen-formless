@@ -13,7 +13,7 @@ module Formless
   , module Formless.Retrieve
   , module Formless.Transform.Record
   , module Formless.Transform.Row
-  , module Formless.Types.Component
+  , module Formless.UseFormless
   , module Formless.Types.Form
   , module Formless.Validation
   ) where
@@ -24,6 +24,6 @@ import Formless.Data.FormFieldResult (FormFieldResult(..), _Error, _Success, fro
 import Formless.Retrieve (FormFieldGet, FormFieldLens, GetAll, GetError(..), GetInputField(..), GetOutput(..), GetResultField(..), GetTouchedField(..), _Field, _FieldError, _FieldInput, _FieldOutput, _FieldResult, _FieldTouched, getError, getErrorAll, getField, getInput, getInputAll, getOutput, getOutputAll, getResult, getResultAll, getTouched, getTouchedAll)
 import Formless.Transform.Record (UnwrapField(..), WrapField(..), unwrapOutputFields, unwrapRecord, wrapInputFields, wrapInputFunctions, wrapRecord)
 import Formless.Transform.Row (class MakeInputFieldsFromRow, class MakeSProxies, SProxies, makeSProxiesBuilder, mkInputFields, mkInputFieldsFromRowBuilder, mkSProxies)
-import Formless.Types.Component (FormlessInput, FormlessState, FormlessAction, FormlessEvent, FormlessReturn, Debouncer, InternalState, ValidStatus(..), UseFormless, useFormless)
+import Formless.UseFormless (FormlessInput, FormlessState, FormlessAction, FormlessEvent, FormlessReturn, Debouncer, InternalState, ValidStatus(..), UseFormless, useFormless)
 import Formless.Types.Form (ErrorType, FormField(..), FormFieldRow, FormProxy(..), InputField(..), InputFunction(..), InputType, OutputField(..), OutputType, U(..))
 import Formless.Validation (EmptyValidators(..), Validation(..), hoistFn, hoistFnE, hoistFnE_, hoistFnME, hoistFnME_, hoistFn_, noValidation, noValidators, runValidation)

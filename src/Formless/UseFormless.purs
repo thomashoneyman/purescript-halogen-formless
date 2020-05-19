@@ -1,4 +1,4 @@
-module Formless.Types.Component where
+module Formless.UseFormless where
 
 import Prelude
 

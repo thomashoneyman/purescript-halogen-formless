@@ -14,7 +14,7 @@ import Data.Tuple (Tuple(..))
 import Data.Variant (Variant, inj)
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Transform.Record (WrapField, wrapInputFields, wrapInputFunctions)
-import Formless.Types.Component (FormlessReturn)
+import Formless.UseFormless (FormlessReturn)
 import Formless.Types.Form (InputField, InputFunction, U(..))
 import Halogen.Hooks (HookM)
 import Heterogeneous.Mapping as HM
