@@ -50,8 +50,7 @@ type PublicAction form =
   )
 
 type InternalAction act r =
-  ( initialize :: Maybe act
-  , syncFormData :: Unit
+  ( syncFormData :: Unit
   | r
   )
 
