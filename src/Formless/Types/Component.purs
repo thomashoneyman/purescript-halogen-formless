@@ -71,15 +71,6 @@ data FormlessEvent form
   = Submitted (form Record OutputField)
   | Changed (FormlessState form)
 
--- | A convenience export of formless as a symbol for use when mounting Formless
--- | as a child component
--- |
--- | ```purescript
--- | type ChildSlots = (formless :: F.Slot' Form FormResult)
--- | HH.slot F._formless unit (F.component spec) input handler
--- | ```
-_formless = SProxy :: SProxy "formless"
-
 -- | The hook's input type. If you provide `Nothing` as your `initialInputs`,
 -- | then the form will fill in values based on the `Initial` type class for the
 -- | field's input type. Otherwise, the form will contain the values you provide.
