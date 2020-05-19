@@ -13,7 +13,6 @@ import Data.Variant (Variant)
 import Effect.Aff (Fiber, Milliseconds)
 import Effect.Aff.AVar (AVar)
 import Effect.Ref (Ref)
-import Formless.Internal.Transform (class InputFieldsToFormFields)
 import Formless.Internal.Transform as IT
 import Formless.Transform.Row (class MakeInputFieldsFromRow, mkInputFields)
 import Formless.Types.Form (FormField, FormProxy(..), InputField, InputFunction, OutputField, U)
@@ -57,41 +56,6 @@ type InternalAction act r =
   | r
   )
 
--- | The component local state
-type State form st m =
-  { | StateRow form (internal :: InternalState form m | st) }
-
--- | A simple state type when the component does not need extension
-type State' form m =
-  State form () m
-
--- | The component's public state
-type PublicState form st =
-  { | StateRow form st }
-
--- | The component's public state, as an extensible row
-type StateRow form st =
-  ( validity :: ValidStatus
-  , dirty :: Boolean
-  , submitting :: Boolean
-  , errors :: Int
-  , submitAttempts :: Int
-  , form :: form Record FormField
-  | st
-  )
-
--- | A newtype to make easier type errors for end users to
--- | read by hiding internal fields
-newtype InternalState form m = InternalState
-  { initialInputs :: form Record InputField
-  , validators :: form Record (Validation form m)
-  , allTouched :: Boolean
-  , debounceRef :: Maybe (Ref (Maybe Debouncer))
-  , validationRef :: Maybe (Ref (Maybe H.ForkId))
-  }
-
-derive instance newtypeInternalState :: Newtype (InternalState form m) _
-
 -- | A type to represent a running debouncer
 type Debouncer =
   { var :: AVar Unit
@@ -128,9 +92,7 @@ type Input form st m =
 -- | a result out the other end, or extend these messages.
 data Event form st
   = Submitted (form Record OutputField)
-  | Changed (PublicState form st)
-
-type Event' form = Event form ()
+  | Changed (FormlessState form)
 
 -- | A convenience export of formless as a symbol for use when mounting Formless
 -- | as a child component
@@ -143,9 +105,27 @@ _formless = SProxy :: SProxy "formless"
 
 type FormlessInput form m = Input form () m
 
-type FormlessState form = { | StateRow form () }
+type FormlessState form =
+  { validity :: ValidStatus
+  , dirty :: Boolean
+  , submitting :: Boolean
+  , errors :: Int
+  , submitAttempts :: Int
+  , form :: form Record FormField
+  }
 
-newtype UseFormless form hooks = UseFormless (UseState (FormlessState form) hooks)
+type InternalState' =
+  { allTouched :: Boolean
+  , validationRef :: Maybe (Ref (Maybe H.ForkId))
+  -- initialInputs is in-scope via FormlessInput
+  -- validators is in-scope via FormlessInput
+  -- debounceRef can be reimplemented via useDebouncer
+  }
+
+newtype UseFormless form hooks = UseFormless
+  (UseState InternalState'
+  (UseState (FormlessState form)
+  hooks))
 
 derive instance newtypeUseFormless :: Newtype (UseFormless form hooks) _
 
@@ -180,7 +160,10 @@ useFormless inputRec =
       , submitting: false
       , form: IT.inputFieldsToFormFields initialInputs
       }
-    -- internal /\ internalId <- useState {- InternalState arg -}
+    internal /\ internalId <- useState
+      { allTouched: false
+      , validationRef: Nothing
+      }
 
     Hooks.pure unit
   -- where
