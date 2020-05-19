@@ -359,14 +359,30 @@ useFormless inputRec =
             -- true -> handleAction handleAction' handleEvent FA.validateAll
             _ -> syncFormData
 
+      validateAll
+        :: forall vs
+         . IT.ValidateAll vs ixs fs fs m
+        => Newtype (form Record (Validation form m)) { | vs }
+        => Newtype (form Record FormField) { | fs }
+        => Newtype (form Record InputField) { | is }
+        => RL.RowToList fs ixs
+        => IT.FormFieldsToInputFields ixs fs is
+        => IT.CountErrors ixs fs
+        => EqRecord ixs is
+        => IT.AllTouched ixs fs
+        => HookM m Unit
+      validateAll = do
+        st <- Hooks.get publicId
+        form <- H.lift $ IT.validateAll inputRec.validators st.form
+        Hooks.modify_ publicId (_ { form = form })
+        syncFormData
+
     Hooks.pure unit
   -- where
   --
   --
   --
   --
-  --   validateAll :: Unit
-  --   validateAll
   --
   --   resetAll :: Unit
   --   resetAll
