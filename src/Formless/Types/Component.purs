@@ -427,8 +427,7 @@ useFormless inputRec =
           _ -> Nothing
 
       loadForm
-        :: forall inputFields'
-         . Newtype (form Record InputField) { | inputFields' }
+        :: Newtype (form Record InputField) { | inputFields }
         => ReplaceFormFieldInputs inputFields inputFieldsRowList formFields formFields
         => form Record InputField
         -> HookM m Unit
