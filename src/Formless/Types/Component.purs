@@ -15,6 +15,7 @@ import Data.Variant (Variant)
 import Effect.Aff (Fiber, Milliseconds)
 import Effect.Aff.AVar (AVar)
 import Formless.Data.FormFieldResult (FormFieldResult)
+import Formless.Internal.Debounce (debounceForm)
 import Formless.Internal.Transform as IT
 import Formless.Transform.Row (class MakeInputFieldsFromRow, mkInputFields)
 import Formless.Types.Form (FormField, FormProxy(..), InputField, InputFunction, OutputField, U)
@@ -102,7 +103,8 @@ type InternalState form =
   --                   due to NOT using `unsafePerformEffect $ liftEffect Ref.new`
   , initialInputs :: form Record InputField
   -- validators is in-scope via FormlessInput
-  -- debounceRef can be reimplemented via useDebouncer
+  -- debounceRef  - use ref; outer Maybe only used for initial Ref value
+  --                due to NOT using `unsafePerformEffect $ liftEffect Ref.new`
   }
 
 type FormlessReturn form m =
@@ -112,7 +114,7 @@ type FormlessReturn form m =
   }
 
 newtype UseFormless form hooks = UseFormless
-  (UseRef (Maybe H.ForkId)
+  (UseRef { debouncer :: Maybe Debouncer, validation :: Maybe H.ForkId }
   (UseState (InternalState form)
   (UseState (FormlessState form)
   hooks)))
@@ -169,7 +171,7 @@ useFormless inputRec =
       { allTouched: false
       , initialInputs: providedInitialInputs
       }
-    _ /\ validationRef <- useRef Nothing
+    _ /\ internalRef <- useRef { debounce: Nothing, validation: Nothing }
 
     let
       syncFormData :: HookM m Unit
@@ -255,13 +257,13 @@ useFormless inputRec =
           Nothing ->
             modifyWith identity *> runValidate *> syncFormData
           Just ms ->
-            syncFormData
-            -- TODO: use debouncer hook to handle this
-            -- debounceForm
-            --   ms
-            --   (modifyWith identity)
-            --   (modifyWith (const Validating) *> validate)
-            --   (syncFormData)
+            debounceForm
+              internalRef
+              publicId
+              ms
+              (modifyWith identity)
+              (modifyWith (const Validating) *> validate)
+              syncFormData
 
       reset :: form Variant InputFunction -> HookM m Unit
       reset variant = do
