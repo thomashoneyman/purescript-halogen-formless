@@ -94,12 +94,7 @@ type FormlessState form =
 
 type InternalState form =
   { allTouched :: Boolean
-  -- , validationRef - use ref; outer Maybe only used for initial Ref value
-  --                   due to NOT using `unsafePerformEffect $ liftEffect Ref.new`
   , initialInputs :: form Record InputField
-  -- validators is in-scope via FormlessInput
-  -- debounceRef  - use ref; outer Maybe only used for initial Ref value
-  --                due to NOT using `unsafePerformEffect $ liftEffect Ref.new`
   }
 
 type FormlessReturn form m =
