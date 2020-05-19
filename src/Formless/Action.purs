@@ -14,14 +14,9 @@ import Data.Tuple (Tuple(..))
 import Data.Variant (Variant, inj)
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Transform.Record (WrapField, wrapInputFields, wrapInputFunctions)
-import Formless.Types.Component (Action)
 import Formless.Types.Form (InputField, InputFunction, U(..))
 import Heterogeneous.Mapping as HM
 import Prim.Row as Row
-
--- | Inject your own action into the Formless component so it can be used in HTML
-injAction :: forall form act. act -> Action form act
-injAction = inj (SProxy :: _ "userAction")
 
 -- | Set the input value of a form field at the specified label.
 -- |
@@ -33,11 +28,12 @@ set
    . IsSymbol sym
   => Newtype (form Variant InputFunction) (Variant inputs)
   => Row.Cons sym (InputFunction e i o) r inputs
-  => SProxy sym
+  => (FormlessReturn form m)
+  -> SProxy sym
   -> i
-  -> Variant (modify :: form Variant InputFunction | v)
-set sym i =
-  inj (SProxy :: _ "modify") (wrap (inj sym (wrap (const i))))
+  -> HookM m Unit
+set formless sym i =
+  formless.modify (wrap (inj sym (wrap (const i))))
 
 -- | Modify the input value of a form field at the specified label with the
 -- | provided function.
