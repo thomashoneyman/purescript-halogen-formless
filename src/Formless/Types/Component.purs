@@ -128,10 +128,13 @@ newtype UseFormless form hooks = UseFormless
 derive instance newtypeUseFormless :: Newtype (UseFormless form hooks) _
 
 useFormless
-  :: forall form m is fs ixs
+  :: forall form m is fs ixs ivfs us vs
    . Monad m
   => Newtype (form Record InputField) { | is }
   => Newtype (form Record FormField) { | fs }
+  => Newtype (form Variant InputFunction) (Variant ivfs)
+  => Newtype (form Variant U) (Variant us)
+  => Newtype (form Record (Validation form m)) { | vs }
 
   => MakeInputFieldsFromRow ixs is is
   => IT.InputFieldsToFormFields ixs is fs
@@ -215,8 +218,7 @@ useFormless inputRec =
         inputRec.pushChange newState
 
       modify
-        :: forall inputs
-         . Newtype (form Variant InputFunction) (Variant inputs)
+        :: Newtype (form Variant InputFunction) (Variant ivfs)
         => Newtype (form Record FormField) { | fs }
         => Newtype (form Record InputField) { | is }
         => RL.RowToList fs ixs
@@ -232,10 +234,9 @@ useFormless inputRec =
         syncFormData
 
       validate
-        :: forall us z
-         . Newtype (form Variant U) (Variant us)
+        :: Newtype (form Variant U) (Variant us)
         => Newtype (form Record FormField) { | fs }
-        => Newtype (form Record (Validation form m)) { | z }
+        => Newtype (form Record (Validation form m)) { | vs }
         => Newtype (form Record InputField) { | is }
         => RL.RowToList fs ixs
         => IT.FormFieldsToInputFields ixs fs is
@@ -253,8 +254,7 @@ useFormless inputRec =
         syncFormData
 
       modifyValidate
-        :: forall inputs us vs
-         . Newtype (form Variant InputFunction) (Variant inputs)
+        :: Newtype (form Variant InputFunction) (Variant ivfs)
         => Newtype (form Variant U) (Variant us)
         => Newtype (form Record (Validation form m)) { | vs }
         => Newtype (form Record FormField) { | fs }
@@ -299,9 +299,9 @@ useFormless inputRec =
             --   (syncFormData)
 
       reset
-        :: forall i inputs
+        :: forall i
          . Initial i
-        => Newtype (form Variant InputFunction) (Variant inputs)
+        => Newtype (form Variant InputFunction) (Variant ivfs)
         => Newtype (form Record FormField) { | fs }
         => Newtype (form Record InputField) { | is }
         => RL.RowToList fs ixs
@@ -318,10 +318,7 @@ useFormless inputRec =
         syncFormData
 
       setAll
-        :: forall is' vs
-         . Newtype (form Record InputField) { | is' }
-        -- => HM.HMap WrapField { | is } { | is' }
-        => ReplaceFormFieldInputs is ixs fs fs
+        :: ReplaceFormFieldInputs is ixs fs fs
         => Newtype (form Record InputField) { | is }
         => IT.ValidateAll vs ixs fs fs m
         => Newtype (form Record (Validation form m)) { | vs }
@@ -343,7 +340,7 @@ useFormless inputRec =
           _ -> syncFormData
 
       modifyAll
-        :: forall ifs vs
+        :: forall ifs
          . ModifyAll ifs ixs fs fs
         => Newtype (form Record InputFunction) { | ifs }
         => IT.ValidateAll vs ixs fs fs m
@@ -366,8 +363,7 @@ useFormless inputRec =
             _ -> syncFormData
 
       validateAll
-        :: forall vs
-         . IT.ValidateAll vs ixs fs fs m
+        :: IT.ValidateAll vs ixs fs fs m
         => Newtype (form Record (Validation form m)) { | vs }
         => Newtype (form Record FormField) { | fs }
         => Newtype (form Record InputField) { | is }
@@ -402,7 +398,7 @@ useFormless inputRec =
         inputRec.pushChange new
 
       submit
-        :: forall vs os
+        :: forall os
          . IT.AllTouched ixs fs
         => IT.SetFormFieldsTouched ixs fs fs
         => IT.ValidateAll vs ixs fs fs m
