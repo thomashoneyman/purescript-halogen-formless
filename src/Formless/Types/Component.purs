@@ -76,17 +76,6 @@ derive instance ordValidStatus :: Ord ValidStatus
 instance showValidStatus :: Show ValidStatus where
   show = genericShow
 
--- | The component's input type. If you provide `Nothing` as your `initialInputs`
--- | then the form will fill in values based on the `Initial` type class for the
--- | field's input type. Otherwise, the form will contain the values you provide.
--- |
--- | Validators can be created using the Formless.Validation module.
-type Input form st m =
-  { initialInputs :: Maybe (form Record InputField)
-  , validators :: form Record (Validation form m)
-  | st
-  }
-
 -- | The component tries to require as few messages to be handled as possible. You
 -- | can always use the *Reply variants of queries to perform actions and receive
 -- | a result out the other end, or extend these messages.
@@ -103,7 +92,15 @@ data Event form st
 -- | ```
 _formless = SProxy :: SProxy "formless"
 
-type FormlessInput form m = Input form () m
+-- | The hook's input type. If you provide `Nothing` as your `initialInputs`,
+-- | then the form will fill in values based on the `Initial` type class for the
+-- | field's input type. Otherwise, the form will contain the values you provide.
+-- |
+-- | Validators can be created using the Formless.Validation module.
+type FormlessInput form m =
+  { initialInputs :: Maybe (form Record InputField)
+  , validators :: form Record (Validation form m)
+  }
 
 type FormlessState form =
   { validity :: ValidStatus
