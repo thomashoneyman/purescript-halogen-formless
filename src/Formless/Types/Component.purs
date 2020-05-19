@@ -15,6 +15,7 @@ import Effect.Aff (Fiber, Milliseconds)
 import Effect.Aff.AVar (AVar)
 import Formless.Class.Initial (class Initial)
 import Formless.Data.FormFieldResult (FormFieldResult)
+import Formless.Internal.Transform (class ReplaceFormFieldInputs)
 import Formless.Internal.Transform as IT
 import Formless.Transform.Row (class MakeInputFieldsFromRow, mkInputFields)
 import Formless.Types.Form (FormField, FormProxy(..), InputField, InputFunction, OutputField, U)
@@ -312,12 +313,34 @@ useFormless inputRec =
         Hooks.put allTouchedId false
         syncFormData
 
+      setAll
+        :: forall is'
+         . Newtype (form Record InputField) { | is' }
+        -- => HM.HMap WrapField { | is } { | is' }
+        => ReplaceFormFieldInputs is ixs fs fs
+        => Newtype (form Record InputField) { | is }
+        => Newtype (form Record FormField) { | fs }
+        => Newtype (form Record InputField) { | is }
+        => RL.RowToList fs ixs
+        => IT.FormFieldsToInputFields ixs fs is
+        => IT.CountErrors ixs fs
+        => EqRecord ixs is
+        => IT.AllTouched ixs fs
+        => Tuple (form Record InputField) Boolean
+        -> HookM m Unit
+      setAll (Tuple formInputs shouldValidate) = do
+        new <- Hooks.modify publicId \st -> st
+          { form = IT.replaceFormFieldInputs formInputs st.form }
+        inputRec.pushChange new
+        case shouldValidate of
+          -- TODO: uncomment this line, so that validateAll is used
+          -- true -> handleAction handleAction' handleEvent FA.validateAll
+          _ -> syncFormData
+
     Hooks.pure unit
   -- where
   --
   --
-  --   setAll :: Tuple (form Record InputField) Boolean
-  --   setAll
   --
   --   modifyAll :: Tuple (form Record InputFunction) Boolean
   --   modifyAll
