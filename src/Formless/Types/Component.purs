@@ -206,10 +206,25 @@ useFormless inputRec =
 
         inputRec.pushChange newState
 
+      modify
+        :: forall inputs
+         . Newtype (form Variant InputFunction) (Variant inputs)
+        => Newtype (form Record FormField) { | fs }
+        => Newtype (form Record InputField) { | is }
+        => RL.RowToList fs ixs
+        => IT.FormFieldsToInputFields ixs fs is
+        => IT.CountErrors ixs fs
+        => EqRecord ixs is
+        => IT.AllTouched ixs fs
+        => form Variant InputFunction
+        -> HookM m Unit
+      modify variant = do
+        Hooks.modify_ publicId \st -> st
+          { form = IT.unsafeModifyInputVariant identity variant st.form }
+        syncFormData
+
     Hooks.pure unit
   -- where
-  --   modify :: form Variant InputFunction
-  --   modify
   --
   --   validate :: form Variant U
   --   validate
