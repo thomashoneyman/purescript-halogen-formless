@@ -223,12 +223,29 @@ useFormless inputRec =
           { form = IT.unsafeModifyInputVariant identity variant st.form }
         syncFormData
 
+      validate
+        :: forall us z
+         . Newtype (form Variant U) (Variant us)
+        => Newtype (form Record FormField) { | fs }
+        => Newtype (form Record (Validation form m)) { | z }
+        => Newtype (form Record InputField) { | is }
+        => RL.RowToList fs ixs
+        => IT.FormFieldsToInputFields ixs fs is
+        => IT.CountErrors ixs fs
+        => EqRecord ixs is
+        => IT.AllTouched ixs fs
+        => form Variant U
+        -> HookM m Unit
+      validate variant = do
+        st <- Hooks.get publicId
+        formProcessor <- H.lift do
+          IT.unsafeRunValidationVariant variant inputRec.validators st.form
+        st' <- Hooks.get publicId
+        Hooks.modify_ publicId (_ { form = formProcessor st'.form })
+        syncFormData
+
     Hooks.pure unit
   -- where
-  --
-  --   validate :: form Variant U
-  --   validate
-  --
   --   modifyValidate :: Tuple (Maybe Milliseconds) (form Variant InputFunction)
   --   modifyValidate
   --
