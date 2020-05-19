@@ -28,18 +28,6 @@ import Halogen.Query.HalogenM (ForkId)
 import Prim.RowList as RL
 import Unsafe.Coerce (unsafeCoerce)
 
--- | The component action type. While actions are typically considered
--- | internal to a component, in Formless you write the render function and will
--- | need to be able to use these directly. Many of these are shared with queries
--- | of the same name so they can be used either as queries or as actions. See
--- | `Formless.Action` and `Formless.Query`.
--- |
--- | You can freely extend this type with your own actions using `injAction`.
-type Action form act = Variant
-  ( userAction :: act
-  | PublicAction form
-  )
-
 type PublicAction form =
   ( modify :: form Variant InputFunction
   , validate :: form Variant U
