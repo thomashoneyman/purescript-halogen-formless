@@ -111,7 +111,7 @@ type FormlessState form =
   }
 
 type InternalState' form =
-  { allTouched :: Boolean -- I decided to just use Boolean at this point...
+  { allTouched :: Boolean
   -- , validationRef - use ref; outer Maybe only used for initial Ref value
   --                   due to NOT using `unsafePerformEffect $ liftEffect Ref.new`
   , initialInputs :: form Record InputField
