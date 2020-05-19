@@ -105,6 +105,12 @@ type InternalState form =
   -- debounceRef can be reimplemented via useDebouncer
   }
 
+type FormlessReturn form m =
+  { state :: FormlessState form
+  , getState :: HookM m (FormlessState form)
+  | FormlessAction form m
+  }
+
 newtype UseFormless form hooks = UseFormless
   (UseRef (Maybe H.ForkId)
   (UseState (InternalState form)
@@ -139,7 +145,7 @@ useFormless
   => IT.FormFieldToMaybeOutput inputFieldsRowList formFields outputFields
   => IT.ReplaceFormFieldInputs inputFields inputFieldsRowList formFields formFields
   => FormlessInput form m
-  -> Hook m (UseFormless form) Unit
+  -> Hook m (UseFormless form) (FormlessReturn form m)
 useFormless inputRec =
   let
     providedInitialInputs :: form Record InputField
@@ -342,4 +348,20 @@ useFormless inputRec =
         Hooks.put internalId { allTouched: false, initialInputs: formInputs }
         inputRec.pushChange new
 
-    Hooks.pure unit
+    Hooks.pure
+      -- state
+      { state: public
+      , getState: Hooks.get publicId
+
+      -- actions
+      , modify
+      , validate
+      , modifyValidate
+      , reset
+      , setAll
+      , modifyAll
+      , validateAll
+      , resetAll
+      , submit
+      , loadForm
+      }
