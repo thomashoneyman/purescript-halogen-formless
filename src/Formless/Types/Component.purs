@@ -17,7 +17,7 @@ import Formless.Transform.Row (class MakeInputFieldsFromRow, mkInputFields)
 import Formless.Types.Form (FormField, FormProxy(..), InputField, InputFunction, OutputField, U)
 import Formless.Validation (Validation)
 import Halogen as H
-import Halogen.Hooks (Hook, UseRef, UseState, useRef, useState)
+import Halogen.Hooks (Hook, HookM, UseRef, UseState, useRef, useState)
 import Halogen.Hooks as Hooks
 import Halogen.Query.HalogenM (ForkId)
 import Prim.RowList as RL
@@ -98,6 +98,8 @@ _formless = SProxy :: SProxy "formless"
 type FormlessInput form m =
   { initialInputs :: Maybe (form Record InputField)
   , validators :: form Record (Validation form m)
+  , pushChange :: FormlessState form -> HookM m Unit
+  , pushSubmitted :: form Record OutputField -> HookM m Unit
   }
 
 type FormlessState form =
