@@ -8,13 +8,15 @@ import Prelude
 
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, wrap)
-import Data.Symbol (class IsSymbol, SProxy(..))
+import Data.Symbol (class IsSymbol, SProxy)
 import Data.Time.Duration (Milliseconds)
 import Data.Tuple (Tuple(..))
 import Data.Variant (Variant, inj)
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Transform.Record (WrapField, wrapInputFields, wrapInputFunctions)
+import Formless.Types.Component (FormlessReturn)
 import Formless.Types.Form (InputField, InputFunction, U(..))
+import Halogen.Hooks (HookM)
 import Heterogeneous.Mapping as HM
 import Prim.Row as Row
 
@@ -24,7 +26,7 @@ import Prim.Row as Row
 -- | [ HE.onValueInput $ Just <<< F.set _name ]
 -- | ```
 set
-  :: forall form v sym inputs r e i o
+  :: forall form m sym inputs r e i o
    . IsSymbol sym
   => Newtype (form Variant InputFunction) (Variant inputs)
   => Row.Cons sym (InputFunction e i o) r inputs
@@ -42,15 +44,16 @@ set formless sym i =
 -- | [ HE.onChange \_ -> Just $ F.modify _enabled not ]
 -- | ```
 modify
-  :: forall form v sym inputs r e i o
+  :: forall form m sym inputs r e i o
    . IsSymbol sym
   => Newtype (form Variant InputFunction) (Variant inputs)
   => Row.Cons sym (InputFunction e i o) r inputs
-  => SProxy sym
+  => FormlessReturn form m
+  -> SProxy sym
   -> (i -> i)
-  -> Variant (modify :: form Variant InputFunction | v)
-modify sym f =
-  inj (SProxy :: _ "modify") (wrap (inj sym (wrap f)))
+  -> HookM m Unit
+modify formless sym f =
+  formless.modify (wrap (inj sym (wrap f)))
 
 -- | Trigger validation on a form field
 -- |
@@ -58,14 +61,15 @@ modify sym f =
 -- | [ HE.onBlur \_ -> Just $ F.validate _name ]
 -- | ```
 validate
-  :: forall form v sym us r e i o
+  :: forall form m sym us r e i o
    . IsSymbol sym
   => Newtype (form Variant U) (Variant us)
   => Row.Cons sym (U e i o) r us
-  => SProxy sym
-  -> Variant (validate :: form Variant U | v)
-validate sym =
-  inj (SProxy :: _ "validate") (wrap (inj sym U))
+  => FormlessReturn form m
+  -> SProxy sym
+  -> HookM m Unit
+validate formless sym =
+  formless.validate (wrap (inj sym U))
 
 -- | Set the input value of a form field at the specified label, also triggering
 -- | validation to run on the field.
@@ -74,15 +78,16 @@ validate sym =
 -- | [ HE.onValueInput $ Just <<< F.setValidate _name ]
 -- | ```
 setValidate
-  :: forall form v sym inputs r e i o
+  :: forall form m sym inputs r e i o
    . IsSymbol sym
   => Newtype (form Variant InputFunction) (Variant inputs)
   => Row.Cons sym (InputFunction e i o) r inputs
-  => SProxy sym
+  => FormlessReturn form m
+  -> SProxy sym
   -> i
-  -> Variant (modifyValidate :: Tuple (Maybe Milliseconds) (form Variant InputFunction) | v)
-setValidate sym i =
-  inj (SProxy :: _ "modifyValidate") (Tuple Nothing (wrap (inj sym (wrap (const i)))))
+  -> HookM m Unit
+setValidate formless sym i =
+  formless.modifyValidate (Tuple Nothing (wrap (inj sym (wrap (const i)))))
 
 -- | Modify the input value of a form field at the specified label, also triggering
 -- | validation to run on the field, with the provided function.
@@ -91,15 +96,16 @@ setValidate sym i =
 -- | [ HE.onChange \_ -> Just $ F.modifyValidate _enabled not ]
 -- | ```
 modifyValidate
-  :: forall form v sym inputs r e i o
+  :: forall form m sym inputs r e i o
    . IsSymbol sym
   => Newtype (form Variant InputFunction) (Variant inputs)
   => Row.Cons sym (InputFunction e i o) r inputs
-  => SProxy sym
+  => FormlessReturn form m
+  -> SProxy sym
   -> (i -> i)
-  -> Variant (modifyValidate :: Tuple (Maybe Milliseconds) (form Variant InputFunction) | v)
-modifyValidate sym f =
-  inj (SProxy :: _ "modifyValidate") (Tuple Nothing (wrap (inj sym (wrap f))))
+  -> HookM m Unit
+modifyValidate formless sym f =
+  formless.modifyValidate (Tuple Nothing (wrap (inj sym (wrap f))))
 
 -- | Set the input value of a form field at the specified label, while debouncing
 -- | validation so that it only runs after the specified amount of time has elapsed
@@ -110,16 +116,17 @@ modifyValidate sym f =
 -- | [ HE.onValueInput $ Just <<< F.asncSetValidate (Milliseconds 300.0) _name ]
 -- | ```
 asyncSetValidate
-  :: forall form v sym inputs r e i o
+  :: forall form m sym inputs r e i o
    . IsSymbol sym
   => Newtype (form Variant InputFunction) (Variant inputs)
   => Row.Cons sym (InputFunction e i o) r inputs
-  => Milliseconds
+  => FormlessReturn form m
+  -> Milliseconds
   -> SProxy sym
   -> i
-  -> Variant (modifyValidate :: Tuple (Maybe Milliseconds) (form Variant InputFunction) | v)
-asyncSetValidate ms sym i =
-  inj (SProxy :: _ "modifyValidate") (Tuple (Just ms) (wrap (inj sym (wrap (const i)))))
+  -> HookM m Unit
+asyncSetValidate formless ms sym i =
+  formless.modifyValidate (Tuple (Just ms) (wrap (inj sym (wrap (const i)))))
 
 -- | Modify the input value of a form field at the specified label, while debouncing
 -- | validation so that it only runs after the specified amount of time has elapsed
@@ -130,16 +137,17 @@ asyncSetValidate ms sym i =
 -- | [ HE.onChange \_ -> Just $ F.asncModifyValidate (Milliseconds 300.0) _enabled not ]
 -- | ```
 asyncModifyValidate
-  :: forall form v sym inputs r e i o
+  :: forall form m sym inputs r e i o
    . IsSymbol sym
   => Newtype (form Variant InputFunction) (Variant inputs)
   => Row.Cons sym (InputFunction e i o) r inputs
-  => Milliseconds
+  => FormlessReturn form m
+  -> Milliseconds
   -> SProxy sym
   -> (i -> i)
-  -> Variant (modifyValidate :: Tuple (Maybe Milliseconds) (form Variant InputFunction) | v)
-asyncModifyValidate ms s f =
-  inj (SProxy :: _ "modifyValidate") (Tuple (Just ms) (wrap (inj s (wrap f))))
+  -> HookM m Unit
+asyncModifyValidate formless ms s f =
+  formless.modifyValidate (Tuple (Just ms) (wrap (inj s (wrap f))))
 
 -- | Reset the value of the specified form field to its default value
 -- | according to the `Initial` type class.
@@ -148,15 +156,16 @@ asyncModifyValidate ms s f =
 -- | [ HE.onClick \_ -> Just $ F.reset _name ]
 -- | ```
 reset
-  :: forall form v sym inputs r e i o
+  :: forall form m sym inputs r e i o
    . IsSymbol sym
   => Initial i
   => Newtype (form Variant InputFunction) (Variant inputs)
   => Row.Cons sym (InputFunction e i o) r inputs
-  => SProxy sym
-  -> Variant (reset :: form Variant InputFunction | v)
-reset sym =
-  inj (SProxy :: _ "reset") (wrap (inj sym (wrap (const initial))))
+  => FormlessReturn form m
+  -> SProxy sym
+  -> HookM m Unit
+reset formless sym =
+  formless.reset (wrap (inj sym (wrap (const initial))))
 
 -- | Provide a record of input fields to overwrite all current
 -- | inputs. Unlike `loadForm`, this does not otherwise reset
@@ -171,13 +180,14 @@ reset sym =
 -- | ]
 -- | ```
 setAll
-  :: forall form v is is'
+  :: forall form m is is'
    . Newtype (form Record InputField) { | is' }
   => HM.HMap WrapField { | is } { | is' }
-  => { | is }
-  -> Variant (setAll :: Tuple (form Record InputField) Boolean | v)
-setAll is =
-  inj (SProxy :: _ "setAll") (Tuple (wrapInputFields is) false)
+  => FormlessReturn form m
+  -> { | is }
+  -> HookM m Unit
+setAll formless is =
+  formless.setAll (Tuple (wrapInputFields is) false)
 
 -- | Provide a record of input functions to modify all current
 -- | inputs. Similar to calling `modify` on every field in the form.
@@ -191,22 +201,24 @@ setAll is =
 -- | ]
 -- | ```
 modifyAll
-  :: forall form v ifs' ifs
+  :: forall form m ifs' ifs
    . Newtype (form Record InputFunction) { | ifs' }
   => HM.HMap WrapField { | ifs } { | ifs' }
-  => { | ifs }
-  -> Variant (modifyAll :: Tuple (form Record InputFunction) Boolean | v)
-modifyAll fs =
-  inj (SProxy :: _ "modifyAll") (Tuple (wrapInputFunctions fs) false)
+  => FormlessReturn form m
+  -> { | ifs }
+  -> HookM m Unit
+modifyAll formless fs =
+  formless.modifyAll (Tuple (wrapInputFunctions fs) false)
 
+-- TODO: Port docs elsewhere and remove this unused function
 -- | Validate all fields in the form, collecting errors
 -- |
 -- | ```purescript
 -- | [ HE.onClick \_ -> Just F.validateAll ]
 -- | ```
-validateAll :: forall v. Variant (validateAll :: Unit | v)
-validateAll =
-  inj (SProxy :: _ "validateAll") unit
+-- validateAll :: forall v. Variant (validateAll :: Unit | v)
+-- validateAll =
+--   inj (SProxy :: _ "validateAll") unit
 
 -- | Provide a record of inputs to overwrite all current inputs without
 -- | resetting the form (as `loadForm` does), and then validate the
@@ -221,13 +233,14 @@ validateAll =
 -- | ]
 -- | ```
 setValidateAll
-  :: forall form v is' is
+  :: forall form m is' is
    . Newtype (form Record InputField) { | is' }
   => HM.HMap WrapField { | is } { | is' }
-  => { | is }
-  -> Variant (setAll :: Tuple (form Record InputField) Boolean | v)
-setValidateAll is =
-  inj (SProxy :: _ "setAll") (Tuple (wrapInputFields is) true)
+  => FormlessReturn form m
+  -> { | is }
+  -> HookM m Unit
+setValidateAll formless is =
+  formless.setAll (Tuple (wrapInputFields is) true)
 
 -- | Provide a record of input functions to modify all current
 -- | inputs, and then validate all fields.  Similar to calling
@@ -241,34 +254,38 @@ setValidateAll is =
 -- | ]
 -- | ```
 modifyValidateAll
-  :: forall form v ifs' ifs
+  :: forall form m ifs' ifs
    . Newtype (form Record InputFunction) { | ifs' }
   => HM.HMap WrapField { | ifs } { | ifs' }
-  => { | ifs }
-  -> Variant (modifyAll :: Tuple (form Record InputFunction) Boolean | v)
-modifyValidateAll ifs =
-  inj (SProxy :: _ "modifyAll") (Tuple (wrapInputFunctions ifs) true)
+  => FormlessReturn form m
+  -> { | ifs }
+  -> HookM m Unit
+modifyValidateAll formless ifs =
+  formless.modifyAll (Tuple (wrapInputFunctions ifs) true)
 
+-- TODO: port docs and remove unused function
 -- | Reset all fields to their initial values, and reset the form
 -- | to its initial pristine state, no touched fields.
 -- |
 -- | ```purescript
 -- | [ HE.onClick \_ -> Just F.resetAll ]
 -- | ```
-resetAll :: forall v. Variant (resetAll :: Unit | v)
-resetAll =
-  inj (SProxy :: _ "resetAll") unit
+-- resetAll :: forall v. Variant (resetAll :: Unit | v)
+-- resetAll =
+--   inj (SProxy :: _ "resetAll") unit
 
+-- TODO: port docs and remove unused function
 -- | Submit the form, which will trigger a `Submitted` result if the
 -- | form validates successfully.
 -- |
 -- | ```purescript
 -- | [ HE.onClick \_ -> Just F.submit ]
 -- | ```
-submit :: forall v. Variant (submit :: Unit | v)
-submit =
-  inj (SProxy :: _ "submit") unit
+-- submit :: forall v. Variant (submit :: Unit | v)
+-- submit =
+--   inj (SProxy :: _ "submit") unit
 
+-- TODO: port docs and remove unused function
 -- | Load a form from a set of existing inputs. Useful for when you need to mount
 -- | Formless, perform some other actions like request data from the server, and
 -- | then load an existing set of inputs.
@@ -280,8 +297,8 @@ submit =
 -- |     }
 -- | ]
 -- | ```
-loadForm
-  :: forall form v
-   . form Record InputField
-  -> Variant (loadForm :: form Record InputField | v)
-loadForm = inj (SProxy :: _ "loadForm")
+-- loadForm
+--   :: forall form v
+--    . form Record InputField
+--   -> Variant (loadForm :: form Record InputField | v)
+-- loadForm = inj (SProxy :: _ "loadForm")
