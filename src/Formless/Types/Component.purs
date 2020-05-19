@@ -98,7 +98,7 @@ type FormlessState form =
   , form :: form Record FormField
   }
 
-type InternalState' form =
+type InternalState form =
   { allTouched :: Boolean
   -- , validationRef - use ref; outer Maybe only used for initial Ref value
   --                   due to NOT using `unsafePerformEffect $ liftEffect Ref.new`
@@ -109,7 +109,7 @@ type InternalState' form =
 
 newtype UseFormless form hooks = UseFormless
   (UseRef (Maybe H.ForkId)
-  (UseState (InternalState' form)
+  (UseState (InternalState form)
   (UseState (FormlessState form)
   hooks)))
 
