@@ -4,20 +4,25 @@ import Prelude
 
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Data.Symbol (SProxy(..))
 import Data.Tuple (Tuple)
+import Data.Tuple.Nested ((/\))
 import Data.Variant (Variant)
 import Effect.Aff (Fiber, Milliseconds)
 import Effect.Aff.AVar (AVar)
 import Effect.Ref (Ref)
-import Formless.Types.Form (FormField, InputField, InputFunction, OutputField, U)
+import Formless.Internal.Transform (class InputFieldsToFormFields)
+import Formless.Internal.Transform as IT
+import Formless.Transform.Row (class MakeInputFieldsFromRow, mkInputFields)
+import Formless.Types.Form (FormField, FormProxy(..), InputField, InputFunction, OutputField, U)
 import Formless.Validation (Validation)
 import Halogen as H
 import Halogen.Hooks (Hook, UseState, useState)
 import Halogen.Hooks as Hooks
 import Halogen.Query.HalogenM (ForkId)
+import Prim.RowList as RL
 import Type.Row (type (+))
 
 -- | The component action type. While actions are typically considered
@@ -140,21 +145,44 @@ type FormlessInput form m = Input form () m
 
 type FormlessState form = { | StateRow form () }
 
-newtype UseFormless hooks = UseFormless (UseState Unit hooks)
+newtype UseFormless form hooks = UseFormless (UseState (FormlessState form) hooks)
 
-derive instance newtypeUseFormless :: Newtype (UseFormless hooks) _
+derive instance newtypeUseFormless :: Newtype (UseFormless form hooks) _
 
 useFormless
-  :: forall form m
+  :: forall form m is fs ixs
    . Monad m
-  => FormlessInput form m
-  -> Hook m UseFormless Unit
-useFormless inputRec = Hooks.wrap Hooks.do
-  _ <- useState unit
-  -- state /\ stateId <- useState {- FormlessState args -}
-  -- internal /\ internalId <- useState {- InternalState arg -}
+  => Newtype (form Record InputField) { | is }
+  => Newtype (form Record FormField) { | fs }
 
-  Hooks.pure unit
+  => MakeInputFieldsFromRow ixs is is
+  => IT.InputFieldsToFormFields ixs is fs
+  => RL.RowToList is ixs
+  => RL.RowToList fs ixs
+  => FormlessInput form m
+  -> Hook m (UseFormless form) Unit
+useFormless inputRec =
+  let
+    initialInputs :: form Record InputField
+    initialInputs = case inputRec.initialInputs of
+      Nothing -> mkInputFields (FormProxy :: FormProxy form)
+      Just inputs -> inputs
+
+    initialForm :: form Record FormField
+    initialForm = IT.inputFieldsToFormFields initialInputs
+
+  in Hooks.wrap Hooks.do
+    public /\ publicId <- useState
+      { validity: Incomplete
+      , dirty: false
+      , errors: 0
+      , submitAttempts: 0
+      , submitting: false
+      , form: IT.inputFieldsToFormFields initialInputs
+      }
+    -- internal /\ internalId <- useState {- InternalState arg -}
+
+    Hooks.pure unit
   -- where
   --   modify :: form Variant InputFunction
   --   modify
