@@ -2,10 +2,11 @@ module Formless.Types.Component where
 
 import Prelude
 
+import Data.Eq (class EqRecord)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..))
-import Data.Newtype (class Newtype)
+import Data.Newtype (class Newtype, unwrap)
 import Data.Symbol (SProxy(..))
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
@@ -17,11 +18,10 @@ import Formless.Transform.Row (class MakeInputFieldsFromRow, mkInputFields)
 import Formless.Types.Form (FormField, FormProxy(..), InputField, InputFunction, OutputField, U)
 import Formless.Validation (Validation)
 import Halogen as H
-import Halogen.Hooks (Hook, HookM, UseRef, UseState, useRef, useState)
+import Halogen.Hooks (Hook, HookM, StateId, UseRef, UseState, useRef, useState)
 import Halogen.Hooks as Hooks
 import Halogen.Query.HalogenM (ForkId)
 import Prim.RowList as RL
-import Type.Row (type (+))
 
 -- | The component action type. While actions are typically considered
 -- | internal to a component, in Formless you write the render function and will
@@ -32,8 +32,7 @@ import Type.Row (type (+))
 -- | You can freely extend this type with your own actions using `injAction`.
 type Action form act = Variant
   ( userAction :: act
-  | InternalAction act
-  + PublicAction form
+  | PublicAction form
   )
 
 type PublicAction form =
@@ -47,11 +46,6 @@ type PublicAction form =
   , resetAll :: Unit
   , submit :: Unit
   , loadForm :: form Record InputField
-  )
-
-type InternalAction act r =
-  ( syncFormData :: Unit
-  | r
   )
 
 -- | A type to represent a running debouncer
@@ -157,13 +151,13 @@ useFormless inputRec =
       , errors: 0
       , submitAttempts: 0
       , submitting: false
-      , form: IT.inputFieldsToFormFields initialInputs
+      , form: initialForm
       }
     allTouched /\ allTouchedId <- useState false
     _ /\ validationRef <- useRef Nothing
 
     Hooks.pure unit
-  -- where
+  where
   --   modify :: form Variant InputFunction
   --   modify
   --
@@ -193,3 +187,55 @@ useFormless inputRec =
   --
   --   loadForm :: form Record InputField
   --   loadForm
+  --
+    syncFormData
+      :: Newtype (form Record FormField) { | fs }
+      => Newtype (form Record InputField) { | is }
+      => RL.RowToList fs ixs
+      => IT.FormFieldsToInputFields ixs fs is
+      => IT.CountErrors ixs fs
+      => EqRecord ixs is
+      => IT.AllTouched ixs fs
+      => form Record InputField
+      -> StateId Boolean
+      -> StateId (FormlessState form)
+      -> HookM m Unit
+    syncFormData initialInputs allTouchedId publicId = do
+      st <- Hooks.get publicId
+      allTouched <- Hooks.get allTouchedId
+      let
+        errors = IT.countErrors st.form
+        dirty = not $ eq
+          (unwrap (IT.formFieldsToInputFields st.form))
+          (unwrap initialInputs)
+
+      -- Need to verify the validity status of the form.
+      newState <- case allTouched of
+        true -> Hooks.modify publicId \rec -> rec
+          { validity = if errors == 0 then Valid else Invalid
+          , errors = errors
+          , dirty = dirty
+          }
+
+        -- If not all fields are touched, then we need to quickly sync the form state
+        -- to verify this is actually the case.
+        _ -> case IT.allTouched st.form of
+
+          -- The sync revealed all fields really have been touched
+          true -> do
+            Hooks.put allTouchedId true
+            Hooks.modify publicId \rec -> rec
+              { validity = if errors == 0 then Valid else Invalid
+              , errors = errors
+              , dirty = dirty
+              }
+
+          -- The sync revealed that not all fields have been touched
+          _ -> do
+            Hooks.modify publicId \rec -> rec
+              { validity = Incomplete
+              , errors = errors
+              , dirty = dirty
+              }
+
+      inputRec.pushChange newState
