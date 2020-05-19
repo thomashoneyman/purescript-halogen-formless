@@ -437,9 +437,26 @@ useFormless inputRec =
         traverse_ inputRec.pushSubmitted case st'.validity of
           Valid -> IT.formFieldsToMaybeOutputFields st'.form
           _ -> Nothing
+
+      loadForm
+        :: forall is'
+         . Newtype (form Record InputField) { | is' }
+        => ReplaceFormFieldInputs is ixs fs fs
+        => form Record InputField
+        -> HookM m Unit
+      loadForm formInputs = do
+        -- TODO: initialInputs needs to be stored inside of internal state
+        -- let setFields rec = rec { allTouched = false, initialInputs = formInputs }
+        new <- Hooks.modify publicId \st -> st
+          { validity = Incomplete
+          , dirty = false
+          , errors = 0
+          , submitAttempts = 0
+          , submitting = false
+          , form = IT.replaceFormFieldInputs formInputs st.form
+          -- , internal = over InternalState setFields st.internal
+          }
+        Hooks.put allTouchedId false
+        inputRec.pushChange new
+
     Hooks.pure unit
-  -- where
-  --
-  --   loadForm :: form Record InputField
-  --   loadForm
-  --
