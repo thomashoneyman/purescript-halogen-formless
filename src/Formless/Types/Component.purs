@@ -3,6 +3,7 @@ module Formless.Types.Component where
 import Prelude
 
 import Data.Eq (class EqRecord)
+import Data.Foldable (traverse_)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..))
@@ -396,16 +397,48 @@ useFormless inputRec =
         Hooks.put allTouchedId false
         inputRec.pushChange new
 
+      submit
+        :: forall vs os
+         . IT.AllTouched ixs fs
+        => IT.SetFormFieldsTouched ixs fs fs
+        => IT.ValidateAll vs ixs fs fs m
+        => IT.FormFieldToMaybeOutput ixs fs os
+        => Newtype (form Record OutputField) { | os }
+        => Newtype (form Record (Validation form m)) { | vs }
+        => Newtype (form Record FormField) { | fs }
+        => Newtype (form Record InputField) { | is }
+        => RL.RowToList fs ixs
+        => IT.FormFieldsToInputFields ixs fs is
+        => IT.CountErrors ixs fs
+        => EqRecord ixs is
+        => IT.AllTouched ixs fs
+        => HookM m Unit
+      submit = do
+        -- preSubmit
+        init <- Hooks.modify publicId \st -> st
+          { submitAttempts = st.submitAttempts + 1
+          , submitting = true
+          }
+
+        -- For performance purposes, avoid running this if possible
+        allTouched' <- Hooks.get allTouchedId
+        when (not allTouched') do
+          Hooks.modify_ publicId
+            (_ { form = IT.setFormFieldsTouched init.form })
+          Hooks.put allTouchedId true
+
+        -- validateAll
+        _ <- validateAll
+
+        -- submit
+        st' <- Hooks.get publicId
+        Hooks.modify_ publicId _ { submitting = false }
+
+        traverse_ inputRec.pushSubmitted case st'.validity of
+          Valid -> IT.formFieldsToMaybeOutputFields st'.form
+          _ -> Nothing
     Hooks.pure unit
   -- where
-  --
-  --
-  --
-  --
-  --
-  --
-  --   submit :: Unit
-  --   submit
   --
   --   loadForm :: form Record InputField
   --   loadForm
