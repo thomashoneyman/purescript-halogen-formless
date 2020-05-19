@@ -379,6 +379,23 @@ useFormless inputRec =
         Hooks.modify_ publicId (_ { form = form })
         syncFormData
 
+      resetAll
+        :: ReplaceFormFieldInputs is ixs fs fs
+        => Newtype (form Record InputField) { | is }
+        => Newtype (form Record FormField) { | fs }
+        => HookM m Unit
+      resetAll = do
+        new <- Hooks.modify publicId \st -> st
+          { validity = Incomplete
+          , dirty = false
+          , errors = 0
+          , submitAttempts = 0
+          , submitting = false
+          , form = IT.replaceFormFieldInputs initialInputs st.form
+          }
+        Hooks.put allTouchedId false
+        inputRec.pushChange new
+
     Hooks.pure unit
   -- where
   --
@@ -386,8 +403,6 @@ useFormless inputRec =
   --
   --
   --
-  --   resetAll :: Unit
-  --   resetAll
   --
   --   submit :: Unit
   --   submit
