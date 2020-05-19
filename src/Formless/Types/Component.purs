@@ -14,7 +14,6 @@ import Data.Tuple.Nested ((/\))
 import Data.Variant (Variant)
 import Effect.Aff (Fiber, Milliseconds)
 import Effect.Aff.AVar (AVar)
-import Formless.Class.Initial (class Initial)
 import Formless.Data.FormFieldResult (FormFieldResult)
 import Formless.Internal.Transform as IT
 import Formless.Transform.Row (class MakeInputFieldsFromRow, mkInputFields)
@@ -117,7 +116,7 @@ derive instance newtypeUseFormless :: Newtype (UseFormless form hooks) _
 useFormless
   :: forall form m inputFields formFields
             inputFieldsRowList variantInputFunction variantUnit validationFields
-            outputFields inputFunctionFields initialValues
+            outputFields inputFunctionFields
    . Monad m
   => Newtype (form Record InputField) { | inputFields }
   => Newtype (form Record FormField) { | formFields }
@@ -128,7 +127,6 @@ useFormless
   => Newtype (form Variant U) (Variant variantUnit)
   => RL.RowToList inputFields inputFieldsRowList
   => RL.RowToList formFields inputFieldsRowList
-  => Initial initialValues
   => EqRecord inputFieldsRowList inputFields
   => MakeInputFieldsFromRow inputFieldsRowList inputFields inputFields
   => IT.ModifyAll inputFunctionFields inputFieldsRowList formFields formFields
