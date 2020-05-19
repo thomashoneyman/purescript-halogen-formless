@@ -314,11 +314,13 @@ useFormless inputRec =
         syncFormData
 
       setAll
-        :: forall is'
+        :: forall is' vs
          . Newtype (form Record InputField) { | is' }
         -- => HM.HMap WrapField { | is } { | is' }
         => ReplaceFormFieldInputs is ixs fs fs
         => Newtype (form Record InputField) { | is }
+        => IT.ValidateAll vs ixs fs fs m
+        => Newtype (form Record (Validation form m)) { | vs }
         => Newtype (form Record FormField) { | fs }
         => Newtype (form Record InputField) { | is }
         => RL.RowToList fs ixs
@@ -333,14 +335,15 @@ useFormless inputRec =
           { form = IT.replaceFormFieldInputs formInputs st.form }
         inputRec.pushChange new
         case shouldValidate of
-          -- TODO: uncomment this line, so that validateAll is used
-          -- true -> handleAction handleAction' handleEvent FA.validateAll
+          true -> validateAll
           _ -> syncFormData
 
       modifyAll
-        :: forall ifs
+        :: forall ifs vs
          . ModifyAll ifs ixs fs fs
         => Newtype (form Record InputFunction) { | ifs }
+        => IT.ValidateAll vs ixs fs fs m
+        => Newtype (form Record (Validation form m)) { | vs }
         => Newtype (form Record FormField) { | fs }
         => Newtype (form Record InputField) { | is }
         => RL.RowToList fs ixs
@@ -355,8 +358,7 @@ useFormless inputRec =
             { form = IT.modifyAll formInputs st.form }
           inputRec.pushChange new
           case shouldValidate of
-            -- TODO: uncomment this line, so that validateAll is used
-            -- true -> handleAction handleAction' handleEvent FA.validateAll
+            true -> validateAll
             _ -> syncFormData
 
       validateAll
