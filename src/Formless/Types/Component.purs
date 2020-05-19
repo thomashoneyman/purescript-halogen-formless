@@ -76,7 +76,7 @@ instance showValidStatus :: Show ValidStatus where
 -- | The component tries to require as few messages to be handled as possible. You
 -- | can always use the *Reply variants of queries to perform actions and receive
 -- | a result out the other end, or extend these messages.
-data Event form st
+data FormlessEvent form
   = Submitted (form Record OutputField)
   | Changed (FormlessState form)
 
