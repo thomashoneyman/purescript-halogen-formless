@@ -8,11 +8,12 @@ import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
 import Data.Symbol (SProxy(..))
-import Data.Tuple (Tuple)
+import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
 import Data.Variant (Variant)
 import Effect.Aff (Fiber, Milliseconds)
 import Effect.Aff.AVar (AVar)
+import Formless.Data.FormFieldResult (FormFieldResult)
 import Formless.Internal.Transform as IT
 import Formless.Transform.Row (class MakeInputFieldsFromRow, mkInputFields)
 import Formless.Types.Form (FormField, FormProxy(..), InputField, InputFunction, OutputField, U)
@@ -22,6 +23,7 @@ import Halogen.Hooks (Hook, HookM, UseRef, UseState, useRef, useState)
 import Halogen.Hooks as Hooks
 import Halogen.Query.HalogenM (ForkId)
 import Prim.RowList as RL
+import Unsafe.Coerce (unsafeCoerce)
 
 -- | The component action type. While actions are typically considered
 -- | internal to a component, in Formless you write the render function and will
@@ -244,10 +246,55 @@ useFormless inputRec =
         Hooks.modify_ publicId (_ { form = formProcessor st'.form })
         syncFormData
 
+      modifyValidate
+        :: forall inputs us vs
+         . Newtype (form Variant InputFunction) (Variant inputs)
+        => Newtype (form Variant U) (Variant us)
+        => Newtype (form Record (Validation form m)) { | vs }
+        => Newtype (form Record FormField) { | fs }
+        => Newtype (form Record InputField) { | is }
+        => RL.RowToList fs ixs
+        => IT.FormFieldsToInputFields ixs fs is
+        => IT.CountErrors ixs fs
+        => EqRecord ixs is
+        => IT.AllTouched ixs fs
+        => Tuple (Maybe Milliseconds) (form Variant InputFunction)
+        -> HookM m Unit
+      modifyValidate (Tuple milliseconds variant) = do
+        let
+          modifyWith
+            :: (forall e o. FormFieldResult e o -> FormFieldResult e o)
+            -> HookM m (form Record FormField)
+          modifyWith f = do
+            st <- Hooks.modify publicId \s -> s
+              { form = IT.unsafeModifyInputVariant f variant s.form }
+            pure st.form
+
+          runValidate = do
+            st <- Hooks.get publicId
+            let vs = inputRec.validators
+            formProcessor <- H.lift do
+              IT.unsafeRunValidationVariant (unsafeCoerce variant) vs st.form
+            st' <- Hooks.get publicId
+            let newForm = formProcessor st'.form
+            Hooks.modify_ publicId (_ { form = newForm })
+            pure newForm
+
+        case milliseconds of
+          Nothing ->
+            modifyWith identity *> runValidate *> syncFormData
+          Just ms ->
+            syncFormData
+            -- TODO: use debouncer hook to handle this
+            -- debounceForm
+            --   ms
+            --   (modifyWith identity)
+            --   (modifyWith (const Validating) *> validate)
+            --   (syncFormData)
+
+
     Hooks.pure unit
   -- where
-  --   modifyValidate :: Tuple (Maybe Milliseconds) (form Variant InputFunction)
-  --   modifyValidate
   --
   --   reset :: form Variant InputFunction
   --   reset
