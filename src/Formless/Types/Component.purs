@@ -16,7 +16,6 @@ import Effect.Aff (Fiber, Milliseconds)
 import Effect.Aff.AVar (AVar)
 import Formless.Class.Initial (class Initial)
 import Formless.Data.FormFieldResult (FormFieldResult)
-import Formless.Internal.Transform (class ModifyAll, class ReplaceFormFieldInputs)
 import Formless.Internal.Transform as IT
 import Formless.Transform.Row (class MakeInputFieldsFromRow, mkInputFields)
 import Formless.Types.Form (FormField, FormProxy(..), InputField, InputFunction, OutputField, U)
@@ -116,18 +115,31 @@ newtype UseFormless form hooks = UseFormless
 derive instance newtypeUseFormless :: Newtype (UseFormless form hooks) _
 
 useFormless
-  :: forall form m inputFields formFields inputFieldsRowList variantInputFunction variantUnit validationFields
+  :: forall form m inputFields formFields
+            inputFieldsRowList variantInputFunction variantUnit validationFields
+            outputFields inputFunctionFields initialValues
    . Monad m
   => Newtype (form Record InputField) { | inputFields }
   => Newtype (form Record FormField) { | formFields }
+  => Newtype (form Record InputFunction) { | inputFunctionFields }
+  => Newtype (form Record (Validation form m)) { | validationFields }
+  => Newtype (form Record OutputField) { | outputFields }
   => Newtype (form Variant InputFunction) (Variant variantInputFunction)
   => Newtype (form Variant U) (Variant variantUnit)
-  => Newtype (form Record (Validation form m)) { | validationFields }
-
-  => MakeInputFieldsFromRow inputFieldsRowList inputFields inputFields
-  => IT.InputFieldsToFormFields inputFieldsRowList inputFields formFields
   => RL.RowToList inputFields inputFieldsRowList
   => RL.RowToList formFields inputFieldsRowList
+  => Initial initialValues
+  => EqRecord inputFieldsRowList inputFields
+  => MakeInputFieldsFromRow inputFieldsRowList inputFields inputFields
+  => IT.ModifyAll inputFunctionFields inputFieldsRowList formFields formFields
+  => IT.FormFieldsToInputFields inputFieldsRowList formFields inputFields
+  => IT.CountErrors inputFieldsRowList formFields
+  => IT.AllTouched inputFieldsRowList formFields
+  => IT.InputFieldsToFormFields inputFieldsRowList inputFields formFields
+  => IT.SetFormFieldsTouched inputFieldsRowList formFields formFields
+  => IT.ValidateAll validationFields inputFieldsRowList formFields formFields m
+  => IT.FormFieldToMaybeOutput inputFieldsRowList formFields outputFields
+  => IT.ReplaceFormFieldInputs inputFields inputFieldsRowList formFields formFields
   => FormlessInput form m
   -> Hook m (UseFormless form) Unit
 useFormless inputRec =
@@ -156,15 +168,7 @@ useFormless inputRec =
     _ /\ validationRef <- useRef Nothing
 
     let
-      syncFormData
-        :: Newtype (form Record FormField) { | formFields }
-        => Newtype (form Record InputField) { | inputFields }
-        => RL.RowToList formFields inputFieldsRowList
-        => IT.FormFieldsToInputFields inputFieldsRowList formFields inputFields
-        => IT.CountErrors inputFieldsRowList formFields
-        => EqRecord inputFieldsRowList inputFields
-        => IT.AllTouched inputFieldsRowList formFields
-        => HookM m Unit
+      syncFormData :: HookM m Unit
       syncFormData = do
         st' <- Hooks.get publicId
         internal' <- Hooks.get internalId
@@ -205,34 +209,13 @@ useFormless inputRec =
 
         inputRec.pushChange newState
 
-      modify
-        :: Newtype (form Variant InputFunction) (Variant variantInputFunction)
-        => Newtype (form Record FormField) { | formFields }
-        => Newtype (form Record InputField) { | inputFields }
-        => RL.RowToList formFields inputFieldsRowList
-        => IT.FormFieldsToInputFields inputFieldsRowList formFields inputFields
-        => IT.CountErrors inputFieldsRowList formFields
-        => EqRecord inputFieldsRowList inputFields
-        => IT.AllTouched inputFieldsRowList formFields
-        => form Variant InputFunction
-        -> HookM m Unit
+      modify :: form Variant InputFunction -> HookM m Unit
       modify variant = do
         Hooks.modify_ publicId \st -> st
           { form = IT.unsafeModifyInputVariant identity variant st.form }
         syncFormData
 
-      validate
-        :: Newtype (form Variant U) (Variant variantUnit)
-        => Newtype (form Record FormField) { | formFields }
-        => Newtype (form Record (Validation form m)) { | validationFields }
-        => Newtype (form Record InputField) { | inputFields }
-        => RL.RowToList formFields inputFieldsRowList
-        => IT.FormFieldsToInputFields inputFieldsRowList formFields inputFields
-        => IT.CountErrors inputFieldsRowList formFields
-        => EqRecord inputFieldsRowList inputFields
-        => IT.AllTouched inputFieldsRowList formFields
-        => form Variant U
-        -> HookM m Unit
+      validate :: form Variant U -> HookM m Unit
       validate variant = do
         st <- Hooks.get publicId
         formProcessor <- H.lift do
@@ -242,17 +225,7 @@ useFormless inputRec =
         syncFormData
 
       modifyValidate
-        :: Newtype (form Variant InputFunction) (Variant variantInputFunction)
-        => Newtype (form Variant U) (Variant variantUnit)
-        => Newtype (form Record (Validation form m)) { | validationFields }
-        => Newtype (form Record FormField) { | formFields }
-        => Newtype (form Record InputField) { | inputFields }
-        => RL.RowToList formFields inputFieldsRowList
-        => IT.FormFieldsToInputFields inputFieldsRowList formFields inputFields
-        => IT.CountErrors inputFieldsRowList formFields
-        => EqRecord inputFieldsRowList inputFields
-        => IT.AllTouched inputFieldsRowList formFields
-        => Tuple (Maybe Milliseconds) (form Variant InputFunction)
+        :: Tuple (Maybe Milliseconds) (form Variant InputFunction)
         -> HookM m Unit
       modifyValidate (Tuple milliseconds variant) = do
         let
@@ -286,39 +259,14 @@ useFormless inputRec =
             --   (modifyWith (const Validating) *> validate)
             --   (syncFormData)
 
-      reset
-        :: forall i
-         . Initial i
-        => Newtype (form Variant InputFunction) (Variant variantInputFunction)
-        => Newtype (form Record FormField) { | formFields }
-        => Newtype (form Record InputField) { | inputFields }
-        => RL.RowToList formFields inputFieldsRowList
-        => IT.FormFieldsToInputFields inputFieldsRowList formFields inputFields
-        => IT.CountErrors inputFieldsRowList formFields
-        => EqRecord inputFieldsRowList inputFields
-        => IT.AllTouched inputFieldsRowList formFields
-        => form Variant InputFunction
-        -> HookM m Unit
+      reset :: form Variant InputFunction -> HookM m Unit
       reset variant = do
         Hooks.modify_ publicId \st -> st
           { form = IT.unsafeModifyInputVariant identity variant st.form }
         Hooks.modify_ internalId (_ { allTouched = false })
         syncFormData
 
-      setAll
-        :: ReplaceFormFieldInputs inputFields inputFieldsRowList formFields formFields
-        => Newtype (form Record InputField) { | inputFields }
-        => IT.ValidateAll validationFields inputFieldsRowList formFields formFields m
-        => Newtype (form Record (Validation form m)) { | validationFields }
-        => Newtype (form Record FormField) { | formFields }
-        => Newtype (form Record InputField) { | inputFields }
-        => RL.RowToList formFields inputFieldsRowList
-        => IT.FormFieldsToInputFields inputFieldsRowList formFields inputFields
-        => IT.CountErrors inputFieldsRowList formFields
-        => EqRecord inputFieldsRowList inputFields
-        => IT.AllTouched inputFieldsRowList formFields
-        => Tuple (form Record InputField) Boolean
-        -> HookM m Unit
+      setAll :: Tuple (form Record InputField) Boolean -> HookM m Unit
       setAll (Tuple formInputs shouldValidate) = do
         new <- Hooks.modify publicId \st -> st
           { form = IT.replaceFormFieldInputs formInputs st.form }
@@ -327,21 +275,7 @@ useFormless inputRec =
           true -> validateAll
           _ -> syncFormData
 
-      modifyAll
-        :: forall inputFunctionFields
-         . ModifyAll inputFunctionFields inputFieldsRowList formFields formFields
-        => Newtype (form Record InputFunction) { | inputFunctionFields }
-        => IT.ValidateAll validationFields inputFieldsRowList formFields formFields m
-        => Newtype (form Record (Validation form m)) { | validationFields }
-        => Newtype (form Record FormField) { | formFields }
-        => Newtype (form Record InputField) { | inputFields }
-        => RL.RowToList formFields inputFieldsRowList
-        => IT.FormFieldsToInputFields inputFieldsRowList formFields inputFields
-        => IT.CountErrors inputFieldsRowList formFields
-        => EqRecord inputFieldsRowList inputFields
-        => IT.AllTouched inputFieldsRowList formFields
-        => Tuple (form Record InputFunction) Boolean
-        -> HookM m Unit
+      modifyAll :: Tuple (form Record InputFunction) Boolean -> HookM m Unit
       modifyAll (Tuple formInputs shouldValidate) = do
           new <- Hooks.modify publicId \st -> st
             { form = IT.modifyAll formInputs st.form }
@@ -350,28 +284,14 @@ useFormless inputRec =
             true -> validateAll
             _ -> syncFormData
 
-      validateAll
-        :: IT.ValidateAll validationFields inputFieldsRowList formFields formFields m
-        => Newtype (form Record (Validation form m)) { | validationFields }
-        => Newtype (form Record FormField) { | formFields }
-        => Newtype (form Record InputField) { | inputFields }
-        => RL.RowToList formFields inputFieldsRowList
-        => IT.FormFieldsToInputFields inputFieldsRowList formFields inputFields
-        => IT.CountErrors inputFieldsRowList formFields
-        => EqRecord inputFieldsRowList inputFields
-        => IT.AllTouched inputFieldsRowList formFields
-        => HookM m Unit
+      validateAll :: HookM m Unit
       validateAll = do
         st <- Hooks.get publicId
         form <- H.lift $ IT.validateAll inputRec.validators st.form
         Hooks.modify_ publicId (_ { form = form })
         syncFormData
 
-      resetAll
-        :: ReplaceFormFieldInputs inputFields inputFieldsRowList formFields formFields
-        => Newtype (form Record InputField) { | inputFields }
-        => Newtype (form Record FormField) { | formFields }
-        => HookM m Unit
+      resetAll :: HookM m Unit
       resetAll = do
         internal' <- Hooks.get internalId
         new <- Hooks.modify publicId \st -> st
@@ -385,22 +305,7 @@ useFormless inputRec =
         Hooks.modify_ internalId (_ { allTouched = false })
         inputRec.pushChange new
 
-      submit
-        :: forall outputFields
-         . IT.AllTouched inputFieldsRowList formFields
-        => IT.SetFormFieldsTouched inputFieldsRowList formFields formFields
-        => IT.ValidateAll validationFields inputFieldsRowList formFields formFields m
-        => IT.FormFieldToMaybeOutput inputFieldsRowList formFields outputFields
-        => Newtype (form Record OutputField) { | outputFields }
-        => Newtype (form Record (Validation form m)) { | validationFields }
-        => Newtype (form Record FormField) { | formFields }
-        => Newtype (form Record InputField) { | inputFields }
-        => RL.RowToList formFields inputFieldsRowList
-        => IT.FormFieldsToInputFields inputFieldsRowList formFields inputFields
-        => IT.CountErrors inputFieldsRowList formFields
-        => EqRecord inputFieldsRowList inputFields
-        => IT.AllTouched inputFieldsRowList formFields
-        => HookM m Unit
+      submit :: HookM m Unit
       submit = do
         -- preSubmit
         init <- Hooks.modify publicId \st -> st
@@ -426,11 +331,7 @@ useFormless inputRec =
           Valid -> IT.formFieldsToMaybeOutputFields st'.form
           _ -> Nothing
 
-      loadForm
-        :: Newtype (form Record InputField) { | inputFields }
-        => ReplaceFormFieldInputs inputFields inputFieldsRowList formFields formFields
-        => form Record InputField
-        -> HookM m Unit
+      loadForm :: form Record InputField -> HookM m Unit
       loadForm formInputs = do
         new <- Hooks.modify publicId \st -> st
           { validity = Incomplete
