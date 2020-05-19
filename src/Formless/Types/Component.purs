@@ -13,6 +13,7 @@ import Data.Tuple.Nested ((/\))
 import Data.Variant (Variant)
 import Effect.Aff (Fiber, Milliseconds)
 import Effect.Aff.AVar (AVar)
+import Formless.Class.Initial (class Initial)
 import Formless.Data.FormFieldResult (FormFieldResult)
 import Formless.Internal.Transform as IT
 import Formless.Transform.Row (class MakeInputFieldsFromRow, mkInputFields)
@@ -292,12 +293,28 @@ useFormless inputRec =
             --   (modifyWith (const Validating) *> validate)
             --   (syncFormData)
 
+      reset
+        :: forall i inputs
+         . Initial i
+        => Newtype (form Variant InputFunction) (Variant inputs)
+        => Newtype (form Record FormField) { | fs }
+        => Newtype (form Record InputField) { | is }
+        => RL.RowToList fs ixs
+        => IT.FormFieldsToInputFields ixs fs is
+        => IT.CountErrors ixs fs
+        => EqRecord ixs is
+        => IT.AllTouched ixs fs
+        => form Variant InputFunction
+        -> HookM m Unit
+      reset variant = do
+        Hooks.modify_ publicId \st -> st
+          { form = IT.unsafeModifyInputVariant identity variant st.form }
+        Hooks.put allTouchedId false
+        syncFormData
 
     Hooks.pure unit
   -- where
   --
-  --   reset :: form Variant InputFunction
-  --   reset
   --
   --   setAll :: Tuple (form Record InputField) Boolean
   --   setAll
