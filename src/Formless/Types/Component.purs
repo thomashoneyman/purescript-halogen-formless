@@ -26,17 +26,17 @@ import Halogen.Query.HalogenM (ForkId)
 import Prim.RowList as RL
 import Unsafe.Coerce (unsafeCoerce)
 
-type PublicAction form =
-  ( modify :: form Variant InputFunction
-  , validate :: form Variant U
-  , modifyValidate :: Tuple (Maybe Milliseconds) (form Variant InputFunction)
-  , reset :: form Variant InputFunction
-  , setAll :: Tuple (form Record InputField) Boolean
-  , modifyAll :: Tuple (form Record InputFunction) Boolean
-  , validateAll :: Unit
-  , resetAll :: Unit
-  , submit :: Unit
-  , loadForm :: form Record InputField
+type FormlessAction form m =
+  ( modify :: form Variant InputFunction -> HookM m Unit
+  , validate :: form Variant U -> HookM m Unit
+  , modifyValidate :: Tuple (Maybe Milliseconds) (form Variant InputFunction) -> HookM m Unit
+  , reset :: form Variant InputFunction -> HookM m Unit
+  , setAll :: Tuple (form Record InputField) Boolean -> HookM m Unit
+  , modifyAll :: Tuple (form Record InputFunction) Boolean -> HookM m Unit
+  , validateAll :: HookM m Unit
+  , resetAll :: HookM m Unit
+  , submit :: HookM m Unit
+  , loadForm :: form Record InputField -> HookM m Unit
   )
 
 -- | A type to represent a running debouncer
