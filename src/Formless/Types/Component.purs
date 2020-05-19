@@ -12,13 +12,12 @@ import Data.Tuple.Nested ((/\))
 import Data.Variant (Variant)
 import Effect.Aff (Fiber, Milliseconds)
 import Effect.Aff.AVar (AVar)
-import Effect.Ref (Ref)
 import Formless.Internal.Transform as IT
 import Formless.Transform.Row (class MakeInputFieldsFromRow, mkInputFields)
 import Formless.Types.Form (FormField, FormProxy(..), InputField, InputFunction, OutputField, U)
 import Formless.Validation (Validation)
 import Halogen as H
-import Halogen.Hooks (Hook, UseState, useState)
+import Halogen.Hooks (Hook, UseRef, UseState, useRef, useState)
 import Halogen.Hooks as Hooks
 import Halogen.Query.HalogenM (ForkId)
 import Prim.RowList as RL
@@ -112,17 +111,19 @@ type FormlessState form =
   }
 
 type InternalState' =
-  { allTouched :: Boolean
-  , validationRef :: Maybe (Ref (Maybe H.ForkId))
+  { allTouched :: Boolean -- I decided to just use Boolean at this point...
+  -- , validationRef - use ref; outer Maybe only used for initial Ref value
+  --                   due to NOT using `unsafePerformEffect $ liftEffect Ref.new`
   -- initialInputs is in-scope via FormlessInput
   -- validators is in-scope via FormlessInput
   -- debounceRef can be reimplemented via useDebouncer
   }
 
 newtype UseFormless form hooks = UseFormless
-  (UseState InternalState'
+  (UseRef (Maybe H.ForkId)
+  (UseState Boolean -- was InternalState'
   (UseState (FormlessState form)
-  hooks))
+  hooks)))
 
 derive instance newtypeUseFormless :: Newtype (UseFormless form hooks) _
 
@@ -157,10 +158,8 @@ useFormless inputRec =
       , submitting: false
       , form: IT.inputFieldsToFormFields initialInputs
       }
-    internal /\ internalId <- useState
-      { allTouched: false
-      , validationRef: Nothing
-      }
+    allTouched /\ allTouchedId <- useState false
+    _ /\ validationRef <- useRef Nothing
 
     Hooks.pure unit
   -- where
