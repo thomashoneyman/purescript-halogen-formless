@@ -110,18 +110,18 @@ type FormlessState form =
   , form :: form Record FormField
   }
 
-type InternalState' =
+type InternalState' form =
   { allTouched :: Boolean -- I decided to just use Boolean at this point...
   -- , validationRef - use ref; outer Maybe only used for initial Ref value
   --                   due to NOT using `unsafePerformEffect $ liftEffect Ref.new`
-  -- initialInputs is in-scope via FormlessInput
+  , initialInputs :: form Record InputField
   -- validators is in-scope via FormlessInput
   -- debounceRef can be reimplemented via useDebouncer
   }
 
 newtype UseFormless form hooks = UseFormless
   (UseRef (Maybe H.ForkId)
-  (UseState Boolean -- was InternalState'
+  (UseState (InternalState' form)
   (UseState (FormlessState form)
   hooks)))
 
@@ -141,13 +141,13 @@ useFormless
   -> Hook m (UseFormless form) Unit
 useFormless inputRec =
   let
-    initialInputs :: form Record InputField
-    initialInputs = case inputRec.initialInputs of
+    providedInitialInputs :: form Record InputField
+    providedInitialInputs = case inputRec.initialInputs of
       Nothing -> mkInputFields (FormProxy :: FormProxy form)
       Just inputs -> inputs
 
     initialForm :: form Record FormField
-    initialForm = IT.inputFieldsToFormFields initialInputs
+    initialForm = IT.inputFieldsToFormFields providedInitialInputs
 
   in Hooks.wrap Hooks.do
     public /\ publicId <- useState
@@ -158,7 +158,10 @@ useFormless inputRec =
       , submitting: false
       , form: initialForm
       }
-    allTouched /\ allTouchedId <- useState false
+    internal /\ internalId <- useState
+      { allTouched: false
+      , initialInputs: providedInitialInputs
+      }
     _ /\ validationRef <- useRef Nothing
 
     let
@@ -173,15 +176,15 @@ useFormless inputRec =
         => HookM m Unit
       syncFormData = do
         st' <- Hooks.get publicId
-        allTouched' <- Hooks.get allTouchedId
+        internal' <- Hooks.get internalId
         let
           errors = IT.countErrors st'.form
           dirty = not $ eq
             (unwrap (IT.formFieldsToInputFields st'.form))
-            (unwrap initialInputs)
+            (unwrap internal.initialInputs)
 
         -- Need to verify the validity status of the form.
-        newState <- case allTouched' of
+        newState <- case internal'.allTouched of
           true -> Hooks.modify publicId \rec -> rec
             { validity = if errors == 0 then Valid else Invalid
             , errors = errors
@@ -194,7 +197,7 @@ useFormless inputRec =
 
             -- The sync revealed all fields really have been touched
             true -> do
-              Hooks.put allTouchedId true
+              Hooks.modify_ internalId (_ { allTouched = true })
               Hooks.modify publicId \rec -> rec
                 { validity = if errors == 0 then Valid else Invalid
                 , errors = errors
@@ -311,7 +314,7 @@ useFormless inputRec =
       reset variant = do
         Hooks.modify_ publicId \st -> st
           { form = IT.unsafeModifyInputVariant identity variant st.form }
-        Hooks.put allTouchedId false
+        Hooks.modify_ internalId (_ { allTouched = false })
         syncFormData
 
       setAll
@@ -386,15 +389,16 @@ useFormless inputRec =
         => Newtype (form Record FormField) { | fs }
         => HookM m Unit
       resetAll = do
+        internal' <- Hooks.get internalId
         new <- Hooks.modify publicId \st -> st
           { validity = Incomplete
           , dirty = false
           , errors = 0
           , submitAttempts = 0
           , submitting = false
-          , form = IT.replaceFormFieldInputs initialInputs st.form
+          , form = IT.replaceFormFieldInputs internal'.initialInputs st.form
           }
-        Hooks.put allTouchedId false
+        Hooks.modify_ internalId (_ { allTouched = false })
         inputRec.pushChange new
 
       submit
@@ -421,11 +425,11 @@ useFormless inputRec =
           }
 
         -- For performance purposes, avoid running this if possible
-        allTouched' <- Hooks.get allTouchedId
-        when (not allTouched') do
+        internal' <- Hooks.get internalId
+        when (not internal'.allTouched) do
           Hooks.modify_ publicId
             (_ { form = IT.setFormFieldsTouched init.form })
-          Hooks.put allTouchedId true
+          Hooks.modify_ internalId (_ { allTouched = true })
 
         -- validateAll
         _ <- validateAll
@@ -445,8 +449,6 @@ useFormless inputRec =
         => form Record InputField
         -> HookM m Unit
       loadForm formInputs = do
-        -- TODO: initialInputs needs to be stored inside of internal state
-        -- let setFields rec = rec { allTouched = false, initialInputs = formInputs }
         new <- Hooks.modify publicId \st -> st
           { validity = Incomplete
           , dirty = false
@@ -454,9 +456,8 @@ useFormless inputRec =
           , submitAttempts = 0
           , submitting = false
           , form = IT.replaceFormFieldInputs formInputs st.form
-          -- , internal = over InternalState setFields st.internal
           }
-        Hooks.put allTouchedId false
+        Hooks.put internalId { allTouched: false, initialInputs: formInputs }
         inputRec.pushChange new
 
     Hooks.pure unit
