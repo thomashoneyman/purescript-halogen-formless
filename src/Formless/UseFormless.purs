@@ -111,8 +111,8 @@ newtype UseFormless form hooks = UseFormless
 derive instance newtypeUseFormless :: Newtype (UseFormless form hooks) _
 
 useFormless
-  :: forall form m inputFields formFields
-            inputFieldsRowList variantInputFunction variantUnit validationFields
+  :: forall form m inputFields inputFieldsRowList formFields formFieldsRowList
+            variantInputFunction variantUnit validationFields
             outputFields inputFunctionFields
    . MonadAff m
   => Newtype (form Record InputField) { | inputFields }
@@ -123,18 +123,18 @@ useFormless
   => Newtype (form Variant InputFunction) (Variant variantInputFunction)
   => Newtype (form Variant U) (Variant variantUnit)
   => RL.RowToList inputFields inputFieldsRowList
-  => RL.RowToList formFields inputFieldsRowList
+  => RL.RowToList formFields formFieldsRowList
   => EqRecord inputFieldsRowList inputFields
   => MakeInputFieldsFromRow inputFieldsRowList inputFields inputFields
-  => IT.ModifyAll inputFunctionFields inputFieldsRowList formFields formFields
-  => IT.FormFieldsToInputFields inputFieldsRowList formFields inputFields
-  => IT.CountErrors inputFieldsRowList formFields
-  => IT.AllTouched inputFieldsRowList formFields
+  => IT.ModifyAll inputFunctionFields formFieldsRowList formFields formFields
+  => IT.FormFieldsToInputFields formFieldsRowList formFields inputFields
+  => IT.CountErrors formFieldsRowList formFields
+  => IT.AllTouched formFieldsRowList formFields
   => IT.InputFieldsToFormFields inputFieldsRowList inputFields formFields
-  => IT.SetFormFieldsTouched inputFieldsRowList formFields formFields
-  => IT.ValidateAll validationFields inputFieldsRowList formFields formFields m
-  => IT.FormFieldToMaybeOutput inputFieldsRowList formFields outputFields
-  => IT.ReplaceFormFieldInputs inputFields inputFieldsRowList formFields formFields
+  => IT.SetFormFieldsTouched formFieldsRowList formFields formFields
+  => IT.ValidateAll validationFields formFieldsRowList formFields formFields m
+  => IT.FormFieldToMaybeOutput formFieldsRowList formFields outputFields
+  => IT.ReplaceFormFieldInputs inputFields formFieldsRowList formFields formFields
   => FormlessInput form m
   -> Hook m (UseFormless form) (FormlessReturn form m)
 useFormless inputRec =
