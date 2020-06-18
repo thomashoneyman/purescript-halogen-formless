@@ -31,7 +31,7 @@ injQuery = VF.inj (SProxy :: SProxy "userQuery")
 -- | Convert a Formless public action to an action-style query. Any action from
 -- | Formless.Action will work, but no others.
 asQuery :: forall form q ps. Variant (PublicAction form) -> Query form q ps Unit
-asQuery = VF.inj (SProxy :: SProxy "query") <<< H.tell <<< AsQuery
+asQuery = VF.inj (SProxy :: SProxy "query") <<< H.mkTell <<< AsQuery
 
 -- | Submit the form, returning the output of validation if successful
 -- | and `Nothing` otherwise.
