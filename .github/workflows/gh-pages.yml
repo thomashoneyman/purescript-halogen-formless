@@ -1,4 +1,4 @@
-name: github pages
+name: GitHub Pages
 
 on:
   push:
@@ -12,10 +12,8 @@ jobs:
       - uses: actions/checkout@v2
       - uses: thomashoneyman/setup-purescript@master
 
-      - name: Build examples
-        run: |
-          spago -x example/example.dhall bundle-app --to ./dist/app.js
-          mv ./.spago/halogen-storybook/examples/src/Storybook.css ./dist/storybook.css
+      - name: Build Storybook
+        run: spago -x example/example.dhall bundle-app --to ./dist/app.js
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
