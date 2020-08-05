@@ -1,6 +1,6 @@
 # Formless
 
-[![CircleCI](https://circleci.com/gh/thomashoneyman/purescript-halogen-formless/tree/master.svg?style=shield)](https://circleci.com/gh/thomashoneyman/purescript-halogen-formless/tree/master)
+[![CI](https://github.com/thomashoneyman/purescript-halogen-formless/workflows/CI/badge.svg?branch=master)](https://github.com/thomashoneyman/purescript-halogen-formless/actions?query=workflow%3ACI+branch%3Amaster)
 [![Latest release](http://img.shields.io/github/release/thomashoneyman/purescript-halogen-formless.svg)](https://github.com/thomashoneyman/purescript-halogen-formless/releases)
 [![Latest package set](https://img.shields.io/endpoint.svg?url=https://package-sets-badge-0lf69kxs4fbd.runkit.sh/halogen-formless)](https://github.com/purescript/package-sets)
 [![Maintainer: thomashoneyman](https://img.shields.io/badge/maintainer-thomashoneyman-lightgrey.svg)](http://github.com/thomashoneyman)
@@ -10,7 +10,13 @@ Formless is a flexible, extensible, type-safe Halogen component for building for
 - [Examples & documentation site](https://thomashoneyman.github.io/purescript-halogen-formless/)
 - [Source code for examples](https://github.com/thomashoneyman/purescript-halogen-formless/tree/master/example)
 
-> You're viewing the readme for the upcoming 1.0 release, based on Halogen 5. If you're using Halogen 4, you should browse the [v0.5.2 release instead](https://github.com/thomashoneyman/purescript-halogen-formless/tree/v0.5.2).
+## Installation
+
+Install Formless with Spago:
+
+```sh
+spago install halogen-formless
+```
 
 ## Quick Start
 
@@ -129,29 +135,24 @@ page = H.mkComponent
     handler = Just <<< HandleDogForm
 ```
 
-# Next Steps
+## Next Steps
 
 Ready to move past this simple example? Check out the examples, which vary in their complexity:
 
 - [Live examples / docs site](https://thomashoneyman.github.io/purescript-halogen-formless/)
 - [Source code for examples](https://github.com/thomashoneyman/purescript-halogen-formless/tree/master/example)
 
-## Running the examples locally
+### Running the examples locally
 
 If you'd like to explore the example forms locally, you can run them by cloning this repository and then running these commands in the root of the project:
 
 ```sh
-npm i
-npm run watch-all
+# Install PureScript dependencies
+nix-shell
+
+# Bundle the examples and open ./dist/index.html in your browser
+spago -x example/example.dhall bundle-app --to ./dist/app.js
 ```
-
-Open a second console to start a webserver.
-
-```sh
-pulp server
-```
-
-The examples will be live at http://localhost:1337/dist/. You can also skip the webserver and simply open the `index.html` file in your web browser directly.
 
 ## Comments & Improvements
 

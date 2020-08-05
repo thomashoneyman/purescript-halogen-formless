@@ -1,0 +1,24 @@
+name: github pages
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: thomashoneyman/setup-purescript@master
+
+      - name: Build examples
+        run: |
+          spago -x example/example.dhall bundle-app --to ./dist/app.js
+          mv ./.spago/halogen-storybook/examples/src/Storybook.css ./dist/storybook.css
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
