@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: thomashoneyman/setup-purescript@master
+
+      - name: Build source
+        run: spago build
+
+      - name: Run tests
+        run: spago test
+
+      - name: Bundle examples for GitHub Pages
+        run: spago -x example/example.dhall bundle-app --to ./dist/app.js
+
+      - name: Copy Storybook CSS for GitHub Pages
+        run: mv ./.spago/halogen-storybook/examples/src/Storybook.css ./dist/storybook.css
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist

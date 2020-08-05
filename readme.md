@@ -142,11 +142,9 @@ If you'd like to explore the example forms locally, you can run them by cloning 
 # Install PureScript dependencies
 nix-shell
 
-# Build the examples
-npm run build
+# Bundle the examples and open ./dist/index.html in your browser
+spago -x example/example.dhall bundle-app --to ./dist/app.js
 ```
-
-Open `index.html` in your web browser to see the examples.
 
 ## Comments & Improvements
 

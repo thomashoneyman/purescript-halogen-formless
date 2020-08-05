@@ -1,9 +1,0 @@
-{
-  "name": "halogen-formless",
-  "repository": "git@github.com:thomashoneyman/purescript-halogen-formless",
-  "author": "Thomas R. Honeyman <admin@thomashoneyman.com>",
-  "license": "MIT",
-  "scripts": {
-    "build": "spago -x example/example.dhall bundle-app --to dist/app.js"
-  }
-}
