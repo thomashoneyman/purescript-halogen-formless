@@ -1,10 +1,6 @@
 name: CI
 
-on:
-  push:
-    branches: [master]
-  pull_request:
-    branches: [master]
+on: [push]
 
 jobs:
   build:
@@ -20,14 +16,5 @@ jobs:
       - name: Run tests
         run: spago test
 
-      - name: Bundle examples for GitHub Pages
-        run: spago -x example/example.dhall bundle-app --to ./dist/app.js
-
-      - name: Copy Storybook CSS for GitHub Pages
-        run: mv ./.spago/halogen-storybook/examples/src/Storybook.css ./dist/storybook.css
-
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
+      - name: Build examples
+        run: spago -x example/example.dhall build
