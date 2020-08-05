@@ -1,6 +1,6 @@
 # Formless
 
-[![CI](https://github.com/thomashoneyman/purescript-halogen-formless/workflows/CI/badge.svg?branch=master)](https://github.com/thomashoneyman/purescript-halogen-formless/actions?query=workflow%3ACI+branch%3Amaster)
+[![CI](https://github.com/thomashoneyman/purescript-halogen-formless/workflows/CI/badge.svg?branch=main)](https://github.com/thomashoneyman/purescript-halogen-formless/actions?query=workflow%3ACI+branch%3Amain)
 [![Latest release](http://img.shields.io/github/release/thomashoneyman/purescript-halogen-formless.svg)](https://github.com/thomashoneyman/purescript-halogen-formless/releases)
 [![Latest package set](https://img.shields.io/endpoint.svg?url=https://package-sets-badge-0lf69kxs4fbd.runkit.sh/halogen-formless)](https://github.com/purescript/package-sets)
 [![Maintainer: thomashoneyman](https://img.shields.io/badge/maintainer-thomashoneyman-lightgrey.svg)](http://github.com/thomashoneyman)
@@ -8,7 +8,7 @@
 Formless is a flexible, extensible, type-safe Halogen component for building forms without boilerplate.
 
 - [Examples & documentation site](https://thomashoneyman.github.io/purescript-halogen-formless/)
-- [Source code for examples](https://github.com/thomashoneyman/purescript-halogen-formless/tree/master/example)
+- [Source code for examples](https://github.com/thomashoneyman/purescript-halogen-formless/tree/main/example)
 
 ## Installation
 
@@ -140,7 +140,7 @@ page = H.mkComponent
 Ready to move past this simple example? Check out the examples, which vary in their complexity:
 
 - [Live examples / docs site](https://thomashoneyman.github.io/purescript-halogen-formless/)
-- [Source code for examples](https://github.com/thomashoneyman/purescript-halogen-formless/tree/master/example)
+- [Source code for examples](https://github.com/thomashoneyman/purescript-halogen-formless/tree/main/example)
 
 ### Running the examples locally
 

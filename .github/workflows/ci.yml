@@ -8,7 +8,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - uses: thomashoneyman/setup-purescript@master
+      - uses: thomashoneyman/setup-purescript@main
 
       - name: Build source
         run: spago build

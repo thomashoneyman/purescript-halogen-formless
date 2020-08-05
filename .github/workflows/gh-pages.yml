@@ -3,14 +3,14 @@ name: GitHub Pages
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: thomashoneyman/setup-purescript@master
+      - uses: thomashoneyman/setup-purescript@main
 
       - name: Build Storybook
         run: spago -x example/example.dhall bundle-app --to ./dist/app.js
