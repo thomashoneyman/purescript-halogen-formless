@@ -10,6 +10,14 @@ Formless is a flexible, extensible, type-safe Halogen component for building for
 - [Examples & documentation site](https://thomashoneyman.github.io/purescript-halogen-formless/)
 - [Source code for examples](https://github.com/thomashoneyman/purescript-halogen-formless/tree/master/example)
 
+## Installation
+
+Install Formless with Spago:
+
+```sh
+spago install halogen-formless
+```
+
 ## Quick Start
 
 You can write a basic Formless form in just a few lines of code. You are responsible for providing just a few pieces of information.
