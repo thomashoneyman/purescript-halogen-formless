@@ -7,7 +7,6 @@ import Data.Foldable (for_)
 import Data.Lens (_Left, preview)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple.Nested ((/\))
-import Data.Variant.Internal (FProxy)
 import Effect.Class (class MonadEffect)
 import Halogen (RefLabel(..), liftEffect)
 import Halogen.HTML as HH
@@ -17,6 +16,7 @@ import Halogen.HTML.Properties as HP
 import Halogen.Hooks (HookM, getHTMLElementRef)
 import Halogen.Hooks as Hooks
 import Halogen.Hooks.Formless (FormInput(..), WithInput)
+import Type.Proxy (Proxy2)
 import Web.HTML.HTMLElement as HTMLElement
 
 type UseTextField a =
@@ -38,7 +38,7 @@ type TextFieldInterface slots m =
 textField
   :: forall slots m a
    . MonadEffect m
-  => FProxy m
+  => Proxy2 m
   -> TextFieldInput a
   -> FormInput m (UseTextField a) (TextFieldInterface slots m) String a
 textField _ { validate, disabled } = FormInput \form -> Hooks.do
