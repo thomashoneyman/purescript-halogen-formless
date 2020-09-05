@@ -5,6 +5,7 @@ in conf //
         [ "debug"
         , "halogen-select"
         , "halogen-storybook"
+        , "profunctor-lenses"
         ]
   , sources =
       conf.sources #
