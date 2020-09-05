@@ -1,0 +1,8 @@
+{
+  "private": "true",
+  "scripts": {
+    "build": "spago build",
+    "build:examples": "spago -x example/example.dhall build",
+    "bundle": "spago -x example/example.dhall bundle-app --to dist/index.js"
+  }
+}

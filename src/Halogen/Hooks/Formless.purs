@@ -9,10 +9,15 @@ import Halogen as H
 import Halogen.Hooks (Hook, HookM, StateId)
 import Halogen.Hooks as Hooks
 import Halogen.Hooks.Hook (HProxy)
+import Heterogeneous.Folding (class FoldingWithIndex, class HFoldlWithIndex, hfoldlWithIndex)
 import Prim.Row as Row
-import Prim.RowList (kind RowList)
+import Prim.RowList (class RowToList, kind RowList)
 import Prim.RowList as RowList
 import Record as Record
+import Record.Builder (Builder)
+import Record.Builder as Builder
+import Type.Data.RowList (RLProxy(..))
+import Type.Proxy (Proxy)
 import Unsafe.Coerce (unsafeCoerce)
 
 type FormInputProps m i =
@@ -230,3 +235,23 @@ instance buildFormCons ::
       builder' = mergeFormInputs builder (buildFormInput (SProxy :: _ sym) input)
 
     buildFormStep (BuildFormFor inputs :: BuildFormFor r tail) builder'
+
+data InitialFormState = InitialFormState
+
+instance foldingInitialFormState ::
+  ( Row.Cons sym (Maybe a) rb rc
+  , Row.Lacks sym rb
+  , IsSymbol sym
+  ) =>
+  FoldingWithIndex InitialFormState (SProxy sym) (Builder { | ra } { | rb }) (Proxy (Maybe a)) (Builder { | ra } { | rc }) where
+  foldingWithIndex _ sym builder _ =
+    builder >>> Builder.insert sym Nothing
+
+-- | Build a default form state where all fields are initialized to Nothing.
+initialFormState
+  :: forall r rl
+   . RowToList r rl
+  => HFoldlWithIndex InitialFormState (Builder {} {}) (RLProxy rl) (Builder {} { | r })
+  => { | r }
+initialFormState =
+  Builder.build (hfoldlWithIndex InitialFormState (identity :: Builder {} {}) (RLProxy :: RLProxy rl)) {}

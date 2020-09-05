@@ -1,5 +1,5 @@
 { name = "halogen-formless"
-, dependencies = [ "halogen", "halogen-hooks", "record" ]
+, dependencies = [ "halogen", "halogen-hooks", "heterogeneous", "record" ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]
 }

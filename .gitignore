@@ -15,3 +15,4 @@ dist/*
 !dist/storybook.css
 *.lock
 *.swp
+archive/
