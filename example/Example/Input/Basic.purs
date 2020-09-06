@@ -1,4 +1,4 @@
-module Example.UI.TextField where
+module Example.Input.Basic where
 
 import Prelude
 
@@ -8,46 +8,53 @@ import Data.Lens (_Left, preview)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple.Nested ((/\))
 import Effect.Class (class MonadEffect)
-import Halogen (RefLabel(..), liftEffect)
+import Halogen (RefLabel, liftEffect)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties (InputType(..))
 import Halogen.HTML.Properties as HP
-import Halogen.Hooks (HookM, getHTMLElementRef)
+import Halogen.Hooks (class HookEquals, class HookNewtype, HookM, getHTMLElementRef, kind HookType)
 import Halogen.Hooks as Hooks
 import Halogen.Hooks.Formless (FormInput(..), WithInput)
 import Type.Proxy (Proxy2)
 import Web.HTML.HTMLElement as HTMLElement
 
-type UseTextField a =
-  Hooks.UseState Boolean
-    Hooks.<> Hooks.UseMemo (Either String a)
+foreign import data UseBasicInput :: Type -> HookType
+
+type UseBasicInput' a =
+  Hooks.UseMemo (Either String a)
+    Hooks.<> Hooks.UseState Boolean
     Hooks.<> Hooks.Pure
 
-type TextFieldInput a =
+instance newtypeUseBasicInput
+  :: HookEquals (UseBasicInput' a) h
+  => HookNewtype (UseBasicInput a) h
+
+type BasicInput a =
   { validate :: String -> Either String a
+  , ref :: RefLabel
   , disabled :: Boolean
   }
 
-type TextFieldInterface slots m =
+type BasicInputInterface m =
   ( error :: Maybe String
   , focus :: HookM m Unit
-  | WithInput slots m ()
+  | WithInput () m ()
   )
 
-textField
-  :: forall slots m a
+basicInput
+  :: forall m a
    . MonadEffect m
   => Proxy2 m
-  -> TextFieldInput a
-  -> FormInput m (UseTextField a) (TextFieldInterface slots m) String a
-textField _ { validate, disabled } = FormInput \form -> Hooks.do
+  -> BasicInput a
+  -> FormInput m (UseBasicInput' a) (BasicInputInterface m) String a
+basicInput _ { validate, disabled, ref } = FormInput \field -> Hooks.do
   let
-    currentValue = fromMaybe "" form.value
-    refLabel = RefLabel "TextField"
+    currentValue :: String
+    currentValue = fromMaybe "" field.value
 
-  touched /\ setTouched <- map (map Hooks.put) $ Hooks.useState false
   isValid <- useValidate currentValue
+  touched /\ setTouched <- map (map Hooks.put) $ Hooks.useState false
 
   Hooks.pure
     { input:
@@ -55,10 +62,10 @@ textField _ { validate, disabled } = FormInput \form -> Hooks.do
           [ HP.type_ InputText
           , HP.value currentValue
           , HP.disabled disabled
-          , HP.ref refLabel
+          , HP.ref ref
           , HE.onValueInput \val -> Just do
               setTouched true
-              form.onChange val
+              field.onChange val
           ]
     , error:
         if touched then
@@ -66,9 +73,10 @@ textField _ { validate, disabled } = FormInput \form -> Hooks.do
         else
           Nothing
     , focus: do
-        mbElem <- getHTMLElementRef refLabel
+        mbElem <- getHTMLElementRef ref
         for_ mbElem (liftEffect <<< HTMLElement.focus)
-    , value: hush isValid
+    , value:
+        hush isValid
     }
   where
   useValidate value =
