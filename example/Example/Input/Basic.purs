@@ -3,27 +3,23 @@ module Example.Input.Basic where
 import Prelude
 
 import Data.Either (Either, hush)
-import Data.Foldable (for_)
 import Data.Lens (_Left, preview)
-import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Tuple.Nested ((/\))
+import Data.Maybe (Maybe(..))
 import Effect.Class (class MonadEffect)
-import Halogen (RefLabel, liftEffect)
+import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties (InputType(..))
 import Halogen.HTML.Properties as HP
-import Halogen.Hooks (class HookEquals, class HookNewtype, HookM, getHTMLElementRef, kind HookType)
+import Halogen.Hooks (class HookEquals, class HookNewtype, HookM, kind HookType)
 import Halogen.Hooks as Hooks
-import Halogen.Hooks.Formless (FormInput(..), WithInput)
+import Halogen.Hooks.Formless (FormInput(..))
 import Type.Proxy (Proxy2)
-import Web.HTML.HTMLElement as HTMLElement
 
 foreign import data UseBasicInput :: Type -> HookType
 
 type UseBasicInput' a =
   Hooks.UseMemo (Either String a)
-    Hooks.<> Hooks.UseState Boolean
     Hooks.<> Hooks.Pure
 
 instance newtypeUseBasicInput
@@ -32,14 +28,12 @@ instance newtypeUseBasicInput
 
 type BasicInput a =
   { validate :: String -> Either String a
-  , ref :: RefLabel
-  , disabled :: Boolean
+  , initialValue :: Maybe String
   }
 
 type BasicInputInterface m =
   ( error :: Maybe String
-  , focus :: HookM m Unit
-  | WithInput () m ()
+  , input :: H.ComponentHTML (HookM m Unit) () m
   )
 
 basicInput
@@ -48,35 +42,28 @@ basicInput
   => Proxy2 m
   -> BasicInput a
   -> FormInput m (UseBasicInput' a) (BasicInputInterface m) String a
-basicInput _ { validate, disabled, ref } = FormInput \field -> Hooks.do
+basicInput _ { initialValue, validate } = FormInput \field -> Hooks.do
   let
     currentValue :: String
-    currentValue = fromMaybe "" field.value
+    currentValue
+      | Just value <- field.value = value
+      | Just value <- initialValue = value
+      | otherwise = ""
+
+    input :: H.ComponentHTML (HookM m Unit) () m
+    input =
+      HH.input
+        [ HP.type_ InputText
+        , HP.value currentValue
+        , HE.onValueInput (Just <<< field.onChange)
+        ]
 
   isValid <- useValidate currentValue
-  touched /\ setTouched <- map (map Hooks.put) $ Hooks.useState false
 
   Hooks.pure
-    { input:
-        HH.input
-          [ HP.type_ InputText
-          , HP.value currentValue
-          , HP.disabled disabled
-          , HP.ref ref
-          , HE.onValueInput \val -> Just do
-              setTouched true
-              field.onChange val
-          ]
-    , error:
-        if touched then
-          preview _Left isValid
-        else
-          Nothing
-    , focus: do
-        mbElem <- getHTMLElementRef ref
-        for_ mbElem (liftEffect <<< HTMLElement.focus)
-    , value:
-        hush isValid
+    { input
+    , error: if field.touched then preview _Left isValid else Nothing
+    , value: hush isValid
     }
   where
   useValidate value =

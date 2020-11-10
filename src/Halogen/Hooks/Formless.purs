@@ -1,7 +1,7 @@
 module Halogen.Hooks.Formless
   ( useForm
   , useFormState
-  , useFormWithState
+  , useFormInputs
   , UseForm
   , FormState
   , UseFormResult
@@ -37,12 +37,14 @@ import Record as Record
 import Record.Builder (Builder)
 import Record.Builder as Builder
 import Type.Data.RowList (RLProxy(..))
+import Type.Equality (class TypeEquals)
 import Type.Proxy (Proxy)
 import Unsafe.Coerce (unsafeCoerce)
 
 type FormInputProps m i =
   { onChange :: i -> HookM m Unit
   , value :: Maybe i
+  , touched :: Boolean
   }
 
 newtype FormInput m h ro i o =
@@ -72,8 +74,8 @@ instance newtypeUseFormInput
 buildFormInput
   :: forall sym m h ro i o form' form closed fields value
    . IsSymbol sym
-  => Row.Cons sym (Maybe i) form' form
-  => Row.Cons sym (Maybe i) () closed
+  => Row.Cons sym { state :: Maybe i, touched :: Boolean } form' form
+  => Row.Cons sym { state :: Maybe i, touched :: Boolean } () closed
   => Row.Cons sym { | WithValue o ro } () fields
   => Row.Cons sym o () value
   => Row.Lacks sym ()
@@ -82,11 +84,16 @@ buildFormInput
   -> BuildFormInput closed form m (UseFormInput h) fields value
 buildFormInput sym (FormInput formInput) =
   BuildFormInput \{ form, modifyForm } -> Hooks.wrap Hooks.do
-    let stateValue = Record.get sym form
-    let onChange = modifyForm <<< Record.set sym <<< Just
-    result <- formInput { onChange, value: stateValue }
-    let fields = Record.insert sym result {}
-    let value = flip (Record.insert sym) {} <$> result.value
+    let
+      { state, touched } = Record.get sym form
+      onChange = modifyForm <<< Record.set sym <<< { state: _, touched: true } <<< Just
+
+    result <- formInput { onChange, value: state, touched }
+
+    let
+      fields = Record.insert sym result {}
+      value = flip (Record.insert sym) {} <$> result.value
+
     Hooks.pure { fields, value }
 
 type UseMergedFormInputs' h1 h2 =
@@ -115,8 +122,6 @@ mergeFormInputs (BuildFormInput step1) (BuildFormInput step2) =
     let fields = Record.union result1.fields result2.fields
     let value = Record.union <$> result1.value <*> result2.value
     Hooks.pure { fields, value }
-
-infixl 5 mergeFormInputs as <!>
 
 type UseForm' form m h =
   Hooks.UseMemo (({ | form } -> { | form }) -> HookM m Unit)
@@ -151,12 +156,12 @@ useFormState
   -> Hooks.Hook m (UseFormState form) ((FormState form) /\ StateId (FormState form))
 useFormState initialForm = Hooks.useState { dirty: false, form: initialForm unit }
 
-useForm
+useFormInputs
   :: forall m h form fields value
    . BuildFormInput form form m h fields value
   -> (FormState { | form } /\ StateId (FormState { | form }))
   -> Hooks.Hook m (UseForm form m h) (UseFormResult form m fields value)
-useForm (BuildFormInput step) ({ form, dirty } /\ sid) = Hooks.wrap Hooks.do
+useFormInputs (BuildFormInput step) ({ form, dirty } /\ sid) = Hooks.wrap Hooks.do
   modifyForm <- Hooks.captures {} Hooks.useMemo \_ fn ->
     Hooks.modify_ sid \st -> { form: fn st.form, dirty: true }
 
@@ -171,14 +176,14 @@ type UseFormWithState form m h =
   UseFormState { | form }
     Hooks.<> UseForm form m h
 
-useFormWithState
+useForm
   :: forall m h form fields value
    . (Unit -> { | form })
   -> BuildFormInput form form m h fields value
   -> Hooks.Hook m (UseFormWithState form m h) (UseFormResult form m fields value)
-useFormWithState k = Hooks.bind (useFormState k) <<< useForm
+useForm k = Hooks.bind (useFormState k) <<< useFormInputs
 
-type FormInputState (h :: Hooks.HookType) (ro :: # Type) i o = Maybe i
+type FormInputState (h :: Hooks.HookType) (ro :: # Type) i o = { state :: Maybe i, touched :: Boolean }
 type FormInputValue (h :: Hooks.HookType) (ro :: # Type) i o = o
 type FormInputField (h :: Hooks.HookType) (ro :: # Type) i o = { | WithValue o ro }
 type FormInputHooks (h :: Hooks.HookType) (ro :: # Type) i o = HProxy h
@@ -194,8 +199,8 @@ buildForm
       (BuildFormInput closed2 form m (UseFormInput h2) fields2 value2)
       (BuildFormInput closed3 form m h3 fields3 value3)
       hform'
-  => Row.Cons sym (Maybe i) form' form
-  => Row.Cons sym (Maybe i) () closed2
+  => Row.Cons sym { state :: Maybe i, touched :: Boolean } form' form
+  => Row.Cons sym { state :: Maybe i, touched :: Boolean } () closed2
   => Row.Cons sym { | WithValue o ro } () fields2
   => Row.Cons sym o () value2
   => Row.Cons sym (HProxy h2) hform' hform
@@ -232,8 +237,8 @@ instance buildFormCons ::
   , Row.Union value1 value' value2
   , Row.Union closed1 closed' closed2
   , IsSymbol sym
-  , Row.Cons sym (Maybe i) form' form
-  , Row.Cons sym (Maybe i) () closed'
+  , Row.Cons sym { state :: Maybe i, touched :: Boolean } form' form
+  , Row.Cons sym { state :: Maybe i, touched :: Boolean } () closed'
   , Row.Cons sym { | WithValue o ro } () fields'
   , Row.Cons sym o () value'
   , Row.Lacks sym ()
@@ -259,13 +264,14 @@ instance buildFormCons ::
 data InitialFormState = InitialFormState
 
 instance foldingInitialFormState ::
-  ( Row.Cons sym (Maybe a) rb rc
+  ( TypeEquals { state :: Maybe a, touched :: Boolean } st
+  , Row.Cons sym { state :: Maybe a, touched :: Boolean } rb rc
   , Row.Lacks sym rb
   , IsSymbol sym
   ) =>
-  FoldingWithIndex InitialFormState (SProxy sym) (Builder { | ra } { | rb }) (Proxy (Maybe a)) (Builder { | ra } { | rc }) where
+  FoldingWithIndex InitialFormState (SProxy sym) (Builder { | ra } { | rb }) (Proxy st) (Builder { | ra } { | rc }) where
   foldingWithIndex _ sym builder _ =
-    builder >>> Builder.insert sym Nothing
+    builder >>> Builder.insert sym { state: Nothing, touched: false }
 
 -- | Build a default form state where all fields are initialized to Nothing.
 initialFormState
