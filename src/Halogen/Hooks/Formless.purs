@@ -1,7 +1,6 @@
 module Halogen.Hooks.Formless
   ( useForm
-  , useFormState
-  , useFormInputs
+  , useFormWithState
   , UseForm
   , FormState
   , UseFormResult
@@ -24,9 +23,10 @@ import Prelude
 
 import Data.Maybe (Maybe(..))
 import Data.Symbol (class IsSymbol, SProxy(..))
-import Data.Tuple.Nested ((/\), type (/\))
+import Data.Tuple (Tuple)
+import Data.Tuple.Nested ((/\))
 import Halogen as H
-import Halogen.Hooks (Hook, HookM, StateId)
+import Halogen.Hooks (HookM)
 import Halogen.Hooks as Hooks
 import Halogen.Hooks.Hook (HProxy)
 import Heterogeneous.Folding (class FoldingWithIndex, class HFoldlWithIndex, hfoldlWithIndex)
@@ -37,31 +37,38 @@ import Record as Record
 import Record.Builder (Builder)
 import Record.Builder as Builder
 import Type.Data.RowList (RLProxy(..))
-import Type.Equality (class TypeEquals)
+import Type.Equality as TE
 import Type.Proxy (Proxy)
 import Unsafe.Coerce (unsafeCoerce)
 
+type StateTuple m s = Tuple s ((s -> s) -> HookM m Unit)
+
+type FormInputState' i =
+  { touched :: Boolean
+  , value :: Maybe i
+  }
+
 type FormInputProps m i =
   { onChange :: i -> HookM m Unit
-  , value :: Maybe i
   , touched :: Boolean
+  , value :: Maybe i
   }
 
 newtype FormInput m h ro i o =
-  FormInput (FormInputProps m i -> Hook m h { | WithValue o ro })
+  FormInput (FormInputProps m i -> Hooks.Hook m h { | WithValue o ro })
 
-type WithInput slots m r = (input :: H.ComponentHTML (HookM m Unit) slots m | r)
+type WithInput m r = (input :: H.ComponentHTML (HookM m Unit) () m | r)
 type WithValue o r = (value :: Maybe o | r)
 
-type BuildFormInputProps m form =
+type BuildFormInputProps form m =
   { form :: { | form }
   , modifyForm :: ({ | form } -> { | form }) -> HookM m Unit
   }
 
 newtype BuildFormInput (closed :: # Type) form m h fields value =
   BuildFormInput
-    (BuildFormInputProps m form
-      -> Hook m h { fields :: { | fields }, value :: Maybe { | value }})
+    (BuildFormInputProps form m
+      -> Hooks.Hook m h { fields :: { | fields }, value :: Maybe { | value }})
 
 type UseFormInput' h1 = h1 Hooks.<> Hooks.Pure
 
@@ -74,8 +81,8 @@ instance newtypeUseFormInput
 buildFormInput
   :: forall sym m h ro i o form' form closed fields value
    . IsSymbol sym
-  => Row.Cons sym { state :: Maybe i, touched :: Boolean } form' form
-  => Row.Cons sym { state :: Maybe i, touched :: Boolean } () closed
+  => Row.Cons sym (FormInputState' i) form' form
+  => Row.Cons sym (FormInputState' i) () closed
   => Row.Cons sym { | WithValue o ro } () fields
   => Row.Cons sym o () value
   => Row.Lacks sym ()
@@ -84,16 +91,11 @@ buildFormInput
   -> BuildFormInput closed form m (UseFormInput h) fields value
 buildFormInput sym (FormInput formInput) =
   BuildFormInput \{ form, modifyForm } -> Hooks.wrap Hooks.do
-    let
-      { state, touched } = Record.get sym form
-      onChange = modifyForm <<< Record.set sym <<< { state: _, touched: true } <<< Just
-
-    result <- formInput { onChange, value: state, touched }
-
-    let
-      fields = Record.insert sym result {}
-      value = flip (Record.insert sym) {} <$> result.value
-
+    let { touched, value } = Record.get sym form
+    let onChange = modifyForm <<< Record.set sym <<< { touched: true, value: _ } <<< Just
+    result <- formInput { onChange, touched, value }
+    let fields = Record.insert sym result {}
+    let value = flip (Record.insert sym) {} <$> result.value
     Hooks.pure { fields, value }
 
 type UseMergedFormInputs' h1 h2 =
@@ -150,20 +152,17 @@ type FormState form =
 type UseFormState form =
   Hooks.UseState (FormState form)
 
-useFormState
-  :: forall form m
-   . (Unit -> form)
-  -> Hooks.Hook m (UseFormState form) ((FormState form) /\ StateId (FormState form))
-useFormState initialForm = Hooks.useState { dirty: false, form: initialForm unit }
+useFormState :: forall form m. (Unit -> form) -> Hooks.Hook m (UseFormState form) (StateTuple m (FormState form))
+useFormState initialForm = map (map Hooks.modify_) (Hooks.useState { dirty: false, form: initialForm unit })
 
-useFormInputs
+useForm
   :: forall m h form fields value
    . BuildFormInput form form m h fields value
-  -> (FormState { | form } /\ StateId (FormState { | form }))
+  -> StateTuple m (FormState { | form })
   -> Hooks.Hook m (UseForm form m h) (UseFormResult form m fields value)
-useFormInputs (BuildFormInput step) ({ form, dirty } /\ sid) = Hooks.wrap Hooks.do
+useForm (BuildFormInput step) ({ form, dirty } /\ modifyState) = Hooks.wrap Hooks.do
   modifyForm <- Hooks.captures {} Hooks.useMemo \_ fn ->
-    Hooks.modify_ sid \st -> { form: fn st.form, dirty: true }
+    modifyState \st -> { form: fn st.form, dirty: true }
 
   { fields, value } <- step
     { form
@@ -176,14 +175,14 @@ type UseFormWithState form m h =
   UseFormState { | form }
     Hooks.<> UseForm form m h
 
-useForm
+useFormWithState
   :: forall m h form fields value
    . (Unit -> { | form })
   -> BuildFormInput form form m h fields value
   -> Hooks.Hook m (UseFormWithState form m h) (UseFormResult form m fields value)
-useForm k = Hooks.bind (useFormState k) <<< useFormInputs
+useFormWithState k = Hooks.bind (useFormState k) <<< useForm
 
-type FormInputState (h :: Hooks.HookType) (ro :: # Type) i o = { state :: Maybe i, touched :: Boolean }
+type FormInputState (h :: Hooks.HookType) (ro :: # Type) i o = Maybe i
 type FormInputValue (h :: Hooks.HookType) (ro :: # Type) i o = o
 type FormInputField (h :: Hooks.HookType) (ro :: # Type) i o = { | WithValue o ro }
 type FormInputHooks (h :: Hooks.HookType) (ro :: # Type) i o = HProxy h
@@ -191,7 +190,7 @@ type FormInputHooks (h :: Hooks.HookType) (ro :: # Type) i o = HProxy h
 foreign import data UseBuildForm :: # Type -> Hooks.HookType
 
 buildForm
-  :: forall m r r' sym h2 ro i o tail form' form closed2 closed3 h3 fields2 fields3 value2 value3 hform hform'
+  :: forall r r' sym m h2 ro i o tail form' form closed2 closed3 h3 fields2 fields3 value2 value3 hform hform'
    . RowList.RowToList r (RowList.Cons sym (FormInput m h2 ro i o) tail)
   => Row.Cons sym (FormInput m h2 ro i o) r' r
   => IsSymbol sym
@@ -199,8 +198,8 @@ buildForm
       (BuildFormInput closed2 form m (UseFormInput h2) fields2 value2)
       (BuildFormInput closed3 form m h3 fields3 value3)
       hform'
-  => Row.Cons sym { state :: Maybe i, touched :: Boolean } form' form
-  => Row.Cons sym { state :: Maybe i, touched :: Boolean } () closed2
+  => Row.Cons sym (FormInputState' i) form' form
+  => Row.Cons sym (FormInputState' i) () closed2
   => Row.Cons sym { | WithValue o ro } () fields2
   => Row.Cons sym o () value2
   => Row.Cons sym (HProxy h2) hform' hform
@@ -237,8 +236,8 @@ instance buildFormCons ::
   , Row.Union value1 value' value2
   , Row.Union closed1 closed' closed2
   , IsSymbol sym
-  , Row.Cons sym { state :: Maybe i, touched :: Boolean } form' form
-  , Row.Cons sym { state :: Maybe i, touched :: Boolean } () closed'
+  , Row.Cons sym (FormInputState' i) form' form
+  , Row.Cons sym (FormInputState' i) () closed'
   , Row.Cons sym { | WithValue o ro } () fields'
   , Row.Cons sym o () value'
   , Row.Lacks sym ()
@@ -261,17 +260,22 @@ instance buildFormCons ::
 
     buildFormStep (BuildFormFor inputs :: BuildFormFor r tail) builder'
 
+type UseFormRows m hooks form field value =
+  Hooks.Hook m
+    (UseForm form m (UseBuildForm hooks))
+    (UseFormResult form m field value)
+
 data InitialFormState = InitialFormState
 
 instance foldingInitialFormState ::
-  ( TypeEquals { state :: Maybe a, touched :: Boolean } st
-  , Row.Cons sym { state :: Maybe a, touched :: Boolean } rb rc
+  ( TE.TypeEquals (FormInputState' a) formInputState
+  , Row.Cons sym formInputState rb rc
   , Row.Lacks sym rb
   , IsSymbol sym
   ) =>
-  FoldingWithIndex InitialFormState (SProxy sym) (Builder { | ra } { | rb }) (Proxy st) (Builder { | ra } { | rc }) where
+  FoldingWithIndex InitialFormState (SProxy sym) (Builder { | ra } { | rb }) (Proxy formInputState) (Builder { | ra } { | rc }) where
   foldingWithIndex _ sym builder _ =
-    builder >>> Builder.insert sym { state: Nothing, touched: false }
+    builder >>> Builder.insert sym (TE.to { touched: false, value: Nothing })
 
 -- | Build a default form state where all fields are initialized to Nothing.
 initialFormState

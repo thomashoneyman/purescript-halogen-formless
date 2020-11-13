@@ -5,7 +5,6 @@ import Prelude
 import Data.Either (Either, hush)
 import Data.Lens (_Left, preview)
 import Data.Maybe (Maybe(..))
-import Effect.Class (class MonadEffect)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -38,11 +37,10 @@ type BasicInputInterface m =
 
 basicInput
   :: forall m a
-   . MonadEffect m
-  => Proxy2 m
+   . Proxy2 m
   -> BasicInput a
-  -> FormInput m (UseBasicInput' a) (BasicInputInterface m) String a
-basicInput _ { initialValue, validate } = FormInput \field -> Hooks.do
+  -> FormInput m (UseBasicInput a) (BasicInputInterface m) String a
+basicInput _ { initialValue, validate } = FormInput \field -> Hooks.wrap Hooks.do
   let
     currentValue :: String
     currentValue
