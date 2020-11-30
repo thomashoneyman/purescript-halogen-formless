@@ -86,9 +86,17 @@ type FormInterface form m fields value =
   , value :: Maybe { | value }
   }
 
-type UseForm form m h =
+type UseForm' form m h =
   UseFormState { | form }
     Hooks.<> UseFormFields form m h
+
+-- | The Hook type for `useForm`, which accepts the form row, monad type, and
+-- | form fields Hook type (typically UseBuildForm) as arguments.
+foreign import data UseForm :: # Type -> (Type -> Type) -> Hooks.HookType -> Hooks.HookType
+
+instance newtypeUseForm
+  :: Hooks.HookEquals x (UseForm' form m h)
+  => Hooks.HookNewtype (UseForm form m h) x
 
 -- | A Hook for managing forms with Formless. Combines `useFormState` and
 -- | `useFormFields` to manage form state and form fields.
@@ -111,7 +119,7 @@ useForm
    . (Unit -> { | form })
   -> BuildFormField form form m h fields value
   -> Hooks.Hook m (UseForm form m h) (FormInterface form m fields value)
-useForm initialState = Hooks.bind (useFormState initialState) <<< flip useFormFields
+useForm initialState = Hooks.wrap <<< Hooks.bind (useFormState initialState) <<< flip useFormFields
 
 type FormState form =
   { touched :: Boolean
