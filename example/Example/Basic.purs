@@ -7,13 +7,13 @@ import Data.Maybe (Maybe(..), isNothing)
 import Data.String.NonEmpty as NES
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (logShow)
-import Example.Input.Basic (basicInput)
+import Example.Field.Basic (basicField)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Hooks as Hooks
-import Halogen.Hooks.Formless (buildForm, initialFormState, useFormWithState)
+import Halogen.Hooks.Formless (buildForm, initialFormState, useForm)
 import Type.Proxy (Proxy2(..))
 import Web.Event.Event (preventDefault)
 import Web.UIEvent.MouseEvent as ME
@@ -32,7 +32,7 @@ basic = Hooks.component \_ _ -> Hooks.do
       [ form.fields.name.input
       , form.fields.location.input
       , HH.button
-          [ HP.disabled (isNothing form.value || not form.dirty)
+          [ HP.disabled (isNothing form.value || not form.touched)
           , HE.onClick \e -> Just do
               liftEffect (preventDefault (ME.toEvent e))
               logShow form.value
@@ -40,13 +40,13 @@ basic = Hooks.component \_ _ -> Hooks.do
           [ HH.text "Submit!" ]
       ]
   where
-  useBasicForm proxy = useFormWithState (\_ -> initialFormState) $ buildForm
-    { name: basicInput
+  useBasicForm proxy = useForm (\_ -> initialFormState) $ buildForm
+    { name: basicField
         { validate: note "Name is required." <<< NES.fromString
         , initialValue: Just "Tom"
         , proxy
         }
-    , location: basicInput
+    , location: basicField
         { validate: pure
         , initialValue: Nothing
         , proxy

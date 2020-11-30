@@ -1,4 +1,4 @@
-module Example.Input.Basic where
+module Example.Field.Basic where
 
 import Prelude
 
@@ -15,32 +15,32 @@ import Halogen.Hooks as Hooks
 import Halogen.Hooks.Formless (FormField(..))
 import Type.Proxy (Proxy2)
 
-foreign import data UseBasicInput :: Type -> HookType
+foreign import data UseBasicField :: Type -> HookType
 
-type UseBasicInput' a =
+type UseBasicField' a =
   Hooks.UseMemo (Either String a)
     Hooks.<> Hooks.Pure
 
-instance newtypeUseBasicInput
-  :: HookEquals (UseBasicInput' a) h
-  => HookNewtype (UseBasicInput a) h
+instance newtypeUseBasicField
+  :: HookEquals (UseBasicField' a) h
+  => HookNewtype (UseBasicField a) h
 
-type BasicInput m a =
+type BasicFieldInput m a =
   { validate :: String -> Either String a
   , initialValue :: Maybe String
   , proxy :: Proxy2 m
   }
 
-type BasicInputInterface m =
+type BasicFieldInterface m =
   ( error :: Maybe String
   , input :: H.ComponentHTML (HookM m Unit) () m
   )
 
-basicInput
+basicField
   :: forall m a
-   . BasicInput m a
-  -> FormField m (UseBasicInput a) (BasicInputInterface m) String a
-basicInput { initialValue, validate } = FormField \field -> Hooks.wrap Hooks.do
+   . BasicFieldInput m a
+  -> FormField m (UseBasicField a) (BasicFieldInterface m) String a
+basicField { initialValue, validate } = FormField \field -> Hooks.wrap Hooks.do
   let
     currentValue :: String
     currentValue
