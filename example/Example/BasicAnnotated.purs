@@ -22,13 +22,13 @@ import Halogen.Hooks.Formless (FormField, buildForm, initialFormState, useForm)
 import Web.Event.Event (preventDefault)
 import Web.UIEvent.MouseEvent as ME
 
-type Form m =
+type FormFields m =
   { name :: FormField m (UseBasicField NonEmptyString) (BasicFieldInterface m) String NonEmptyString
   , message :: FormField m (UseBasicField String) (BasicFieldInterface m) String String
   }
 
-formFields :: forall m. Form m
-formFields =
+fields :: forall m. FormFields m
+fields =
   { name: basicField'
       { validate: note "Name is required." <<< NES.fromString
       , initialValue: Just "Tom"
@@ -41,7 +41,7 @@ formFields =
 
 basic :: forall q i o m. MonadEffect m => H.Component HH.HTML q i o m
 basic = Hooks.component \_ _ -> Hooks.do
-  form <- useForm (\_ -> initialFormState) (buildForm formFields)
+  form <- useForm (\_ -> initialFormState) (buildForm fields)
 
   Hooks.pure do
     HH.div_

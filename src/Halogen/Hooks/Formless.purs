@@ -109,7 +109,7 @@ instance newtypeUseForm
 -- | the set of `FormField` for the form.
 -- |
 -- | ```purs
--- | form <- Formless.useForm (\_ -> Formless.initialFormState) $ Formless.buildForm
+-- | form <- useForm (\_ -> initialFormState) $ buildForm
 -- |   { field1: FormField \field -> ...
 -- |   , field2: FormField \field -> ...
 -- |   }
@@ -137,7 +137,7 @@ instance newtypeUseFormState
   => Hooks.HookNewtype (UseFormState form) h
 
 -- | A Hook for managing form state with Formless. Requires a function to produce
--- | the initial form state, which is usually `\_ -> Formless.initialFormState`.
+-- | the initial form state, which is usually `\_ -> initialFormState`.
 -- |
 -- | This Hook is typically used when one field depends on another field's form
 -- | state, in which case you'll need to create the form state and form fields
@@ -146,8 +146,8 @@ instance newtypeUseFormState
 -- | ```purs
 -- | import Data.Tuple.Nested ((/\))
 -- |
--- | state /\ modifyState <- Formless.useFormState (\_ -> Formless.initialFormState)
--- | form <- Formless.useFormFields (state /\ modifyState) $ buildForm
+-- | state /\ modifyState <- useFormState (\_ -> initialFormState)
+-- | form <- useFormFields (state /\ modifyState) $ buildForm
 -- |  { field1: FormField \field ->
 -- |      { value: ...
 -- |        -- We can, for example, check its value against the form state for
@@ -188,8 +188,8 @@ instance newtypeUseFormFields
 -- | ```purs
 -- | import Data.Tuple.Nested ((/\))
 -- |
--- | state /\ modifyState <- Formless.useFormState (\_ -> Formless.initialFormState)
--- | form <- Formless.useFormFields (state /\ modifyState) $ buildForm
+-- | state /\ modifyState <- useFormState (\_ -> initialFormState)
+-- | form <- useFormFields (state /\ modifyState) $ buildForm
 -- |  { field1: FormField \field ->
 -- |      { value: ...
 -- |        -- We can, for example, check its value against the form state for
@@ -227,9 +227,9 @@ type BuildFormFieldInput form m =
 -- | of `buildForm` directly to the form Hook you are using.
 -- |
 -- | ```purs
--- | form <- Formless.useForm (\_ -> Formless.initialFormState) $ Formless.buildForm
--- |   { field1: Formless.FormField \field -> ...
--- |   , field2: Formless.FormField \field -> ...
+-- | form <- useForm (\_ -> initialFormState) $ buildForm
+-- |   { field1: FormField \field -> ...
+-- |   , field2: FormField \field -> ...
 -- |   }
 -- | ```
 newtype BuildFormField (closed :: # Type) form m h fields value =
@@ -306,9 +306,9 @@ foreign import data UseBuildForm :: # Type -> Hooks.HookType
 -- | are using, rather than attempt to give the intermediate structure a type.
 -- |
 -- | ```purs
--- | form <- Formless.useForm (\_ -> Formless.initialFormState) $ Formless.buildForm
--- |   { field1: Formless.FormField \field -> ...
--- |   , field2: Formless.FormField \field -> ...
+-- | form <- useForm (\_ -> initialFormState) $ buildForm
+-- |   { field1: FormField \field -> ...
+-- |   , field2: FormField \field -> ...
 -- |   }
 -- | ```
 buildForm
@@ -399,7 +399,7 @@ instance foldingInitialFormState ::
 -- | or `useFormState` Hooks as an argument.
 -- |
 -- | ```purs
--- | form <- Formless.useFormState (\_ -> Formless.initialFormState) ...
+-- | form <- useFormState (\_ -> initialFormState) ...
 -- | ```
 initialFormState
   :: forall r rl
