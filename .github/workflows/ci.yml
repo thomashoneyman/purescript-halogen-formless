@@ -13,8 +13,5 @@ jobs:
       - name: Build source
         run: spago build
 
-      - name: Run tests
-        run: spago test
-
       - name: Build examples
         run: spago -x example/example.dhall build
