@@ -5,7 +5,7 @@ module Halogen.Hooks.Formless
   , UseFormState
   , UseForm
   , FormState
-  , UseFormResult
+  , FormInterface
   , FormFieldState'
   , ToFormState
   , ToFormOutput
@@ -14,7 +14,7 @@ module Halogen.Hooks.Formless
   , ToFormHooks
   , buildForm
   , FormField(..)
-  , FormFieldProps
+  , FormFieldInput
   , WithInput
   , WithValue
   , UseFormField
@@ -60,26 +60,26 @@ type FormFieldState' i =
   , value :: Maybe i
   }
 
-type FormFieldProps m i =
+type FormFieldInput m i =
   { onChange :: i -> HookM m Unit
   , touched :: Boolean
   , value :: Maybe i
   }
 
 newtype FormField m h ro i o =
-  FormField (FormFieldProps m i -> Hooks.Hook m h { | WithValue o ro })
+  FormField (FormFieldInput m i -> Hooks.Hook m h { | WithValue o ro })
 
 type WithInput m r = (input :: H.ComponentHTML (HookM m Unit) () m | r)
 type WithValue o r = (value :: Maybe o | r)
 
-type BuildFormFieldProps form m =
+type BuildFormFieldInput form m =
   { form :: { | form }
   , modifyForm :: ({ | form } -> { | form }) -> HookM m Unit
   }
 
 newtype BuildFormField (closed :: # Type) form m h fields value =
   BuildFormField
-    (BuildFormFieldProps form m
+    (BuildFormFieldInput form m
       -> Hooks.Hook m h { fields :: { | fields }, value :: Maybe { | value }})
 
 type UseFormField' h1 = h1 Hooks.<> Hooks.Pure
@@ -148,7 +148,7 @@ instance newtypeUseForm
   :: Hooks.HookEquals x (UseForm' form m h)
   => Hooks.HookNewtype (UseForm form m h) x
 
-type UseFormResult form m fields value =
+type FormInterface form m fields value =
   { dirty :: Boolean
   , fields :: { | fields }
   , form :: { | form }
@@ -174,7 +174,7 @@ useForm
   :: forall m h form fields value
    . BuildFormField form form m h fields value
   -> Tuple (FormState { | form }) ((FormState { | form } -> FormState { | form }) -> HookM m Unit)
-  -> Hooks.Hook m (UseForm form m h) (UseFormResult form m fields value)
+  -> Hooks.Hook m (UseForm form m h) (FormInterface form m fields value)
 useForm (BuildFormField step) ({ form, dirty } /\ modifyState) = Hooks.wrap Hooks.do
   modifyForm <- Hooks.captures {} Hooks.useMemo \_ fn ->
     modifyState \st -> { form: fn st.form, dirty: true }
@@ -194,7 +194,7 @@ useFormWithState
   :: forall m h form fields value
    . (Unit -> { | form })
   -> BuildFormField form form m h fields value
-  -> Hooks.Hook m (UseFormWithState form m h) (UseFormResult form m fields value)
+  -> Hooks.Hook m (UseFormWithState form m h) (FormInterface form m fields value)
 useFormWithState k = Hooks.bind (useFormState k) <<< useForm
 
 foreign import data UseBuildForm :: # Type -> Hooks.HookType
@@ -273,7 +273,7 @@ instance buildFormCons ::
 type UseFormRows m hooks form field value =
   Hooks.Hook m
     (UseForm form m (UseBuildForm hooks))
-    (UseFormResult form m field value)
+    (FormInterface form m field value)
 
 data InitialFormState = InitialFormState
 
