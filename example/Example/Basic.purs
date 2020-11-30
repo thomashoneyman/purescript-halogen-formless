@@ -18,14 +18,23 @@ import Type.Proxy (Proxy2(..))
 import Web.Event.Event (preventDefault)
 import Web.UIEvent.MouseEvent as ME
 
--- type Form f m =
---   { name :: f m (UseBasicInput NonEmptyString) (BasicInputInterface m) String NonEmptyString
---   , location :: f m (UseBasicInput String) (BasicInputInterface m) String String
---   }
-
 basic :: forall q i o m. MonadEffect m => H.Component HH.HTML q i o m
 basic = Hooks.component \_ _ -> Hooks.do
-  form <- useBasicForm (Proxy2 :: Proxy2 m)
+  -- We are using the compiler to infer our form type. When doing this, we need
+  -- to provide a proxy for our monad type, `m`, to each of our form inputs. This
+  -- aids the compiler in type inference.
+  let proxy = Proxy2 :: Proxy2 m
+
+  form <- useForm (\_ -> initialFormState) $ buildForm
+    { name: basicField proxy
+        { validate: note "Name is required." <<< NES.fromString
+        , initialValue: Just "Tom"
+        }
+    , message: basicField proxy
+        { validate: pure
+        , initialValue: Nothing
+        }
+    }
 
   Hooks.pure do
     HH.div_
@@ -39,20 +48,3 @@ basic = Hooks.component \_ _ -> Hooks.do
           ]
           [ HH.text "Submit!" ]
       ]
-  where
-  useBasicForm proxy = useForm (\_ -> initialFormState) $ buildForm
-    { name: basicField proxy
-        { validate: note "Name is required." <<< NES.fromString
-        , initialValue: Just "Tom"
-        }
-    , message: basicField proxy
-        { validate: pure
-        , initialValue: Nothing
-        }
-    }
-
-  -- useForm :: Hooks.Hook m (UseFormWithState (Form ToFormState m) m (UseBuildForm (Form ToFormHooks m))) (UseFormResult (Form ToFormState m) m (Form ToFormField m) (Form ToFormOutput m))
-  -- useForm = useFormWithState (\_ -> initialFormState) (buildForm formInputs)
-
-  -- built :: BuildFormInput (Form ToFormState m) (Form ToFormState m) m (UseBuildForm (Form ToFormHooks m)) (Form ToFormField m) (Form ToFormOutput m)
-  -- built = buildForm rawForm

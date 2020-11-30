@@ -1,4 +1,8 @@
-module Example.Annotated where
+-- | This example form uses an explicit type for its form fields. This can help
+-- | with type inference -- when using an explicit type you do not need to provide
+-- | a proxy for the `m` type parameter -- but most users prefer to let the
+-- | compiler infer types for their forms.
+module Example.BasicAnnotated where
 
 import Prelude
 
@@ -14,16 +18,16 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Hooks as Hooks
-import Halogen.Hooks.Formless (ToFormField, buildForm, initialFormState, useForm)
+import Halogen.Hooks.Formless (FormField, buildForm, initialFormState, useForm)
 import Web.Event.Event (preventDefault)
 import Web.UIEvent.MouseEvent as ME
 
-type Form f m =
-  { name :: f m ( UseBasicField NonEmptyString) (BasicFieldInterface m) String NonEmptyString
-  , message :: f m (UseBasicField String) (BasicFieldInterface m) String String
+type Form m =
+  { name :: FormField m (UseBasicField NonEmptyString) (BasicFieldInterface m) String NonEmptyString
+  , message :: FormField m (UseBasicField String) (BasicFieldInterface m) String String
   }
 
-formFields :: forall m. Form ToFormField m
+formFields :: forall m. Form m
 formFields =
   { name: basicField'
       { validate: note "Name is required." <<< NES.fromString
