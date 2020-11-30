@@ -13,7 +13,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Hooks as Hooks
-import Halogen.Hooks.Formless (buildForm, initialFormState, useFormFields, useFormState)
+import Halogen.Hooks.Formless (buildForm, initialFormState, useForm)
 import Type.Proxy (Proxy2(..))
 import Web.Event.Event (preventDefault)
 import Web.UIEvent.MouseEvent as ME
@@ -40,20 +40,16 @@ basic = Hooks.component \_ _ -> Hooks.do
           [ HH.text "Submit!" ]
       ]
   where
-  useBasicForm proxy = Hooks.do
-    state <- useFormState (\_ -> initialFormState)
-    useFormFields state $ buildForm
-      { name: basicField
-          { validate: note "Name is required." <<< NES.fromString
-          , initialValue: Just "Tom"
-          , proxy
-          }
-      , location: basicField
-          { validate: pure
-          , initialValue: Nothing
-          , proxy
-          }
-      }
+  useBasicForm proxy = useForm (\_ -> initialFormState) $ buildForm
+    { name: basicField proxy
+        { validate: note "Name is required." <<< NES.fromString
+        , initialValue: Just "Tom"
+        }
+    , location: basicField proxy
+        { validate: pure
+        , initialValue: Nothing
+        }
+    }
 
   -- useForm :: Hooks.Hook m (UseFormWithState (Form ToFormState m) m (UseBuildForm (Form ToFormHooks m))) (UseFormResult (Form ToFormState m) m (Form ToFormField m) (Form ToFormOutput m))
   -- useForm = useFormWithState (\_ -> initialFormState) (buildForm formInputs)

@@ -25,10 +25,9 @@ instance newtypeUseBasicField
   :: HookEquals (UseBasicField' a) h
   => HookNewtype (UseBasicField a) h
 
-type BasicFieldInput m a =
+type BasicFieldInput a =
   { validate :: String -> Either String a
   , initialValue :: Maybe String
-  , proxy :: Proxy2 m
   }
 
 type BasicFieldInterface m =
@@ -38,9 +37,10 @@ type BasicFieldInterface m =
 
 basicField
   :: forall m a
-   . BasicFieldInput m a
+   . Proxy2 m
+  -> BasicFieldInput a
   -> FormField m (UseBasicField a) (BasicFieldInterface m) String a
-basicField { initialValue, validate } = FormField \field -> Hooks.wrap Hooks.do
+basicField _ { initialValue, validate } = FormField \field -> Hooks.wrap Hooks.do
   let
     currentValue :: String
     currentValue
