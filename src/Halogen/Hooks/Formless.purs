@@ -170,10 +170,10 @@ useFormState initialForm = map (map Hooks.modify_) (Hooks.useState { touched: fa
 
 useFormFields
   :: forall m h form fields value
-   . BuildFormField form form m h fields value
-  -> Tuple (FormState { | form }) ((FormState { | form } -> FormState { | form }) -> HookM m Unit)
+   . Tuple (FormState { | form }) ((FormState { | form } -> FormState { | form }) -> HookM m Unit)
+  -> BuildFormField form form m h fields value
   -> Hooks.Hook m (UseFormFields form m h) (FormInterface form m fields value)
-useFormFields (BuildFormField step) ({ form, touched } /\ modifyState) = Hooks.wrap Hooks.do
+useFormFields ({ form, touched } /\ modifyState) (BuildFormField step) = Hooks.wrap Hooks.do
   modifyForm <- Hooks.captures {} Hooks.useMemo \_ fn ->
     modifyState \st -> { form: fn st.form, touched: true }
 
@@ -193,7 +193,7 @@ useForm
    . (Unit -> { | form })
   -> BuildFormField form form m h fields value
   -> Hooks.Hook m (UseForm form m h) (FormInterface form m fields value)
-useForm k = Hooks.bind (useFormState k) <<< useFormFields
+useForm k = Hooks.bind (useFormState k) <<< flip useFormFields
 
 foreign import data UseBuildForm :: # Type -> Hooks.HookType
 
