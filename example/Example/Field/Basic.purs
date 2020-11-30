@@ -13,7 +13,7 @@ import Halogen.HTML.Properties as HP
 import Halogen.Hooks (class HookEquals, class HookNewtype, HookM, kind HookType)
 import Halogen.Hooks as Hooks
 import Halogen.Hooks.Formless (FormField(..))
-import Type.Proxy (Proxy2)
+import Type.Proxy (Proxy2(..))
 
 foreign import data UseBasicField :: Type -> HookType
 
@@ -35,6 +35,12 @@ type BasicFieldInterface m =
   , input :: H.ComponentHTML (HookM m Unit) () m
   )
 
+basicField'
+  :: forall m a
+   . BasicFieldInput a
+  -> FormField m (UseBasicField a) (BasicFieldInterface m) String a
+basicField' = basicField (Proxy2 :: Proxy2 m)
+
 basicField
   :: forall m a
    . Proxy2 m
@@ -48,7 +54,7 @@ basicField _ { initialValue, validate } = FormField \field -> Hooks.wrap Hooks.d
       | Just value <- initialValue = value
       | otherwise = ""
 
-    input :: H.ComponentHTML (HookM m Unit) () m
+    input :: HH.HTML _ (HookM m Unit)
     input =
       HH.input
         [ HP.type_ InputText

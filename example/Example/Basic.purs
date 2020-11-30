@@ -30,7 +30,7 @@ basic = Hooks.component \_ _ -> Hooks.do
   Hooks.pure do
     HH.div_
       [ form.fields.name.input
-      , form.fields.location.input
+      , form.fields.message.input
       , HH.button
           [ HP.disabled (isNothing form.value || not form.touched)
           , HE.onClick \e -> Just do
@@ -45,7 +45,7 @@ basic = Hooks.component \_ _ -> Hooks.do
         { validate: note "Name is required." <<< NES.fromString
         , initialValue: Just "Tom"
         }
-    , location: basicField proxy
+    , message: basicField proxy
         { validate: pure
         , initialValue: Nothing
         }
