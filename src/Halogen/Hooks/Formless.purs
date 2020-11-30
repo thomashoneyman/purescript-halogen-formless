@@ -1,17 +1,25 @@
 module Halogen.Hooks.Formless
   ( useForm
   , useFormWithState
+  , UseFormWithState
+  , UseFormState
   , UseForm
   , FormState
   , UseFormResult
+  , FormFieldState'
+  , ToFormState
+  , ToFormOutput
+  , ToFormValue
+  , ToFormField
+  , ToFormHooks
   , buildForm
-  , FormInput(..)
-  , FormInputProps
+  , FormField(..)
+  , FormFieldProps
   , WithInput
   , WithValue
-  , UseFormInput
+  , UseFormField
   , class BuildForm
-  , BuildFormInput
+  , BuildFormField
   , UseBuildForm
   , buildFormStep
   , BuildFormFor
@@ -41,56 +49,60 @@ import Type.Equality as TE
 import Type.Proxy (Proxy)
 import Unsafe.Coerce (unsafeCoerce)
 
-type StateTuple m s = Tuple s ((s -> s) -> HookM m Unit)
+type ToFormState (m :: Type -> Type) (h :: Hooks.HookType) (ro :: # Type) i o = FormFieldState' i
+type ToFormOutput (m :: Type -> Type) (h :: Hooks.HookType) (ro :: # Type) i o = o
+type ToFormValue (m :: Type -> Type) (h :: Hooks.HookType) (ro :: # Type) i o = { | WithValue o ro }
+type ToFormHooks (m :: Type -> Type) (h :: Hooks.HookType) (ro :: # Type) i o = HProxy h
+type ToFormField (m :: Type -> Type) (h :: Hooks.HookType) (ro :: # Type) i o = FormField m h ro i o
 
-type FormInputState' i =
+type FormFieldState' i =
   { touched :: Boolean
   , value :: Maybe i
   }
 
-type FormInputProps m i =
+type FormFieldProps m i =
   { onChange :: i -> HookM m Unit
   , touched :: Boolean
   , value :: Maybe i
   }
 
-newtype FormInput m h ro i o =
-  FormInput (FormInputProps m i -> Hooks.Hook m h { | WithValue o ro })
+newtype FormField m h ro i o =
+  FormField (FormFieldProps m i -> Hooks.Hook m h { | WithValue o ro })
 
 type WithInput m r = (input :: H.ComponentHTML (HookM m Unit) () m | r)
 type WithValue o r = (value :: Maybe o | r)
 
-type BuildFormInputProps form m =
+type BuildFormFieldProps form m =
   { form :: { | form }
   , modifyForm :: ({ | form } -> { | form }) -> HookM m Unit
   }
 
-newtype BuildFormInput (closed :: # Type) form m h fields value =
-  BuildFormInput
-    (BuildFormInputProps form m
+newtype BuildFormField (closed :: # Type) form m h fields value =
+  BuildFormField
+    (BuildFormFieldProps form m
       -> Hooks.Hook m h { fields :: { | fields }, value :: Maybe { | value }})
 
-type UseFormInput' h1 = h1 Hooks.<> Hooks.Pure
+type UseFormField' h1 = h1 Hooks.<> Hooks.Pure
 
-foreign import data UseFormInput :: Hooks.HookType -> Hooks.HookType
+foreign import data UseFormField :: Hooks.HookType -> Hooks.HookType
 
-instance newtypeUseFormInput
-  :: Hooks.HookEquals x (UseFormInput' h1)
-  => Hooks.HookNewtype (UseFormInput h1) x
+instance newtypeUseFormField
+  :: Hooks.HookEquals x (UseFormField' h1)
+  => Hooks.HookNewtype (UseFormField h1) x
 
-buildFormInput
+buildFormField
   :: forall sym m h ro i o form' form closed fields value
    . IsSymbol sym
-  => Row.Cons sym (FormInputState' i) form' form
-  => Row.Cons sym (FormInputState' i) () closed
+  => Row.Cons sym (FormFieldState' i) form' form
+  => Row.Cons sym (FormFieldState' i) () closed
   => Row.Cons sym { | WithValue o ro } () fields
   => Row.Cons sym o () value
   => Row.Lacks sym ()
   => SProxy sym
-  -> FormInput m h ro i o
-  -> BuildFormInput closed form m (UseFormInput h) fields value
-buildFormInput sym (FormInput formInput) =
-  BuildFormInput \{ form, modifyForm } -> Hooks.wrap Hooks.do
+  -> FormField m h ro i o
+  -> BuildFormField closed form m (UseFormField h) fields value
+buildFormField sym (FormField formInput) =
+  BuildFormField \{ form, modifyForm } -> Hooks.wrap Hooks.do
     let { touched, value } = Record.get sym form
     let onChange = modifyForm <<< Record.set sym <<< { touched: true, value: _ } <<< Just
     result <- formInput { onChange, touched, value }
@@ -98,27 +110,27 @@ buildFormInput sym (FormInput formInput) =
     let value = flip (Record.insert sym) {} <$> result.value
     Hooks.pure { fields, value }
 
-type UseMergedFormInputs' h1 h2 =
+type UseMergedFormFields' h1 h2 =
   h1
     Hooks.<> h2
     Hooks.<> Hooks.Pure
 
-foreign import data UseMergedFormInputs :: Hooks.HookType -> Hooks.HookType -> Hooks.HookType
+foreign import data UseMergedFormFields :: Hooks.HookType -> Hooks.HookType -> Hooks.HookType
 
-instance newtypeUseMergedFormInputs
-  :: Hooks.HookEquals x (UseMergedFormInputs' h1 h2)
-  => Hooks.HookNewtype (UseMergedFormInputs h1 h2) x
+instance newtypeUseMergedFormFields
+  :: Hooks.HookEquals x (UseMergedFormFields' h1 h2)
+  => Hooks.HookNewtype (UseMergedFormFields h1 h2) x
 
-mergeFormInputs
+mergeFormFields
   :: forall form m h1 h2 fields1 fields2 fields3 value1 value2 value3 closed1 closed2 closed3
    . Row.Union fields1 fields2 fields3
   => Row.Union value1 value2 value3
   => Row.Union closed1 closed2 closed3
-  => BuildFormInput closed1 form m h1 fields1 value1
-  -> BuildFormInput closed2 form m h2 fields2 value2
-  -> BuildFormInput closed3 form m (UseMergedFormInputs h1 h2) fields3 value3
-mergeFormInputs (BuildFormInput step1) (BuildFormInput step2) =
-  BuildFormInput \props -> Hooks.wrap Hooks.do
+  => BuildFormField closed1 form m h1 fields1 value1
+  -> BuildFormField closed2 form m h2 fields2 value2
+  -> BuildFormField closed3 form m (UseMergedFormFields h1 h2) fields3 value3
+mergeFormFields (BuildFormField step1) (BuildFormField step2) =
+  BuildFormField \props -> Hooks.wrap Hooks.do
     result1 <- step1 props
     result2 <- step2 props
     let fields = Record.union result1.fields result2.fields
@@ -152,15 +164,18 @@ type FormState form =
 type UseFormState form =
   Hooks.UseState (FormState form)
 
-useFormState :: forall form m. (Unit -> form) -> Hooks.Hook m (UseFormState form) (StateTuple m (FormState form))
+useFormState
+  :: forall form m
+   . (Unit -> form)
+  -> Hooks.Hook m (UseFormState form) (Tuple (FormState form) ((FormState form -> FormState form) -> HookM m Unit))
 useFormState initialForm = map (map Hooks.modify_) (Hooks.useState { dirty: false, form: initialForm unit })
 
 useForm
   :: forall m h form fields value
-   . BuildFormInput form form m h fields value
-  -> StateTuple m (FormState { | form })
+   . BuildFormField form form m h fields value
+  -> Tuple (FormState { | form }) ((FormState { | form } -> FormState { | form }) -> HookM m Unit)
   -> Hooks.Hook m (UseForm form m h) (UseFormResult form m fields value)
-useForm (BuildFormInput step) ({ form, dirty } /\ modifyState) = Hooks.wrap Hooks.do
+useForm (BuildFormField step) ({ form, dirty } /\ modifyState) = Hooks.wrap Hooks.do
   modifyForm <- Hooks.captures {} Hooks.useMemo \_ fn ->
     modifyState \st -> { form: fn st.form, dirty: true }
 
@@ -178,45 +193,40 @@ type UseFormWithState form m h =
 useFormWithState
   :: forall m h form fields value
    . (Unit -> { | form })
-  -> BuildFormInput form form m h fields value
+  -> BuildFormField form form m h fields value
   -> Hooks.Hook m (UseFormWithState form m h) (UseFormResult form m fields value)
 useFormWithState k = Hooks.bind (useFormState k) <<< useForm
-
-type FormInputState (h :: Hooks.HookType) (ro :: # Type) i o = Maybe i
-type FormInputValue (h :: Hooks.HookType) (ro :: # Type) i o = o
-type FormInputField (h :: Hooks.HookType) (ro :: # Type) i o = { | WithValue o ro }
-type FormInputHooks (h :: Hooks.HookType) (ro :: # Type) i o = HProxy h
 
 foreign import data UseBuildForm :: # Type -> Hooks.HookType
 
 buildForm
   :: forall r r' sym m h2 ro i o tail form' form closed2 closed3 h3 fields2 fields3 value2 value3 hform hform'
-   . RowList.RowToList r (RowList.Cons sym (FormInput m h2 ro i o) tail)
-  => Row.Cons sym (FormInput m h2 ro i o) r' r
+   . RowList.RowToList r (RowList.Cons sym (FormField m h2 ro i o) tail)
+  => Row.Cons sym (FormField m h2 ro i o) r' r
   => IsSymbol sym
   => BuildForm r tail
-      (BuildFormInput closed2 form m (UseFormInput h2) fields2 value2)
-      (BuildFormInput closed3 form m h3 fields3 value3)
+      (BuildFormField closed2 form m (UseFormField h2) fields2 value2)
+      (BuildFormField closed3 form m h3 fields3 value3)
       hform'
-  => Row.Cons sym (FormInputState' i) form' form
-  => Row.Cons sym (FormInputState' i) () closed2
+  => Row.Cons sym (FormFieldState' i) form' form
+  => Row.Cons sym (FormFieldState' i) () closed2
   => Row.Cons sym { | WithValue o ro } () fields2
   => Row.Cons sym o () value2
   => Row.Cons sym (HProxy h2) hform' hform
   => Row.Lacks sym ()
   => { | r }
-  -> BuildFormInput closed3 form m (UseBuildForm hform) fields3 value3
+  -> BuildFormField closed3 form m (UseBuildForm hform) fields3 value3
 buildForm inputs = do
   let
-    input :: FormInput m h2 ro i o
+    input :: FormField m h2 ro i o
     input = Record.get (SProxy :: _ sym) inputs
 
-    builder :: BuildFormInput closed2 form m (UseFormInput h2) fields2 value2
-    builder = buildFormInput (SProxy :: _ sym) input
+    builder :: BuildFormField closed2 form m (UseFormField h2) fields2 value2
+    builder = buildFormField (SProxy :: _ sym) input
 
   (unsafeCoerce
-    :: BuildFormInput closed3 form m h3 fields3 value3
-    -> BuildFormInput closed3 form m (UseBuildForm hform) fields3 value3) $
+    :: BuildFormField closed3 form m h3 fields3 value3
+    -> BuildFormField closed3 form m (UseBuildForm hform) fields3 value3) $
     buildFormStep (BuildFormFor inputs :: BuildFormFor r tail) builder
 
 newtype BuildFormFor (r :: # Type) (rl :: RowList) = BuildFormFor { | r }
@@ -229,34 +239,34 @@ instance buildFormNil :: BuildForm r RowList.Nil builder1 builder1 () where
 
 instance buildFormCons ::
   ( BuildForm r tail
-      (BuildFormInput closed2 form m (UseMergedFormInputs h1 (UseFormInput h2)) fields2 value2)
-      (BuildFormInput closed3 form m h3 fields3 value3)
+      (BuildFormField closed2 form m (UseMergedFormFields h1 (UseFormField h2)) fields2 value2)
+      (BuildFormField closed3 form m h3 fields3 value3)
       hform'
   , Row.Union fields1 fields' fields2
   , Row.Union value1 value' value2
   , Row.Union closed1 closed' closed2
   , IsSymbol sym
-  , Row.Cons sym (FormInputState' i) form' form
-  , Row.Cons sym (FormInputState' i) () closed'
+  , Row.Cons sym (FormFieldState' i) form' form
+  , Row.Cons sym (FormFieldState' i) () closed'
   , Row.Cons sym { | WithValue o ro } () fields'
   , Row.Cons sym o () value'
   , Row.Lacks sym ()
-  , Row.Cons sym (FormInput m h2 ro i o) r' r
+  , Row.Cons sym (FormField m h2 ro i o) r' r
   , Row.Cons sym (HProxy h2) hform' hform
   ) =>
   BuildForm r
-    (RowList.Cons sym (FormInput m h2 ro i o) tail)
-    (BuildFormInput closed1 form m h1 fields1 value1)
-    (BuildFormInput closed3 form m h3 fields3 value3)
+    (RowList.Cons sym (FormField m h2 ro i o) tail)
+    (BuildFormField closed1 form m h1 fields1 value1)
+    (BuildFormField closed3 form m h3 fields3 value3)
     hform
   where
   buildFormStep (BuildFormFor inputs) builder = do
     let
-      input :: FormInput m h2 ro i o
+      input :: FormField m h2 ro i o
       input = Record.get (SProxy :: _ sym) inputs
 
-      builder' :: BuildFormInput closed2 form m (UseMergedFormInputs h1 (UseFormInput h2)) fields2 value2
-      builder' = mergeFormInputs builder (buildFormInput (SProxy :: _ sym) input)
+      builder' :: BuildFormField closed2 form m (UseMergedFormFields h1 (UseFormField h2)) fields2 value2
+      builder' = mergeFormFields builder (buildFormField (SProxy :: _ sym) input)
 
     buildFormStep (BuildFormFor inputs :: BuildFormFor r tail) builder'
 
@@ -268,7 +278,7 @@ type UseFormRows m hooks form field value =
 data InitialFormState = InitialFormState
 
 instance foldingInitialFormState ::
-  ( TE.TypeEquals (FormInputState' a) formInputState
+  ( TE.TypeEquals (FormFieldState' a) formInputState
   , Row.Cons sym formInputState rb rc
   , Row.Lacks sym rb
   , IsSymbol sym

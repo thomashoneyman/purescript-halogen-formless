@@ -12,7 +12,7 @@ import Halogen.HTML.Properties (InputType(..))
 import Halogen.HTML.Properties as HP
 import Halogen.Hooks (class HookEquals, class HookNewtype, HookM, kind HookType)
 import Halogen.Hooks as Hooks
-import Halogen.Hooks.Formless (FormInput(..))
+import Halogen.Hooks.Formless (FormField(..))
 import Type.Proxy (Proxy2)
 
 foreign import data UseBasicInput :: Type -> HookType
@@ -25,9 +25,10 @@ instance newtypeUseBasicInput
   :: HookEquals (UseBasicInput' a) h
   => HookNewtype (UseBasicInput a) h
 
-type BasicInput a =
+type BasicInput m a =
   { validate :: String -> Either String a
   , initialValue :: Maybe String
+  , proxy :: Proxy2 m
   }
 
 type BasicInputInterface m =
@@ -37,10 +38,9 @@ type BasicInputInterface m =
 
 basicInput
   :: forall m a
-   . Proxy2 m
-  -> BasicInput a
-  -> FormInput m (UseBasicInput a) (BasicInputInterface m) String a
-basicInput _ { initialValue, validate } = FormInput \field -> Hooks.wrap Hooks.do
+   . BasicInput m a
+  -> FormField m (UseBasicInput a) (BasicInputInterface m) String a
+basicInput { initialValue, validate } = FormField \field -> Hooks.wrap Hooks.do
   let
     currentValue :: String
     currentValue
