@@ -4,7 +4,7 @@ import Prelude
 
 import Data.Either (Either, hush)
 import Data.Lens (_Left, preview)
-import Data.Maybe (Maybe(..), isJust)
+import Data.Maybe (Maybe(..), maybe)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -30,10 +30,7 @@ type BasicFieldInput a =
   , initialValue :: Maybe String
   }
 
-type BasicFieldInterface m =
-  ( error :: Maybe String
-  , input :: H.ComponentHTML (HookM m Unit) () m
-  )
+type BasicFieldInterface m = ( input :: H.ComponentHTML (HookM m Unit) () m )
 
 -- | This basic text field can be used when the form type is being inferred by
 -- | the compiler. The proxy helps the compiler prove that all of the `m` used
@@ -64,21 +61,24 @@ basicField' { initialValue, validate } = FormField \field -> Hooks.wrap Hooks.do
       | Just value <- initialValue = value
       | otherwise = ""
 
-    input :: HH.HTML _ (HookM m Unit)
-    input =
-      HH.input
-        [ HP.type_ InputText
-        , HP.value currentValue
-        , HE.onValueInput (Just <<< field.onChange)
-        ]
-
   isValid <- useValidate currentValue
 
-  Hooks.pure
-    { input
-    , error: if isJust field.value then preview _Left isValid else Nothing
-    , value: hush isValid
-    }
+  let
+    input :: HH.HTML _ (HookM m Unit)
+    input =
+      HH.div
+        [ ]
+        [ HH.input
+            [ HP.type_ InputText
+            , HP.value currentValue
+            , HE.onValueInput (Just <<< field.onChange)
+            ]
+        , case field.value of
+            Nothing -> HH.text ""
+            Just _ -> maybe (HH.text "") HH.text (preview _Left isValid)
+        ]
+
+  Hooks.pure { input, value: hush isValid }
   where
   useValidate value =
     Hooks.captures { value } Hooks.useMemo \_ ->
