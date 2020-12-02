@@ -177,6 +177,39 @@ Let's break it down.
 
 Please see the examples for a larger set of form fields you might wish to use as building blocks in your application.
 
+### The Result
+
+```purs
+contactForm :: forall q i o m. MonadEffect m => H.Component q i o m
+contactForm = Hooks.component \_ _ -> Hooks.do
+  form <- Formless.useForm (\_ -> Formless.initialFormState) $ Formless.buildForm
+    { firstName: requiredField (Proxy2 :: _ m)
+    , lastName: requiredField (Proxy2 :: _ m)
+    , message: Formless.FormField (Proxy2 :: _ m) \field -> Hooks.do
+        let
+          input =
+            HH.textarea
+              [ HE.onValueInput (Just <<< field.onChange)
+              , HP.value (fromMaybe "" field.value)
+              ]
+
+        Hooks.pure { value: field.value, input }
+    }
+
+  Hooks.pure $
+    HH.form
+      [ HE.onSubmit (Just <<< liftEffect <<< Web.Event.preventDefault) ]
+      [ form.fields.firstName.input
+      [ form.fields.lastName.input
+      , form.fields.message.input
+      , HH.button
+          [ HP.type_ HH.ButtonSubmit
+          , HP.disabled (isNothing form.value || not form.touched)
+          ]
+          [ HH.text "Submit" ]
+      ]
+```
+
 ## Next Steps
 
 Ready to move past this simple example? Check out the examples, which vary in their complexity:
