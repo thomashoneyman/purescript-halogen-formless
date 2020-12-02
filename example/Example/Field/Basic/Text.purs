@@ -1,10 +1,10 @@
-module Example.Field.Basic where
+module Example.Field.Basic.Text where
 
 import Prelude
 
 import Data.Either (Either, hush)
 import Data.Lens (_Left, preview)
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -15,32 +15,21 @@ import Halogen.Hooks as Hooks
 import Halogen.Hooks.Formless (FormField(..))
 import Type.Proxy (Proxy2)
 
-foreign import data UseBasicField :: Type -> HookType
+foreign import data UseBasicTextField :: Type -> HookType
 
-type UseBasicField' a =
+type UseBasicTextField' a =
   Hooks.UseMemo (Either String a)
     Hooks.<> Hooks.Pure
 
-instance newtypeUseBasicField
-  :: HookEquals (UseBasicField' a) h
-  => HookNewtype (UseBasicField a) h
+instance newtypeUseBasicTextField
+  :: HookEquals (UseBasicTextField' a) h
+  => HookNewtype (UseBasicTextField a) h
 
-type BasicFieldInput a =
+type BasicTextFieldInput a =
   { validate :: String -> Either String a
-  , initialValue :: Maybe String
   }
 
-type BasicFieldInterface m = ( input :: H.ComponentHTML (HookM m Unit) () m )
-
--- | This basic text field can be used when the form type is being inferred by
--- | the compiler. The proxy helps the compiler prove that all of the `m` used
--- | in your form are the same.
-basicField
-  :: forall m a
-   . Proxy2 m
-  -> BasicFieldInput a
-  -> FormField m (UseBasicField a) (BasicFieldInterface m) String a
-basicField _ = basicField'
+type BasicTextFieldInterface m = ( input :: H.ComponentHTML (HookM m Unit) () m )
 
 -- | This basic text field accepts an initial value and a validation function
 -- | and it returns a possible error value and an input you can render. You can
@@ -49,19 +38,17 @@ basicField _ = basicField'
 -- |
 -- | It demonstrates a simple example building block you may wish to use in forms
 -- | in your application.
-basicField'
+textField
   :: forall m a
-   . BasicFieldInput a
-  -> FormField m (UseBasicField a) (BasicFieldInterface m) String a
-basicField' { initialValue, validate } = FormField \field -> Hooks.wrap Hooks.do
+   . Proxy2 m
+  -> BasicTextFieldInput a
+  -> FormField m (UseBasicTextField a) (BasicTextFieldInterface m) String a
+textField proxy { validate } = FormField proxy \field -> Hooks.wrap Hooks.do
   let
     currentValue :: String
-    currentValue
-      | Just value <- field.value = value
-      | Just value <- initialValue = value
-      | otherwise = ""
+    currentValue = fromMaybe "" field.value
 
-  isValid <- useValidate currentValue
+  isValid <- Hooks.captures { currentValue } Hooks.useMemo \_ -> validate currentValue
 
   let
     input :: HH.HTML _ (HookM m Unit)
@@ -79,7 +66,3 @@ basicField' { initialValue, validate } = FormField \field -> Hooks.wrap Hooks.do
         ]
 
   Hooks.pure { input, value: hush isValid }
-  where
-  useValidate value =
-    Hooks.captures { value } Hooks.useMemo \_ ->
-      validate value

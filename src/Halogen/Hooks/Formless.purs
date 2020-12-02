@@ -38,7 +38,7 @@ import Record.Builder (Builder)
 import Record.Builder as Builder
 import Type.Data.RowList (RLProxy(..))
 import Type.Equality as TE
-import Type.Proxy (Proxy)
+import Type.Proxy (Proxy, Proxy2)
 import Unsafe.Coerce (unsafeCoerce)
 
 -- | Input provided to a `FormField`, which can be used to implement the field.
@@ -47,9 +47,11 @@ import Unsafe.Coerce (unsafeCoerce)
 -- |   the field changes.
 -- | - `value`: The current value of this form field in the form state, where
 -- |   `Nothing` means the field has not been touched by the user yet.
+-- | - `reset`: Set the field back to `Nothing`
 type FormFieldInput m i =
   { onChange :: i -> HookM m Unit
   , value :: Maybe i
+  , reset :: HookM m Unit
   }
 
 -- | The basic building block of forms, where a Formless form is a record of
@@ -66,7 +68,7 @@ type FormFieldInput m i =
 -- | - `i`: The input type for this form field.
 -- | - `o`: The output type for this form field. A form is only considered valid
 -- |   when output types are present for all fields in the form.
-newtype FormField m h ro i o = FormField (FormFieldInput m i -> Hooks.Hook m h { value :: Maybe o | ro })
+data FormField m h ro i o = FormField (Proxy2 m) (FormFieldInput m i -> Hooks.Hook m h { value :: Maybe o | ro })
 
 -- | The interface returned by the `useForm` and `useFormFields` Hooks.
 -- |
@@ -259,13 +261,19 @@ buildFormField
   => SProxy sym
   -> FormField m h ro i o
   -> BuildFormField closed form m (UseFormField h) fields value
-buildFormField sym (FormField formField) =
+buildFormField sym (FormField _ formField) =
   BuildFormField \{ form, modifyForm } -> Hooks.wrap Hooks.do
-    let fieldValue = Record.get sym form
-    let onChange = modifyForm <<< Record.set sym <<< Just
-    result <- formField { onChange, value: fieldValue }
-    let fields = Record.insert sym result {}
-    let value = flip (Record.insert sym) {} <$> result.value
+    let
+      fieldValue = Record.get sym form
+      onChange = modifyForm <<< Record.set sym <<< Just
+      reset = modifyForm (Record.set sym Nothing)
+
+    result <- formField { onChange, value: fieldValue, reset }
+
+    let
+      fields = Record.insert sym result {}
+      value = flip (Record.insert sym) {} <$> result.value
+
     Hooks.pure { fields, value }
 
 type UseMergedFormFields' h1 h2 =

@@ -7,35 +7,40 @@ module Example.BasicAnnotated where
 import Prelude
 
 import Data.Either (note)
-import Data.Maybe (Maybe(..), isNothing)
+import Data.Maybe (Maybe(..), fromMaybe, isNothing)
 import Data.String.NonEmpty (NonEmptyString)
 import Data.String.NonEmpty as NES
 import Effect.Class (class MonadEffect, liftEffect)
-import Effect.Class.Console (logShow)
-import Example.Field.Basic (BasicFieldInterface, UseBasicField, basicField')
+import Example.Field.Basic.Text (UseBasicTextField, BasicTextFieldInterface, textField)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Halogen.Hooks (HookM)
 import Halogen.Hooks as Hooks
-import Halogen.Hooks.Formless (FormField, buildForm, initialFormState, useForm)
+import Halogen.Hooks.Formless (FormField(..), buildForm, initialFormState, useForm)
+import Type.Proxy (Proxy2(..))
 import Web.Event.Event (preventDefault)
-import Web.UIEvent.MouseEvent as ME
+import Web.HTML as HTML
+import Web.HTML.Window as Window
 
-type FormFields m =
-  { name :: FormField m (UseBasicField NonEmptyString) (BasicFieldInterface m) String NonEmptyString
-  , message :: FormField m (UseBasicField String) (BasicFieldInterface m) String String
+type Form f m =
+  { name :: f m (UseBasicTextField NonEmptyString) (BasicTextFieldInterface m) String NonEmptyString
+  , message :: f m Hooks.Pure (input :: HH.ComponentHTML (HookM m Unit) () m) String String
   }
 
-fields :: forall m. FormFields m
+fields :: forall m. Form FormField m
 fields =
-  { name: basicField'
-      { validate: note "Name is required." <<< NES.fromString
-      , initialValue: Just "Tom"
-      }
-  , message: basicField'
-      { validate: pure
-      , initialValue: Nothing
+  { name: textField Proxy2 { validate: note "Name is required." <<< NES.fromString }
+  , message: FormField Proxy2 \field -> Hooks.pure
+      { input:
+          HH.div_
+            [ HH.input
+                [ HP.value (fromMaybe "" field.value)
+                , HE.onValueInput (Just <<< field.onChange)
+                ]
+            ]
+      , value: field.value
       }
   }
 
@@ -44,14 +49,16 @@ basic = Hooks.component \_ _ -> Hooks.do
   form <- useForm (\_ -> initialFormState) (buildForm fields)
 
   Hooks.pure do
-    HH.div_
+    HH.form
+      [ HE.onSubmit \ev -> Just $ liftEffect do
+          preventDefault ev
+          HTML.window >>= Window.alert (show form.value)
+      ]
       [ form.fields.name.input
       , form.fields.message.input
       , HH.button
           [ HP.disabled (isNothing form.value || not form.touched)
-          , HE.onClick \e -> Just do
-              liftEffect (preventDefault (ME.toEvent e))
-              logShow form.value
+          , HP.type_ HP.ButtonSubmit
           ]
           [ HH.text "Submit!" ]
       ]

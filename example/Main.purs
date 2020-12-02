@@ -8,6 +8,7 @@ import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Aff (Aff)
 import Example.Basic (basic)
+import Example.MutualDependency (mutualDependency)
 import Foreign.Object as Object
 import Halogen as H
 import Halogen.Aff as HA
@@ -19,6 +20,7 @@ stories :: Stories Aff
 stories = Object.fromFoldable
   [ Tuple "" $ proxy home
   , Tuple "basic" $ proxy $ H.mkComponent { initialState: identity, eval: H.mkEval H.defaultEval, render: \_ -> HH.slot (SProxy :: SProxy "?") 0 basic {} absurd }
+  , Tuple "mutual-dependency" $ proxy $ H.mkComponent { initialState: identity, eval: H.mkEval H.defaultEval, render: \_ -> HH.slot (SProxy :: SProxy "!") 0 mutualDependency {} absurd }
   -- , Tuple "external-components" $ proxy ExternalComponents.component
   -- , Tuple "async" $ proxy Async.component
   -- , Tuple "nested" $ proxy Nested.component

@@ -5,7 +5,7 @@
 [![Latest package set](https://img.shields.io/endpoint.svg?url=https://package-sets-badge-0lf69kxs4fbd.runkit.sh/halogen-formless)](https://github.com/purescript/package-sets)
 [![Maintainer: thomashoneyman](https://img.shields.io/badge/maintainer-thomashoneyman-lightgrey.svg)](http://github.com/thomashoneyman)
 
-Formless is a flexible, extensible, type-safe Halogen component for building forms without boilerplate.
+Formless helps you build pain-free forms using Halogen Hooks. This Hook provides essential building blocks for building form utilities specific to the needs of your application, and otherwise tries to stay out of your way.
 
 - [Examples & documentation site](https://thomashoneyman.github.io/purescript-halogen-formless/)
 - [Source code for examples](https://github.com/thomashoneyman/purescript-halogen-formless/tree/main/example)
@@ -20,120 +20,162 @@ spago install halogen-formless
 
 ## Quick Start
 
-You can write a basic Formless form in just a few lines of code. You are responsible for providing just a few pieces of information.
+You can write a basic Formless form in just a few lines of code. In Formless, a _form_ is made up of a set of _fields_. You are responsible for providing the set of fields in your form, and Formless will build a form from them and manage your fields on your behalf. Formless doesn't come with any fields out of the box: you'll need to write your own for your application.
 
-First, a form type that describes the fields in your form, along with their validation error type, user input type, and validated output type. Note: you can provide whatever custom error types you'd like, use `Void` to represent no possible errors, parse to whatever type you want, and none of your fields need to share any types.
+Let's walk through implementing a simple contact form. Once implemented, we'll extract relevant parts of the form into reusable helpers we can use throughout our application. This short demonstration is just one way to organize your own forms code, but Formless is flexible: feel free to use your own patterns!
 
-```purescript
-import Prelude
-import Data.Newtype (class Newtype, unwrap)
+### A Simple Contact Form
 
-type Dog = { name :: String, age :: Age }
+Here's a simple contact form implemented with Formless:
 
-newtype Age = Age Int
+```purs
+contactForm :: forall q i o m. MonadEffect m => H.Component q i o m
+contactForm = Hooks.component \_ _ -> Hooks.do
+  -- [1]: Create the form with `useForm`, `initialFormState`, and `buildForm`.
+  form <- Formless.useForm (\_ -> Formless.initialFormState) $ Formless.buildForm
+  -- [2]: Provide `buildForm` with a set of `FormField` to build.
+    { firstName: Formless.FormField (Proxy2 :: _ m) \field -> Hooks.do
+  -- [3]: Implement the form field using the provided `FormFieldInput`.
+        let
+          currentValue = fromMaybe "" field.value
+          validated = NonEmptyString.fromString currentValue
+          input =
+            HH.input
+              [ HE.onValueInput (Just <<< field.onChange)
+              , HP.value currentValue
+              ]
 
-derive instance newtypeAge :: Newtype Age _
+  -- [4]: Return at least a `value`, and also any additional fields you want to.
+  --      In this case, we are also returning an `input` field which contains
+  --      the rendered HTML for the form field. Note that our `value` here is
+  --      not a string, but rather a `NonEmptyString` -- we've parsed an output
+  --      value for the field which is not the same as its input value.
+        Hooks.pure { value: validated, input }
 
-instance showAge :: Show Age where
-  show = show <<< unwrap
+    , lastName: Formless.FormField (Proxy2 :: _ m) \field -> Hooks.do
+        let
+          currentValue = fromMaybe "" field.value
+          validated = NonEmptyString.fromString currentValue
+          input =
+            HH.input
+              [ HE.onValueInput (Just <<< field.onChange)
+              , HP.value currentValue
+              ]
 
-data AgeError = TooLow | TooHigh | InvalidInt
+        Hooks.pure { value: validated, input }
 
-newtype DogForm r f = DogForm (r
-  --          error    input  output
-  ( name :: f Void     String String
-  , age  :: f AgeError String Age
-  ))
+    , message: Formless.FormField (Proxy2 :: _ m) \field -> Hooks.do
+        let
+          input =
+            HH.textarea
+              [ HE.onValueInput (Just <<< field.onChange)
+              , HP.value (fromMaybe "" field.value)
+              ]
 
-derive instance newtypeDogForm :: Newtype (DogForm r f) _
-```
+        Hooks.pure { value: field.value, input }
+    }
 
-Next, the component input, which is made up of initial values and validation functions for each field in your form. Note: with your form type complete, the compiler will verify that your inputs are of the right type, that your validation takes the right input type, produces the right error type, and parses to the right output type, that fields exist at these proper keys, and more. There's no loss in type safety here! Plus, your validation functions can easily reference the value of other fields in the form, perform monadic effects, get debounced before running, and more.
-
-You can generate sensible defaults for all input fields in your form by setting `initialInputs` to `Nothing`, or you can manually provide the starting value for each field in your form.
-
-```purescript
-import Data.Either (Either(..))
-import Data.Int as Int
-import Data.Maybe (Maybe(..))
-import Formless as F
-
-input :: forall m. Monad m => F.Input' DogForm m
-input =
-  { initialInputs: Nothing -- same as: Just (F.wrapInputFields { name: "", age: "" })
-  , validators: DogForm
-      { name: F.noValidation
-      , age: F.hoistFnE_ \str -> case Int.fromString str of
-          Nothing -> Left InvalidInt
-          Just n
-            | n < 0 -> Left TooLow
-            | n > 30 -> Left TooHigh
-            | otherwise -> Right (Age n)
-      }
-  }
-```
-
-Finally, the component spec, which is made up of a number of optional functions and types you can use to extend the Formless component. At minimum you will need to provide your own render function that describes how your form should be presented to the user. But you can also freely extend the Formless state, query, action, child slots, and message types, as well as provide your own handlers for your extended queries, actions, and child slots, and handle Formless messages internally without leaking information to a parent. You can extend Formless to an incredible degree -- or you can keep things simple and just provide render function. All extensions are optional.
-
-For our small form, we'll do two things: we'll provide a render function, and when the form is submitted, we'll output a `Dog` to parent components. Along the way we'll wire things up so that input fields display their current value from form state; typing into an input field updates its value in state, also running the correct validation function; we'll display the validation error for `age` if there is one; and we'll wire up a submit button.
-
-Note: If you would like to have your form raise no messages (rare), do not supply a `handleEvent` function. If you would like to raise the usual Formless messages (`Changed`, `Submitted`), then provide `H.raise` as your `handleEvent` function. If you would like to simply raise your form's validated output type (`Dog`, in this example), then provide `F.raiseResult` as your `handleEvent` function. Finally, if you want to do something else, you can write a custom function that does whatever you would like.
-
-```purescript
-import Data.Symbol (SProxy(..))
-import Halogen.HTML as HH
-import Halogen.HTML.Events as HE
-import Halogen.HTML.Properties as HP
-
-spec :: forall input m. Monad m => F.Spec' DogForm Dog input m
-spec = F.defaultSpec { render = render, handleEvent = F.raiseResult }
-  where
-  render st@{ form } =
-    HH.form_
-      [ HH.input
-          [ HP.value $ F.getInput _name form
-          , HE.onValueInput $ Just <<< F.set _name
-          ]
-      , HH.input
-          [ HP.value $ F.getInput _age form
-          , HE.onValueInput $ Just <<< F.setValidate _age
-          ]
-      , HH.text case F.getError _age form of
-          Nothing -> ""
-          Just InvalidInt -> "Age must be an integer"
-          Just TooLow -> "Age cannot be negative"
-          Just TooHigh -> "No dog has lived past 30 before"
+  Hooks.pure $
+    HH.form
+      [ HE.onSubmit (Just <<< liftEffect <<< Web.Event.preventDefault) ]
+  -- [5]: Render the form fields returned by Formless. You can use the field
+  --      value and any other record fields you included (in our case, the extra
+  --      `input` field).
+      [ form.fields.name.input
+      , form.fields.message.input
       , HH.button
-          [ HE.onClick \_ -> Just F.submit ]
+  -- [6]: Use other form metadata, like whether the whole form is valid or
+  --      whether the form has been touched to implement your render code. Here,
+  --      we only enable submission if the form is complete.
+          [ HP.disabled (isNothing form.value || not form.touched)
+          , HP.type_ HH.ButtonSubmit
+          ]
           [ HH.text "Submit" ]
       ]
-    where
-    _name = SProxy :: SProxy "name"
-    _age = SProxy :: SProxy "age"
 ```
 
-Our form is now complete. It's easy to put this form in a parent page component:
+### Extracting Common `FormField`
 
-```purescript
-import Effect.Aff.Class (class MonadAff)
-import Effect.Class.Console (logShow)
-import Halogen as H
+Forms are made up of `FormField`, where a `FormField` is comprised of a proxy for `m` (necessary for type inference) and a function from `FormFieldInput` to a Hook which produces at least an output value. However, the Hook that you write can contain as many additional fields as ou would like -- in our case, we included a rendered output control.
 
-data Action = HandleDogForm Dog
+Form fields are the best place to start extracting shared utilities for your application. For example, our `firstName` and `lastName` fields are essentially identical! Let's extract them into shared `FormField`:
 
-page :: forall q i o m. MonadAff m => H.Component HH.HTML q i o m
-page = H.mkComponent
-  { initialState: const unit
-  , render: const render
-  , eval: H.mkEval $ H.defaultEval { handleAction = handleAction }
+```purs
+requiredText
+  :: forall w m
+   . Proxy2 m
+  -> FormField m Hooks.Pure (input :: HH.HTML w (HookM m Unit)) String NonEmptyString
+requiredText proxy = FormField proxy \field -> Hooks.do
+  let
+    currentValue = fromMaybe "" field.value
+    validated = NES.fromString currentValue
+    input = HH.input [ HE.onValueInput (Just <<< field.onChange), HP.value currentValue ]
+
+  Hooks.pure { value: validated, input }
+```
+
+We can now replace `firstName` and `lastName` with our new implementation. For example, here's the diff for replacing `firstName`:
+
+```diff
++{ firstName: requiredText (Proxy2 :: _ m)
+-{ firstName: FormField (Proxy2 :: _ m) \field -> Hooks.do
+-    let
+-      currentValue = fromMaybe "" field.value
+-      validated = NonEmptyString.fromString currentValue
+-      input =
+-        HH.input
+-          [ HE.onValueInput (Just <<< field.onChange)
+-          , HP.value currentValue
+-          ]
+-
+-    Hooks.pure { value: validated, input }
+```
+
+We've extracted a reusable `FormField`! This is among the simplest of form fields, but a typical application might reuse much richer form fields like sets of checkboxes, fields with asynchronous validation, fields which provide their own API so they can be focused, cleared, or have their values set imperatively, fields which wrap third-party Halogen components, and more. You can see more of these fields in the examples directory.
+
+Now let's briefly look at the `FormFieldInput` you can use to implement your `FormField`:
+
+```purs
+type FormFieldInput m i =
+  { onChange :: i -> HookM m Unit
+  , value :: Maybe i
+  , reset :: HookM m Unit
   }
-  where
-  handleAction (HandleDogForm dog) = logShow (dog :: Dog)
-
-  render = HH.slot F._formless unit (F.component (const input) spec) unit handler
-    where
-    handler = Just <<< HandleDogForm
 ```
+
+You're provided three things:
+
+1. An `onChange` handler, which should be used any time your form field's value changes (for example, when the user types into a text field).
+2. A `value`, which represents the form state for this field, where `Nothing` means that this field is untouched and `Just i` means the field currently contains a value of type `i`.
+3. A `reset` function, which can be used to reset the field back to an empty value.
+
+Armed with these helpers, let's take a look at the `FormField` type:
+
+```purs
+data FormField m h ro i o = FormField (Proxy2 m) (FormFieldInput m i -> Hooks.Hook m h { value :: Maybe o | ro })
+```
+
+A `FormField` is essentially a function which accepts `FormFieldInput` and returns a Hook, where the Hook returns a record containing at least a `value` field with the output of this form field. You also must provide a proxy for the `m` monad type used in your form, which ensures the compiler can infer the correct type for your form.
+
+This is a bit of a confusing type, so lets put it side-by-side with our reusable text field:
+
+```purs
+-- the FormField type definition from Formless
+data     FormField m h          ro                                  i      o
+
+-- an example form field implemented in your application
+field :: FormField m Hooks.Pure (input :: HH.HTML w (HookM m Unit)) String NonEmptyString
+```
+
+Let's break it down.
+
+- `m` represents the monad used in the form field. Our form field is compatible with any monad, so the type parameter is left open.
+- `h` represents any Hooks we used to implement our form field. Our field simply calls `Hooks.pure`, so we use `Hooks.Pure`. However, you can freely use any Hooks you'd like in the body of your field.
+- `ro` represents the row of output fields your form field produces in addition to the required `value :: Maybe o` field. In our case, we're also producing an `input` field which contains rendered HTML.
+- `i` represents the input type stored in our form state. Our form field uses `String`.
+- `o` represents the output type produced by our form field. This is usually the result of validation; in our case, we validate that the provided string is not empty and produce a `NonEmptyString` as our output. A form is only considered valid when all of its fields have produced some output value.
+
+Please see the examples for a larger set of form fields you might wish to use as building blocks in your application.
 
 ## Next Steps
 
