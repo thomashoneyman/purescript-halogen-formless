@@ -10,7 +10,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties (InputType(..))
 import Halogen.HTML.Properties as HP
-import Halogen.Hooks (class HookEquals, class HookNewtype, HookM, kind HookType)
+import Halogen.Hooks (class HookEquals, class HookNewtype, HookM, HookType)
 import Halogen.Hooks as Hooks
 import Halogen.Hooks.Formless (FormField(..))
 import Type.Proxy (Proxy2)

@@ -31,7 +31,7 @@ import Halogen.Hooks as Hooks
 import Halogen.Hooks.Hook (HProxy)
 import Heterogeneous.Folding (class FoldingWithIndex, class HFoldlWithIndex, hfoldlWithIndex)
 import Prim.Row as Row
-import Prim.RowList (class RowToList, kind RowList)
+import Prim.RowList (class RowToList, RowList)
 import Prim.RowList as RowList
 import Record as Record
 import Record.Builder (Builder)
@@ -94,7 +94,7 @@ type UseForm' form m h =
 
 -- | The Hook type for `useForm`, which accepts the form row, monad type, and
 -- | form fields Hook type (typically UseBuildForm) as arguments.
-foreign import data UseForm :: # Type -> (Type -> Type) -> Hooks.HookType -> Hooks.HookType
+foreign import data UseForm :: Row Type -> (Type -> Type) -> Hooks.HookType -> Hooks.HookType
 
 instance newtypeUseForm
   :: Hooks.HookEquals x (UseForm' form m h)
@@ -173,7 +173,7 @@ type UseFormFields' form m h =
 
 -- | The Hook type for `UseFormFields`, which accepts the form row, monad, and
 -- | hook type (typically `UseBuildForm`) as arguments.
-foreign import data UseFormFields :: # Type -> (Type -> Type) -> Hooks.HookType -> Hooks.HookType
+foreign import data UseFormFields :: Row Type -> (Type -> Type) -> Hooks.HookType -> Hooks.HookType
 
 instance newtypeUseFormFields
   :: Hooks.HookEquals x (UseFormFields' form m h)
@@ -234,7 +234,7 @@ type BuildFormFieldInput form m =
 -- |   , field2: FormField \field -> ...
 -- |   }
 -- | ```
-newtype BuildFormField (closed :: # Type) form m h fields value =
+newtype BuildFormField (closed :: Row Type) form m h fields value =
   BuildFormField
     (BuildFormFieldInput form m
       -> Hooks.Hook m h { fields :: { | fields }, value :: Maybe { | value }})
@@ -305,7 +305,7 @@ mergeFormFields (BuildFormField step1) (BuildFormField step2) =
     let value = Record.union <$> result1.value <*> result2.value
     Hooks.pure { fields, value }
 
-foreign import data UseBuildForm :: # Type -> Hooks.HookType
+foreign import data UseBuildForm :: Row Type -> Hooks.HookType
 
 -- | Build a form from a record of form fields, which can then be passed to
 -- | `useForm` or `useFormFields` to produce your full form.
@@ -349,9 +349,9 @@ buildForm inputs = do
     -> BuildFormField closed3 form m (UseBuildForm hform) fields3 value3) $
     buildFormStep (BuildFormFor inputs :: BuildFormFor r tail) builder
 
-newtype BuildFormFor (r :: # Type) (rl :: RowList) = BuildFormFor { | r }
+newtype BuildFormFor (r :: Row Type) (rl :: RowList Type) = BuildFormFor { | r }
 
-class BuildForm (r :: # Type) (rl :: RowList) builder1 builder2 (hform :: # Type) | r rl builder1 -> builder2 hform where
+class BuildForm (r :: Row Type) (rl :: RowList Type) builder1 builder2 (hform :: Row Type) | r rl builder1 -> builder2 hform where
   buildFormStep :: BuildFormFor r rl -> builder1 -> builder2
 
 instance buildFormNil :: BuildForm r RowList.Nil builder1 builder1 () where
