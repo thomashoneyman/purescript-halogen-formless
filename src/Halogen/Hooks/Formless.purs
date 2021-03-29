@@ -18,6 +18,7 @@ module Halogen.Hooks.Formless
   , BuildFormFor
   , initialFormState
   , InitialFormState
+  , UseMergedFormFields
   ) where
 
 import Prelude

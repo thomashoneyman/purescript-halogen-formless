@@ -5,7 +5,7 @@ module Example.Basic where
 import Prelude
 
 import Data.Either (note)
-import Data.Maybe (Maybe(..), isNothing)
+import Data.Maybe (isNothing)
 import Data.String.NonEmpty as NES
 import Effect.Class (class MonadEffect, liftEffect)
 import Example.Field.Basic.Text (textField)
@@ -20,7 +20,7 @@ import Web.Event.Event (preventDefault)
 import Web.HTML as HTML
 import Web.HTML.Window as Window
 
-basic :: forall q i o m. MonadEffect m => H.Component HH.HTML q i o m
+basic :: forall q i o m. MonadEffect m => H.Component q i o m
 basic = Hooks.component \_ _ -> Hooks.do
   form <- useForm (\_ -> initialFormState) $ buildForm
     { name: textField proxy
@@ -31,7 +31,7 @@ basic = Hooks.component \_ _ -> Hooks.do
 
   Hooks.pure do
     HH.form
-      [ HE.onSubmit \event -> Just $ liftEffect do
+      [ HE.onSubmit \event -> liftEffect do
           preventDefault event
           HTML.window >>= Window.alert (show form.value)
       ]

@@ -5,7 +5,7 @@ module Example.Dependency where
 import Prelude
 
 import Data.Either (Either(..), note)
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (fromMaybe)
 import Data.String.NonEmpty as NES
 import Data.Tuple.Nested ((/\))
 import Effect.Class (class MonadEffect)
@@ -19,7 +19,7 @@ import Halogen.Hooks.Formless (buildForm, initialFormState, useFormFields, useFo
 import Type.Proxy (Proxy2(..))
 import Web.Event.Event (preventDefault)
 
-mutualDependency :: forall q i o m. MonadEffect m => H.Component HH.HTML q i o m
+mutualDependency :: forall q i o m. MonadEffect m => H.Component q i o m
 mutualDependency = Hooks.component \_ _ -> Hooks.do
   formState /\ modifyFormState <- useFormState (\_ -> initialFormState)
 
@@ -40,7 +40,7 @@ mutualDependency = Hooks.component \_ _ -> Hooks.do
 
   Hooks.pure do
     HH.form
-      [ HE.onSubmit \ev -> Just (liftEffect $ preventDefault ev) ]
+      [ HE.onSubmit \ev -> (liftEffect $ preventDefault ev) ]
       [ form.fields.name.input
       , form.fields.password.input
       , form.fields.confirm.input
