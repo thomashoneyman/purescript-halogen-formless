@@ -37,7 +37,7 @@ import Record as Record
 import Record.Builder (Builder)
 import Record.Builder as Builder
 import Type.Equality as TE
-import Type.Proxy (Proxy(..), Proxy2)
+import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 
 -- | Input provided to a `FormField`, which can be used to implement the field.
@@ -67,7 +67,7 @@ type FormFieldInput m i =
 -- | - `i`: The input type for this form field.
 -- | - `o`: The output type for this form field. A form is only considered valid
 -- |   when output types are present for all fields in the form.
-data FormField m h ro i o = FormField (Proxy2 m) (FormFieldInput m i -> Hooks.Hook m h { value :: Maybe o | ro })
+data FormField m h ro i o = FormField (Proxy m) (FormFieldInput m i -> Hooks.Hook m h { value :: Maybe o | ro })
 
 -- | The interface returned by the `useForm` and `useFormFields` Hooks.
 -- |

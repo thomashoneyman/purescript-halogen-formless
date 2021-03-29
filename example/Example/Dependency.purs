@@ -16,7 +16,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.Hooks as Hooks
 import Halogen.Hooks.Formless (buildForm, initialFormState, useFormFields, useFormState)
-import Type.Proxy (Proxy2(..))
+import Type.Proxy (Proxy(..))
 import Web.Event.Event (preventDefault)
 
 mutualDependency :: forall q i o m. MonadEffect m => H.Component q i o m
@@ -46,4 +46,4 @@ mutualDependency = Hooks.component \_ _ -> Hooks.do
       , form.fields.confirm.input
       ]
   where
-  proxy = Proxy2 :: Proxy2 m
+  proxy = Proxy :: Proxy m

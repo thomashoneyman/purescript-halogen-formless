@@ -19,7 +19,7 @@ import Halogen.HTML.Properties as HP
 import Halogen.Hooks (HookM)
 import Halogen.Hooks as Hooks
 import Halogen.Hooks.Formless (FormField(..), buildForm, initialFormState, useForm)
-import Type.Proxy (Proxy2(..))
+import Type.Proxy (Proxy(..))
 import Web.Event.Event (preventDefault)
 import Web.HTML as HTML
 import Web.HTML.Window as Window
@@ -31,8 +31,8 @@ type Form f m =
 
 fields :: forall m. Form FormField m
 fields =
-  { name: textField Proxy2 { validate: note "Name is required." <<< NES.fromString }
-  , message: FormField Proxy2 \field -> Hooks.pure
+  { name: textField Proxy { validate: note "Name is required." <<< NES.fromString }
+  , message: FormField Proxy \field -> Hooks.pure
       { input:
           HH.div_
             [ HH.input

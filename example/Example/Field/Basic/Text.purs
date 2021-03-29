@@ -13,7 +13,7 @@ import Halogen.HTML.Properties as HP
 import Halogen.Hooks (class HookNewtype, HookM, HookType)
 import Halogen.Hooks as Hooks
 import Halogen.Hooks.Formless (FormField(..))
-import Type.Proxy (Proxy2)
+import Type.Proxy (Proxy)
 
 foreign import data UseBasicTextField :: Type -> HookType
 
@@ -39,7 +39,7 @@ type BasicTextFieldInterface m = ( input :: H.ComponentHTML (HookM m Unit) () m 
 -- | in your application.
 textField
   :: forall m a
-   . Proxy2 m
+   . Proxy m
   -> BasicTextFieldInput a
   -> FormField m (UseBasicTextField a) (BasicTextFieldInterface m) String a
 textField proxy { validate } = FormField proxy \field -> Hooks.wrap Hooks.do

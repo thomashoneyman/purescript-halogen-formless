@@ -15,7 +15,7 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Hooks as Hooks
 import Halogen.Hooks.Formless (buildForm, initialFormState, useForm)
-import Type.Proxy (Proxy2(..))
+import Type.Proxy (Proxy(..))
 import Web.Event.Event (preventDefault)
 import Web.HTML as HTML
 import Web.HTML.Window as Window
@@ -47,4 +47,4 @@ basic = Hooks.component \_ _ -> Hooks.do
   -- We are using the compiler to infer our form type. When doing this, we need
   -- to provide a proxy for our monad type, `m`, to each of our form inputs. This
   -- aids the compiler in type inference.
-  proxy = Proxy2 :: Proxy2 m
+  proxy = Proxy :: Proxy m
