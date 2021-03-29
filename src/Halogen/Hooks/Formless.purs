@@ -28,10 +28,9 @@ import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\), type (/\))
 import Halogen.Hooks (HookM)
 import Halogen.Hooks as Hooks
-import Halogen.Hooks.Hook (HProxy)
 import Heterogeneous.Folding (class FoldingWithIndex, class HFoldlWithIndex, hfoldlWithIndex)
 import Prim.Row as Row
-import Prim.RowList (class RowToList, kind RowList)
+import Prim.RowList (class RowToList, RowList)
 import Prim.RowList as RowList
 import Record as Record
 import Record.Builder (Builder)
@@ -94,11 +93,10 @@ type UseForm' form m h =
 
 -- | The Hook type for `useForm`, which accepts the form row, monad type, and
 -- | form fields Hook type (typically UseBuildForm) as arguments.
-foreign import data UseForm :: # Type -> (Type -> Type) -> Hooks.HookType -> Hooks.HookType
+foreign import data UseForm :: Row Type -> (Type -> Type) -> Hooks.HookType -> Hooks.HookType
 
 instance newtypeUseForm
-  :: Hooks.HookEquals x (UseForm' form m h)
-  => Hooks.HookNewtype (UseForm form m h) x
+  :: Hooks.HookNewtype (UseForm form m h) (UseForm' form m h)
 
 -- | A Hook for managing forms with Formless. Combines `useFormState` and
 -- | `useFormFields` to manage form state and form fields.
@@ -135,8 +133,7 @@ type UseFormState' form = Hooks.UseState (FormState form)
 foreign import data UseFormState :: Type -> Hooks.HookType
 
 instance newtypeUseFormState
-  :: Hooks.HookEquals h (UseFormState' form)
-  => Hooks.HookNewtype (UseFormState form) h
+  :: Hooks.HookNewtype (UseFormState form) (UseFormState' form)
 
 -- | A Hook for managing form state with Formless. Requires a function to produce
 -- | the initial form state, which is usually `\_ -> initialFormState`.
@@ -173,11 +170,10 @@ type UseFormFields' form m h =
 
 -- | The Hook type for `UseFormFields`, which accepts the form row, monad, and
 -- | hook type (typically `UseBuildForm`) as arguments.
-foreign import data UseFormFields :: # Type -> (Type -> Type) -> Hooks.HookType -> Hooks.HookType
+foreign import data UseFormFields :: Row Type -> (Type -> Type) -> Hooks.HookType -> Hooks.HookType
 
 instance newtypeUseFormFields
-  :: Hooks.HookEquals x (UseFormFields' form m h)
-  => Hooks.HookNewtype (UseFormFields form m h) x
+  :: Hooks.HookNewtype (UseFormFields form m h) (UseFormFields' form m h)
 
 -- | A Hook for managing form fields with Formless. Requires a state tuple to
 -- | read and modify the form state, provided by `Formless.useFormState`, and a
@@ -234,7 +230,7 @@ type BuildFormFieldInput form m =
 -- |   , field2: FormField \field -> ...
 -- |   }
 -- | ```
-newtype BuildFormField (closed :: # Type) form m h fields value =
+newtype BuildFormField (closed :: Row Type) form m h fields value =
   BuildFormField
     (BuildFormFieldInput form m
       -> Hooks.Hook m h { fields :: { | fields }, value :: Maybe { | value }})
@@ -246,8 +242,7 @@ type UseFormField' h1 = h1 Hooks.<> Hooks.Pure
 foreign import data UseFormField :: Hooks.HookType -> Hooks.HookType
 
 instance newtypeUseFormField
-  :: Hooks.HookEquals x (UseFormField' h1)
-  => Hooks.HookNewtype (UseFormField h1) x
+  :: Hooks.HookNewtype (UseFormField h1) (UseFormField' h1)
 
 -- | An internal helper function for building a single form field.
 buildFormField
@@ -284,8 +279,7 @@ type UseMergedFormFields' h1 h2 =
 foreign import data UseMergedFormFields :: Hooks.HookType -> Hooks.HookType -> Hooks.HookType
 
 instance newtypeUseMergedFormFields
-  :: Hooks.HookEquals x (UseMergedFormFields' h1 h2)
-  => Hooks.HookNewtype (UseMergedFormFields h1 h2) x
+  :: Hooks.HookNewtype (UseMergedFormFields h1 h2) (UseMergedFormFields' h1 h2)
 
 -- | An internal helper function for merging form fields to produce a single
 -- | resulting form.
@@ -305,7 +299,7 @@ mergeFormFields (BuildFormField step1) (BuildFormField step2) =
     let value = Record.union <$> result1.value <*> result2.value
     Hooks.pure { fields, value }
 
-foreign import data UseBuildForm :: # Type -> Hooks.HookType
+foreign import data UseBuildForm :: Row Type -> Hooks.HookType
 
 -- | Build a form from a record of form fields, which can then be passed to
 -- | `useForm` or `useFormFields` to produce your full form.
@@ -332,7 +326,7 @@ buildForm
   => Row.Cons sym (Maybe i) () closed2
   => Row.Cons sym { value :: Maybe o | ro } () fields2
   => Row.Cons sym o () value2
-  => Row.Cons sym (HProxy h2) hform' hform
+  => Row.Cons sym (Proxy h2) hform' hform
   => Row.Lacks sym ()
   => { | r }
   -> BuildFormField closed3 form m (UseBuildForm hform) fields3 value3
@@ -349,9 +343,11 @@ buildForm inputs = do
     -> BuildFormField closed3 form m (UseBuildForm hform) fields3 value3) $
     buildFormStep (BuildFormFor inputs :: BuildFormFor r tail) builder
 
-newtype BuildFormFor (r :: # Type) (rl :: RowList) = BuildFormFor { | r }
+newtype BuildFormFor :: forall t. Row Type -> RowList t -> Type
+newtype BuildFormFor r tail = BuildFormFor { | r }
 
-class BuildForm (r :: # Type) (rl :: RowList) builder1 builder2 (hform :: # Type) | r rl builder1 -> builder2 hform where
+class BuildForm :: forall t. Row Type -> RowList t -> Type -> Type -> Row Type -> Constraint
+class BuildForm r rl builder1 builder2 hform | r rl builder1 -> builder2 hform where
   buildFormStep :: BuildFormFor r rl -> builder1 -> builder2
 
 instance buildFormNil :: BuildForm r RowList.Nil builder1 builder1 () where
@@ -372,7 +368,7 @@ instance buildFormCons ::
   , Row.Cons sym o () value'
   , Row.Lacks sym ()
   , Row.Cons sym (FormField m h2 ro i o) r' r
-  , Row.Cons sym (HProxy h2) hform' hform
+  , Row.Cons sym (Proxy h2) hform' hform
   ) =>
   BuildForm r
     (RowList.Cons sym (FormField m h2 ro i o) tail)
