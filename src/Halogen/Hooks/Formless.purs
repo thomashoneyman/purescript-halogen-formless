@@ -35,9 +35,8 @@ import Prim.RowList as RowList
 import Record as Record
 import Record.Builder (Builder)
 import Record.Builder as Builder
-import Type.Data.RowList (RLProxy(..))
 import Type.Equality as TE
-import Type.Proxy (Proxy, Proxy2)
+import Type.Proxy (Proxy(..), Proxy2)
 import Unsafe.Coerce (unsafeCoerce)
 
 -- | Input provided to a `FormField`, which can be used to implement the field.
@@ -394,9 +393,19 @@ instance foldingInitialFormState ::
   , Row.Lacks sym rb
   , IsSymbol sym
   ) =>
-  FoldingWithIndex InitialFormState (SProxy sym) (Builder { | ra } { | rb }) (Proxy formFieldState) (Builder { | ra } { | rc }) where
+  FoldingWithIndex InitialFormState (Proxy sym) (Builder { | ra } { | rb }) (Proxy formFieldState) (Builder { | ra } { | rc }) where
   foldingWithIndex _ sym builder _ =
     builder >>> Builder.insert sym (TE.to Nothing)
+
+instance hfoldlInitialFormState ::
+  ( TE.TypeEquals (Maybe i) formFieldState
+  , Row.Cons sym formFieldState rb rc
+  , Row.Lacks sym rb
+  , IsSymbol sym
+  ) =>
+  HFoldlWithIndex InitialFormState (Builder { | ra } { | rb}) (Proxy formFieldState) (Builder { | ra} { | rc }) where
+  hfoldlWithIndex _ builder _ =
+    builder >>> Builder.insert (Proxy :: _ sym) (TE.to Nothing)
 
 -- | A helper function to build an initial form state where all fields are
 -- | initialized to `Nothing`. This function should be provided to the `useForm`
@@ -408,7 +417,7 @@ instance foldingInitialFormState ::
 initialFormState
   :: forall r rl
    . RowToList r rl
-  => HFoldlWithIndex InitialFormState (Builder {} {}) (RLProxy rl) (Builder {} { | r })
+  => HFoldlWithIndex InitialFormState (Builder {} {}) (Proxy rl) (Builder {} { | r })
   => { | r }
 initialFormState =
-  Builder.build (hfoldlWithIndex InitialFormState (identity :: Builder {} {}) (RLProxy :: RLProxy rl)) {}
+  Builder.build (hfoldlWithIndex InitialFormState (identity :: Builder {} {}) (Proxy :: Proxy rl)) {}
