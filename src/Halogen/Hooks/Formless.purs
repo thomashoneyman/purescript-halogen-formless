@@ -398,16 +398,6 @@ instance foldingInitialFormState ::
   foldingWithIndex _ sym builder _ =
     builder >>> Builder.insert sym (TE.to Nothing)
 
-instance hfoldlInitialFormState ::
-  ( TE.TypeEquals (Maybe i) formFieldState
-  , Row.Cons sym formFieldState rb rc
-  , Row.Lacks sym rb
-  , IsSymbol sym
-  ) =>
-  HFoldlWithIndex InitialFormState (Builder { | ra } { | rb}) (Proxy formFieldState) (Builder { | ra} { | rc }) where
-  hfoldlWithIndex _ builder _ =
-    builder >>> Builder.insert (Proxy :: _ sym) (TE.to Nothing)
-
 -- | A helper function to build an initial form state where all fields are
 -- | initialized to `Nothing`. This function should be provided to the `useForm`
 -- | or `useFormState` Hooks as an argument.
