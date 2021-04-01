@@ -24,6 +24,8 @@ You can write a basic Formless form in just a few lines of code. You are respons
 
 First, a form type that describes the fields in your form, along with their validation error type, user input type, and validated output type. Note: you can provide whatever custom error types you'd like, use `Void` to represent no possible errors, parse to whatever type you want, and none of your fields need to share any types.
 
+Note: You will need to annotate your form newtype to tell the compiler that `r` is of type `Row Type -> Type`, and you need to derive a newtype instance for your form. You'll get compiler errors if you forget!
+
 ```purescript
 import Prelude
 import Data.Newtype (class Newtype, unwrap)
