@@ -1,14 +1,14 @@
 let
   pkgs = import (builtins.fetchTarball {
-    url = "https://github.com/NixOS/nixpkgs/archive/20.03.tar.gz";
+    url = "https://github.com/NixOS/nixpkgs/archive/20.09.tar.gz";
   }) {};
 
-  # 2020-08-01 nix-prefetch-git https://github.com/justinwoo/easy-purescript-nix
+  # 2021-03-14 nix-prefetch-git https://github.com/justinwoo/easy-purescript-nix
   pursPkgs = import (pkgs.fetchFromGitHub {
     owner = "justinwoo";
     repo = "easy-purescript-nix";
-    rev = "7ff5a12af5750f94d0480059dba0ba6b82c6c452";
-    sha256 = "0af25dqhs13ii4mx9jjkx2pww4ddbs741vb5gfc5ckxb084d69fq";
+    rev = "e8a1ffafafcdf2e81adba419693eb35f3ee422f8";
+    sha256 = "0bk32wckk82f1j5i5gva63f3b3jl8swc941c33bqc3pfg5cgkyyf";
   }) { inherit pkgs; };
 
 in pkgs.stdenv.mkDerivation {
@@ -16,6 +16,6 @@ in pkgs.stdenv.mkDerivation {
   buildInputs = with pursPkgs; [
     pursPkgs.purs
     pursPkgs.spago
-    pkgs.nodejs-12_x
+    pkgs.nodejs-14_x
   ];
 }

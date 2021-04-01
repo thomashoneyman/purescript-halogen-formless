@@ -3,9 +3,8 @@
   [ "halogen"
   , "variant"
   , "heterogeneous"
-  , "generics-rep"
   , "profunctor-lenses"
   ]
 , packages = ./packages.dhall
-, sources = [ "src/**/*.purs", "test/**/*.purs" ]
+, sources = [ "src/**/*.purs" ]
 }

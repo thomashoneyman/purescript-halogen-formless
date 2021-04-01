@@ -22,7 +22,7 @@ type State =
 type ChildSlots =
   ( groupForm :: GF.Slot Unit )
 
-component :: H.Component HH.HTML (Const Void) Unit Void Aff
+component :: H.Component (Const Void) Unit Void Aff
 component = H.mkComponent
   { initialState: \_ -> initialState
   , render
@@ -52,7 +52,5 @@ component = H.mkComponent
           Next, review the source code. You'll notice that all of the complex types and state necessary to run this form can be generated from a pair of row types. All that's left for you to handle is to write the validation (with helper functions) and the render function.
           """
       , HH.br_
-      , HH.slot GF._groupForm unit GF.component unit handler
+      , HH.slot GF._groupForm unit GF.component unit HandleGroupForm
       ]
-    where
-    handler = Just <<< HandleGroupForm

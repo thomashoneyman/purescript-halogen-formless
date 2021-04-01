@@ -5,7 +5,6 @@ import Prelude
 import Data.Const (Const)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (class Newtype)
-import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Effect.Class.Console (logShow)
 import Example.App.UI.Element as UI
@@ -18,15 +17,17 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Record (delete)
 import Select as Select
+import Type.Proxy (Proxy(..))
 
 -- Form spec
 
 -- equivalent to { name :: String, email :: V.Email, ... }
 type User = { | UserFormRow F.OutputType }
 
-newtype UserForm r f = UserForm (r (UserFormRow f))
+newtype UserForm (r :: Row Type -> Type) f = UserForm (r (UserFormRow f))
 derive instance newtypeUserForm' :: Newtype (UserForm r f) _
 
+type UserFormRow :: (Type -> Type -> Type -> Type) -> Row Type
 type UserFormRow f =
   ( name     :: f V.FieldError String         String
   , email    :: f V.FieldError (Maybe String) V.Email
@@ -77,9 +78,9 @@ component = F.component (const defaultInput) $ F.defaultSpec
 
   handleEvent = case _ of
     F.Submitted outputs -> H.raise (F.unwrapOutputFields outputs)
-    F.Changed formState -> logShow $ delete (SProxy :: _ "form") formState
+    F.Changed formState -> logShow $ delete (Proxy :: _ "form") formState
 
-  prx = F.mkSProxies (F.FormProxy :: _ UserForm)
+  prx = F.mkSProxies (Proxy :: Proxy UserForm)
 
   handleAction = case _ of
     HandleTypeahead slot (TA.SelectionsChanged new) -> case slot of
@@ -95,7 +96,7 @@ component = F.component (const defaultInput) $ F.defaultSpec
         eval $ F.setValidate prx.language new
 
     Reset -> do
-      items <- H.query TA._typeahead Email $ H.request TA.getAvailableItems
+      items <- H.request TA._typeahead Email TA.getAvailableItems
       logShow $ fromMaybe [] items
       _ <- H.queryAll TA._typeahead TA.clear
       eval F.resetAll
@@ -121,13 +122,13 @@ component = F.component (const defaultInput) $ F.defaultSpec
           [ UI.buttonPrimary
               [ if st.submitting || st.validity /= F.Valid
                   then HP.disabled true
-                  else HE.onClick \_ -> Just F.submit
+                  else HE.onClick \_ -> F.submit
               ]
               [ HH.text "Submit" ]
           , UI.button
               [ if not st.dirty
                   then HP.disabled true
-                  else HE.onClick \_ -> Just $ F.injAction Reset
+                  else HE.onClick \_ -> F.injAction Reset
               ]
               [ HH.text "Reset" ]
           ]
@@ -202,4 +203,4 @@ component = F.component (const defaultInput) $ F.defaultSpec
     singleTypeahead slot input =
       HH.slot TA._typeahead slot (Select.component TA.input TA.single) input handler
       where
-      handler = Just <<< F.injAction <<< HandleTypeahead slot
+      handler = F.injAction <<< HandleTypeahead slot

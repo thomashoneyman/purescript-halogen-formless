@@ -4,6 +4,7 @@ import Prelude
 
 import Data.List (List)
 import Data.Map (Map)
+import Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.Monoid (class MonoidRecord)
 import Data.Set (Set)
@@ -48,7 +49,7 @@ instance initialList :: Initial (List a) where
   initial = mempty
 
 instance initialMap :: Ord k => Initial (Map k v) where
-  initial = mempty
+  initial = Map.empty
 
 instance initialSet :: Ord a => Initial (Set a) where
   initial = mempty

@@ -3,8 +3,6 @@ module Formless.Data.FormFieldResult where
 import Prelude
 
 import Data.Either (Either(..))
-import Data.Generic.Rep (class Generic)
-import Data.Generic.Rep.Show (genericShow)
 import Data.Lens (Prism', prism')
 import Data.Maybe (Maybe(..))
 
@@ -16,7 +14,6 @@ data FormFieldResult error output
   | Error error
   | Success output
 
-derive instance genericFormFieldResult :: Generic (FormFieldResult e o) _
 derive instance eqFormFieldResult :: (Eq e, Eq o) => Eq (FormFieldResult e o)
 derive instance functorFormFieldResult :: Functor (FormFieldResult e)
 
@@ -36,9 +33,6 @@ instance bindFormFieldResult :: Bind (FormFieldResult e) where
   bind NotValidated _ = NotValidated
 
 instance monadFormFieldResult :: Monad (FormFieldResult e)
-
-instance showFormFieldResult :: (Show e, Show o) => Show (FormFieldResult e o) where
-  show = genericShow
 
 fromEither :: forall e o. Either e o -> FormFieldResult e o
 fromEither = case _ of

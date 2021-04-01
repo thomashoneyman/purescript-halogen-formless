@@ -9,7 +9,7 @@ import Prelude
 
 import Data.Functor.Variant as VF
 import Data.Maybe (Maybe(..), maybe)
-import Data.Symbol (class IsSymbol, SProxy(..))
+import Data.Symbol (class IsSymbol)
 import Data.Variant (Variant)
 import Formless.Types.Component (QueryF(..), Query, PublicAction)
 import Formless.Types.Form (OutputField)
@@ -17,6 +17,7 @@ import Halogen as H
 import Halogen.Data.Slot as Slot
 import Halogen.Query.ChildQuery as CQ
 import Prim.Row as Row
+import Type.Proxy (Proxy(..))
 
 -- | Inject your own query into the Formless component. You will need to derive
 -- | a `Functor` instance for your query type.
@@ -26,12 +27,12 @@ import Prim.Row as Row
 -- | derive instance functorMyQuery :: Functor MyQuery
 -- | ```
 injQuery :: forall form q ps a. Functor q => q a -> Query form q ps a
-injQuery = VF.inj (SProxy :: SProxy "userQuery")
+injQuery = VF.inj (Proxy :: Proxy "userQuery")
 
 -- | Convert a Formless public action to an action-style query. Any action from
 -- | Formless.Action will work, but no others.
 asQuery :: forall form q ps. Variant (PublicAction form) -> Query form q ps Unit
-asQuery = VF.inj (SProxy :: SProxy "query") <<< H.tell <<< AsQuery
+asQuery = VF.inj (Proxy :: Proxy "query") <<< H.mkTell <<< AsQuery
 
 -- | Submit the form, returning the output of validation if successful
 -- | and `Nothing` otherwise.
@@ -39,7 +40,7 @@ submitReply
   :: forall form query ps a
    . (Maybe (form Record OutputField) -> a)
   -> Query form query ps a
-submitReply = VF.inj (SProxy :: SProxy "query") <<< SubmitReply
+submitReply = VF.inj (Proxy :: Proxy "query") <<< SubmitReply
 
 -- | When you have specified a child component within Formless and need to query it,
 -- | you can do so in two ways.
@@ -73,15 +74,15 @@ sendQuery
   => Row.Cons inL (Slot.Slot cq cm inS) r1 ps
   => Ord outS
   => Ord inS
-  => SProxy outL
+  => Proxy outL
   -> outS
-  -> SProxy inL
+  -> Proxy inL
   -> inS
   -> cq a
   -> H.HalogenM st act pps pmsg m (Maybe a)
 sendQuery ol os il is cq =
   H.query ol os
-    $ VF.inj (SProxy :: _ "query")
+    $ VF.inj (Proxy :: _ "query")
     $ SendQuery
     $ CQ.mkChildQueryBox
     $ CQ.ChildQuery (\k -> maybe (pure Nothing) k <<< Slot.lookup il is) cq identity

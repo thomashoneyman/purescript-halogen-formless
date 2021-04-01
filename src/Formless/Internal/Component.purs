@@ -4,7 +4,6 @@ import Prelude
 
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, over, unwrap)
-import Data.Symbol (SProxy(..))
 import Effect.Aff.Class (class MonadAff)
 import Formless.Internal.Transform as Internal
 import Formless.Types.Component (HalogenM, InternalState(..), PublicState, State, ValidStatus(..))
@@ -14,6 +13,7 @@ import Halogen as H
 import Prim.Row as Row
 import Prim.RowList as RL
 import Record.Builder as Builder
+import Type.Proxy (Proxy(..))
 
 -- Remove internal fields and user-supplied fields to return the public state
 getPublicState
@@ -21,7 +21,7 @@ getPublicState
    . Row.Lacks "internal" st
   => State form st m
   -> PublicState form st
-getPublicState = Builder.build (Builder.delete (SProxy :: SProxy "internal"))
+getPublicState = Builder.build (Builder.delete (Proxy :: Proxy "internal"))
 
 preSubmit
   :: forall form st act ps msg m fs fxs os vs

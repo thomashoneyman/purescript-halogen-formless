@@ -7,7 +7,6 @@ import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Monoid (guard)
 import Data.Newtype (class Newtype)
-import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Example.App.UI.Dropdown as DD
 import Example.App.UI.Element (class_)
@@ -23,6 +22,7 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Record as Record
 import Select as Select
+import Type.Proxy (Proxy(..))
 
 -- Supporting types
 
@@ -68,9 +68,10 @@ derive instance ordTab :: Ord Tab
 
 -- Form types
 
-newtype GroupForm r f = GroupForm (r (GroupFormRow f))
+newtype GroupForm (r :: Row Type -> Type) f = GroupForm (r (GroupFormRow f))
 derive instance newtypeGroupForm :: Newtype (GroupForm r f) _
 
+type GroupFormRow :: (Type -> Type -> Type -> Type) -> Row Type
 type GroupFormRow f =
   ( name         :: f FieldError String         String
   , admin        :: f FieldError (Maybe Admin)  Admin
@@ -86,7 +87,7 @@ type GroupFormRow f =
 type Slot =
   H.Slot (F.Query GroupForm (Const Void) ChildSlots) Group
 
-_groupForm = SProxy :: SProxy "groupForm"
+_groupForm = Proxy :: Proxy "groupForm"
 
 type State =
   ( selectedTab :: Tab        -- which tab the user is viewing
@@ -119,7 +120,7 @@ derive instance ordTASlot :: Ord TASlot
 -- Form spec
 
 prx :: F.SProxies GroupForm
-prx = F.mkSProxies (F.FormProxy :: _ GroupForm)
+prx = F.mkSProxies (Proxy :: Proxy GroupForm)
 
 component :: F.Component GroupForm (Const Void) ChildSlots Unit Group Aff
 component = F.component (const input) $ F.defaultSpec
@@ -160,7 +161,7 @@ component = F.component (const input) $ F.defaultSpec
   handleEvent = case _ of
     F.Submitted form -> do
       -- first, we'll submit the options form
-      mbOptionsForm <- H.query OF._optionsForm unit (H.request F.submitReply)
+      mbOptionsForm <- H.request OF._optionsForm unit F.submitReply
       let options = map (OF.Options <<< F.unwrapOutputFields) (join mbOptionsForm)
       -- next, we'll fetch a new group id (in the real world this might be a server call)
       groupId <- pure $ GroupId 10
@@ -168,10 +169,10 @@ component = F.component (const input) $ F.defaultSpec
      -- as a message.
       H.raise
         $ Group
-        $ Record.delete (SProxy :: _ "secretKey2")
-        $ Record.rename (SProxy :: _ "secretKey1") (SProxy :: _ "secretKey")
-        $ Record.insert (SProxy :: _ "id") groupId
-        $ Record.insert (SProxy :: _ "options") options
+        $ Record.delete (Proxy :: _ "secretKey2")
+        $ Record.rename (Proxy :: _ "secretKey1") (Proxy :: _ "secretKey")
+        $ Record.insert (Proxy :: _ "id") groupId
+        $ Record.insert (Proxy :: _ "options") options
         $ F.unwrapOutputFields form
     _ -> pure unit
 
@@ -228,25 +229,25 @@ component = F.component (const input) $ F.defaultSpec
     HH.div_
       [ UI.grouped_
           [ UI.button
-              [ HE.onClick \_ -> Just $ F.injAction $ Select GroupTab ]
+              [ HE.onClick \_ -> F.injAction $ Select GroupTab ]
                 [ UI.p_ $ "Group Form" <>
                     if st.errors > 0
                       then " (" <> show st.errors  <> ")"
                       else ""
                 ]
           , UI.button
-              [ HE.onClick \_ -> Just $ F.injAction $ Select OptionsTab ]
+              [ HE.onClick \_ -> F.injAction $ Select OptionsTab ]
               [ UI.p_ $ "Options Form" <>
                   if st.optionsErrors > 0
                     then " (" <> show st.optionsErrors  <> ")"
                     else ""
               ]
           , UI.buttonPrimary
-              [ HE.onClick \_ -> Just F.submit ]
+              [ HE.onClick \_ -> F.submit ]
               [ HH.text "Submit Form" ]
           , UI.button
               [ if st.dirty || st.optionsDirty
-                  then HE.onClick \_ -> Just $ F.injAction ResetForm
+                  then HE.onClick \_ -> F.injAction ResetForm
                   else HP.disabled true
               ]
               [ HH.text "Reset All" ]
@@ -268,7 +269,7 @@ component = F.component (const input) $ F.defaultSpec
           [ HH.slot OF._optionsForm unit OF.component unit handleOF ]
       ]
     where
-    handleOF = Just <<< F.injAction <<< HandleOptionsForm
+    handleOF = F.injAction <<< HandleOptionsForm
 
     renderName = st # UI.formlessField UI.input
       { label: "Name"
@@ -284,7 +285,7 @@ component = F.component (const input) $ F.defaultSpec
       , placeholder: "ia30<>Psncdi3b#$<0423"
       }
       [ HP.value $ F.getInput prx.secretKey1 form
-      , HE.onValueInput $ Just <<< F.injAction <<< UpdateKey1
+      , HE.onValueInput $ F.injAction <<< UpdateKey1
       ]
 
     renderSecretKey2 = UI.input
@@ -294,7 +295,7 @@ component = F.component (const input) $ F.defaultSpec
       , placeholder: "ia30<>Psncdi3b#$<0423"
       }
       [ HP.value $ F.getInput prx.secretKey2 form
-      , HE.onValueInput $ Just <<< F.injAction <<< UpdateKey2
+      , HE.onValueInput $ F.injAction <<< UpdateKey2
       ]
 
     renderAdmin = UI.field
@@ -304,7 +305,7 @@ component = F.component (const input) $ F.defaultSpec
       }
       [ HH.slot DD._dropdown unit (Select.component DD.input DD.spec) ddInput handler ]
       where
-      handler = Just <<< F.injAction <<< HandleDropdown
+      handler = F.injAction <<< HandleDropdown
       ddInput =
         { placeholder: "Choose an admin"
         , items: map (Admin <<< { id: _ })
@@ -325,7 +326,7 @@ component = F.component (const input) $ F.defaultSpec
       }
       [ HH.slot TA._typeaheadSingle unit (Select.component TA.input TA.single) taInput handler ]
       where
-      handler = Just <<< F.injAction <<< HandleTASingle
+      handler = F.injAction <<< HandleTASingle
       taInput =
         { placeholder: "Choose a whiskey"
         , items:
@@ -344,7 +345,7 @@ component = F.component (const input) $ F.defaultSpec
       [ HH.slot TA._typeaheadMulti Pixels selectComponent taInput handler ]
       where
       selectComponent = Select.component TA.input TA.multi
-      handler = Just <<< F.injAction <<< HandleTAMulti Pixels
+      handler = F.injAction <<< HandleTAMulti Pixels
       taInput =
         { placeholder: "Search pixels"
         , items:
@@ -363,7 +364,7 @@ component = F.component (const input) $ F.defaultSpec
       [ HH.slot TA._typeaheadMulti Applications selectComponent taInput handler ]
       where
       selectComponent = Select.component TA.input TA.multi
-      handler = Just <<< F.injAction <<< HandleTAMulti Applications
+      handler = F.injAction <<< HandleTAMulti Applications
       taInput =
         { placeholder: "Search one or more applications"
         , items: [ "Facebook", "Google", "Twitter", "Pinterest" ]

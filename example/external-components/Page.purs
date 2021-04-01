@@ -3,7 +3,6 @@ module Example.ExternalComponents.Page where
 import Prelude
 
 import Data.Const (Const)
-import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
 import Effect.Class.Console (logShow)
 import Example.App.UI.Element as UI
@@ -19,7 +18,7 @@ data Action
 type ChildSlot =
   ( formless :: F.Slot UserForm (Const Void) ChildSlots User Unit )
 
-component :: H.Component HH.HTML (Const Void) Unit Void Aff
+component :: H.Component (Const Void) Unit Void Aff
 component = H.mkComponent
   { initialState: const unit
   , render
@@ -40,5 +39,5 @@ component = H.mkComponent
           Next, try opening the console. If you submit the form with invalid values, Formless will show you your errors. If you submit a valid form, you'll see Formless just returns the valid outputs for you to work with.
 
           """
-      , HH.slot F._formless unit Form.component unit (Just <<< HandleFormless)
+      , HH.slot F._formless unit Form.component unit HandleFormless
       ]

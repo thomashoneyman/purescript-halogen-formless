@@ -6,7 +6,6 @@ import Data.Const (Const)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
-import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Effect.Console (logShow)
 import Example.App.UI.Element as UI
@@ -16,10 +15,11 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Type.Proxy (Proxy(..))
 
 type Contact = { name :: String, text :: String }
 
-newtype ContactForm r f = ContactForm (r
+newtype ContactForm (r :: Row Type -> Type) f = ContactForm (r
   ( name :: f V.FieldError String String
   , text :: f Void String String
   ))
@@ -27,7 +27,7 @@ derive instance newtypeContactForm :: Newtype (ContactForm r f) _
 
 data Action = HandleContact Contact
 
-component :: H.Component HH.HTML (Const Void) Unit Void Aff
+component :: H.Component (Const Void) Unit Void Aff
 component = H.mkComponent
   { initialState: const unit
   , render: const render
@@ -46,7 +46,7 @@ component = H.mkComponent
           You can create a full Halogen contact form like this in less than 20 lines of Formless, excluding the render function.  It's type-safe, supports complex types, has validation, and parses to the output type of your choice."
           """
       , HH.br_
-      , HH.slot F._formless unit formComponent unit (Just <<< HandleContact)
+      , HH.slot F._formless unit formComponent unit HandleContact
       ]
 
   formComponent :: F.Component ContactForm (Const Void) () Unit Contact Aff
@@ -65,7 +65,7 @@ component = H.mkComponent
            , placeholder: "Dale"
            }
            [ HP.value $ F.getInput _name st.form
-           , HE.onValueInput (Just <<< F.setValidate _name)
+           , HE.onValueInput (F.setValidate _name)
            ]
        , UI.textarea
            { label: "Message"
@@ -73,12 +73,12 @@ component = H.mkComponent
            , placeholder: "We prefer nice messages, but have at it."
            }
            [ HP.value $ F.getInput _text st.form
-           , HE.onValueInput (Just <<< F.set _text)
+           , HE.onValueInput (F.set _text)
            ]
        , UI.buttonPrimary
-           [ HE.onClick \_ -> Just F.submit ]
+           [ HE.onClick \_ -> F.submit ]
            [ HH.text "Submit" ]
        ]
      where
-     _name = SProxy :: SProxy "name"
-     _text = SProxy :: SProxy "text"
+     _name = Proxy :: Proxy "name"
+     _text = Proxy :: Proxy "text"

@@ -1,6 +1,6 @@
 name: CI
 
-on: 
+on:
   push:
     branches: [main]
   pull_request:
@@ -11,13 +11,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - uses: thomashoneyman/setup-purescript@main
+      - uses: purescript-contrib/setup-purescript@main
 
       - name: Build source
         run: spago build
-
-      - name: Run tests
-        run: spago test
 
       - name: Build examples
         run: spago -x example/example.dhall build
