@@ -4,8 +4,6 @@ import Prelude
 
 import Data.Either (Either(..))
 import Data.Foldable (length) as Foldable
-import Data.Generic.Rep (class Generic)
-import Data.Generic.Rep.Show (genericShow)
 import Data.Int (fromString) as Int
 import Data.Lens (preview)
 import Data.Maybe (Maybe, maybe)
@@ -26,10 +24,6 @@ data FieldError
   | InvalidInt String
   | NotEqual String String
   | NotEnoughMoney
-
-derive instance genericFieldError :: Generic FieldError _
-instance showFieldError :: Show FieldError where
-  show = genericShow
 
 instance toTextFieldError :: ToText FieldError where
   toText EmptyField = "This field is required."

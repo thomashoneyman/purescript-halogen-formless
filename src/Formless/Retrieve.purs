@@ -9,11 +9,12 @@ import Data.Lens.Record (prop)
 import Data.Lens.Traversal (Traversal')
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
-import Data.Symbol (class IsSymbol, SProxy(..))
+import Data.Symbol (class IsSymbol)
 import Formless.Data.FormFieldResult (FormFieldResult(..), _Error, _Success, toMaybe)
 import Formless.Types.Form (FormField(..), FormFieldRow)
 import Heterogeneous.Mapping (class HMap, class Mapping, hmap)
 import Prim.Row as Row
+import Type.Proxy (Proxy(..))
 
 ----------
 -- Fields
@@ -74,15 +75,15 @@ _Field sym = _Newtype <<< prop sym <<< _Newtype
 
 -- | A lens to operate on the input at a given symbol in your form
 _FieldInput :: ∀ e i o. FormFieldLens e i o i
-_FieldInput sym = _Field sym <<< prop (SProxy :: SProxy "input")
+_FieldInput sym = _Field sym <<< prop (Proxy :: Proxy "input")
 
 -- | A lens to operate on the 'touched' field at a given symbol in your form
 _FieldTouched :: ∀ e i o. FormFieldLens e i o Boolean
-_FieldTouched sym = _Field sym <<< prop (SProxy :: SProxy "touched")
+_FieldTouched sym = _Field sym <<< prop (Proxy :: Proxy "touched")
 
 -- | A lens to operate on the 'result' field at a given symbol in your form
 _FieldResult :: ∀ e i o. FormFieldLens e i o (FormFieldResult e o)
-_FieldResult sym = _Field sym <<< prop (SProxy :: SProxy "result")
+_FieldResult sym = _Field sym <<< prop (Proxy :: Proxy "result")
 
 -- | A traversal to operate on the possible error inside the 'result' field at
 -- | a given symbol in your form
@@ -91,7 +92,7 @@ _FieldError
    . IsSymbol sym
   => Newtype (form Record FormField) (Record fields)
   => Row.Cons sym (FormField e i o) t0 fields
-  => SProxy sym
+  => Proxy sym
   -> Traversal' (form Record FormField) e
 _FieldError sym = _FieldResult sym <<< _Error
 
@@ -102,7 +103,7 @@ _FieldOutput
    . IsSymbol sym
   => Newtype (form Record FormField) (Record fields)
   => Row.Cons sym (FormField e i o) t0 fields
-  => SProxy sym
+  => Proxy sym
   -> Traversal' (form Record FormField) o
 _FieldOutput sym = _FieldResult sym <<< _Success
 
@@ -117,7 +118,7 @@ type FormFieldGet e i o x =
    . IsSymbol sym
   => Newtype (form Record FormField) (Record fields)
   => Row.Cons sym (FormField e i o) t0 fields
-  => SProxy sym
+  => Proxy sym
   -> form Record FormField
   -> x
 
@@ -127,7 +128,7 @@ type FormFieldLens e i o x =
    . IsSymbol sym
   => Newtype (form Record FormField) (Record fields)
   => Row.Cons sym (FormField e i o) t0 fields
-  => SProxy sym
+  => Proxy sym
   -> Lens' (form Record FormField) x
 
 -- | A type representing retrieving all of a particular field with the field's

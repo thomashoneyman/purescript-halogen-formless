@@ -9,7 +9,6 @@ import Data.List (toUnfoldable)
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (class Newtype)
-import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Example.App.UI.Element (class_)
 import Example.App.UI.Element as UI
@@ -19,6 +18,7 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Type.Proxy (Proxy(..))
 
 -----
 -- Event form
@@ -27,9 +27,10 @@ import Halogen.HTML.Properties as HP
 
 type Event = { | EventRow F.OutputType }
 
-newtype EventForm r f = EventForm (r (EventRow f))
+newtype EventForm (r :: Row Type -> Type) f = EventForm (r (EventRow f))
 derive instance newtypeEventForm :: Newtype (EventForm r f) _
 
+type EventRow :: (Type -> Type -> Type -> Type) -> Row Type
 type EventRow f =
   ( name :: f V.FieldError String String
   , location :: f V.FieldError String String
@@ -86,15 +87,15 @@ eventComponent = F.component (const eventFormInput) $ F.defaultSpec
 
     SubmitAll -> do
       st <- H.get
-      res <- H.queryAll _memberForm $ H.request F.submitReply
+      res <- H.queryAll _memberForm $ H.mkRequest F.submitReply
       case map F.unwrapOutputFields $ catMaybes $ toUnfoldable $ M.values res of
         [] -> eval F.submit
         members -> eval (F.set _members (Just members)) *> eval F.submit
 
     where
     eval act = F.handleAction handleAction handleEvent act
-    _members = SProxy :: _ "members"
-    _memberForm = SProxy :: _ "memberForm"
+    _members = Proxy :: _ "members"
+    _memberForm = Proxy :: _ "memberForm"
 
   handleEvent = case _ of
     F.Submitted outputs ->
@@ -108,13 +109,13 @@ eventComponent = F.component (const eventFormInput) $ F.defaultSpec
         [ HH.div
             [ class_ "control" ]
             [ UI.button
-                [ HE.onClick \_ -> Just $ F.injAction AddMemberForm ]
+                [ HE.onClick \_ -> F.injAction AddMemberForm ]
                 [ HH.text "Add Member Form" ]
             ]
         , HH.div
             [ class_ "control" ]
             [ UI.buttonPrimary
-                [ HE.onClick \_ -> Just $ F.injAction SubmitAll ]
+                [ HE.onClick \_ -> F.injAction SubmitAll ]
                 [ HH.text "Submit" ]
             ]
         ]
@@ -125,7 +126,7 @@ eventComponent = F.component (const eventFormInput) $ F.defaultSpec
           , placeholder: "My Event"
           }
           [ HP.value $ F.getInput _name st.form
-          , HE.onValueInput $ Just <<< F.setValidate _name
+          , HE.onValueInput (F.setValidate _name)
           ]
       , UI.input
           { label: "Event Location"
@@ -134,19 +135,19 @@ eventComponent = F.component (const eventFormInput) $ F.defaultSpec
           , placeholder: "Los Angeles, CA"
           }
           [ HP.value $ F.getInput _location st.form
-          , HE.onValueInput $ Just <<< F.setValidate _location
+          , HE.onValueInput (F.setValidate _location)
           ]
       , HH.div_
           (mkMemberForm <$> st.formIds)
       ]
     where
     mkMemberForm i = do
-      let handler = Just <<< F.injAction <<< HandleMemberForm i
+      let handler = F.injAction <<< HandleMemberForm i
       HH.slot _memberForm i memberFormComponent unit handler
 
-    _name = SProxy :: SProxy "name"
-    _location = SProxy :: SProxy "location"
-    _memberForm = SProxy :: SProxy "memberForm"
+    _name = Proxy :: Proxy "name"
+    _location = Proxy :: Proxy "location"
+    _memberForm = Proxy :: Proxy "memberForm"
 
 
 -----
@@ -157,9 +158,10 @@ eventComponent = F.component (const eventFormInput) $ F.defaultSpec
 
 type MemberInfo = { | MemberRow F.OutputType }
 
-newtype MemberForm r f = MemberForm (r (MemberRow f))
+newtype MemberForm (r :: Row Type -> Type) f = MemberForm (r (MemberRow f))
 derive instance newtypeMemberForm :: Newtype (MemberForm r f) _
 
+type MemberRow :: (Type -> Type -> Type -> Type) -> Row Type
 type MemberRow f =
   ( name :: f V.FieldError String String
   , email :: f V.FieldError String V.Email
@@ -200,7 +202,7 @@ memberFormComponent = F.component (const memberFormInput) $ F.defaultSpec
      [ HH.div
          [ class_ "field" ]
          [ UI.buttonPrimary
-             [ HE.onClick \_ -> Just $ F.injAction RemoveMe ]
+             [ HE.onClick \_ -> F.injAction RemoveMe ]
              [ HH.text "Remove Me" ]
          ]
      , UI.input
@@ -210,7 +212,7 @@ memberFormComponent = F.component (const memberFormInput) $ F.defaultSpec
          , placeholder: "Dale Cooper"
          }
          [ HP.value $ F.getInput _name st.form
-         , HE.onValueInput $ Just <<< F.setValidate _name
+         , HE.onValueInput (F.setValidate _name)
          ]
      , UI.input
          { label: "Member Email"
@@ -219,7 +221,7 @@ memberFormComponent = F.component (const memberFormInput) $ F.defaultSpec
          , placeholder: "dalecooper@fbi.gov"
          }
          [ HP.value $ F.getInput _email st.form
-         , HE.onValueInput $ Just <<< F.setValidate _email
+         , HE.onValueInput (F.setValidate _email)
          ]
      , UI.input
          { label: "Additional Notes"
@@ -227,10 +229,10 @@ memberFormComponent = F.component (const memberFormInput) $ F.defaultSpec
          , placeholder: "Fond of Tibetan traditions"
          }
          [ HP.value $ F.getInput _notes st.form
-         , HE.onValueInput $ Just <<< F.set _notes
+         , HE.onValueInput (F.set _notes)
          ]
     ]
     where
-    _name = SProxy :: SProxy "name"
-    _email = SProxy :: SProxy "email"
-    _notes = SProxy :: SProxy "notes"
+    _name = Proxy :: Proxy "name"
+    _email = Proxy :: Proxy "email"
+    _notes = Proxy :: Proxy "notes"

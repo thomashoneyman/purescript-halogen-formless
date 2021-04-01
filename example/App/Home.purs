@@ -30,7 +30,7 @@ render =
 
 -- Component
 
-component :: H.Component HH.HTML (Const Void) Unit Void Aff
+component :: H.Component (Const Void) Unit Void Aff
 component = H.mkComponent
   { initialState: const unit
   , render: const render

@@ -6,12 +6,11 @@ import DOM.HTML.Indexed.InputType (InputType(..))
 import Data.Const (Const)
 import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
-import Data.Generic.Rep.Show (genericShow)
 import Data.Int as Int
 import Data.Maybe (Maybe(..))
 import Data.Monoid (guard)
 import Data.Newtype (class Newtype, over)
-import Data.Symbol (SProxy(..))
+import Data.Show.Generic (genericShow)
 import Effect.Aff (Aff)
 import Example.App.UI.Dropdown as DD
 import Example.App.UI.Element (class_)
@@ -24,6 +23,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Select as Select
+import Type.Proxy (Proxy(..))
 
 -- Supporting types
 
@@ -61,17 +61,26 @@ instance initialSpeed :: F.Initial Speed where
 
 -- This is the data type used throughout our fake application. In this case, it's
 -- the same type the form and the underlying row, so we'll use `F.OutputType`.
-newtype Options = Options { | OptionsRow F.OutputType }
+newtype Options = Options
+  { enable       :: Boolean
+  , metric       :: Metric
+  , viewCost     :: Maybe Dollars
+  , clickCost    :: Maybe Dollars
+  , installCost  :: Maybe Dollars
+  , size         :: Number
+  , dimensions   :: Number
+  , speed        :: Speed
+  }
 derive instance newtypeOptions :: Newtype Options _
 derive newtype instance eqOptions :: Eq Options
 derive newtype instance showOptions :: Show Options
 
-
 -- Form types
 
-newtype OptionsForm r f = OptionsForm (r (OptionsRow f))
+newtype OptionsForm (r :: Row Type -> Type) f = OptionsForm (r (OptionsRow f))
 derive instance newtypeOptionsForm :: Newtype (OptionsForm r f) _
 
+type OptionsRow :: (Type -> Type -> Type -> Type) -> Row Type
 type OptionsRow f =
   ( enable       :: f Void       Boolean        Boolean
   , metric       :: f FieldError (Maybe Metric) Metric
@@ -89,7 +98,7 @@ type OptionsRow f =
 type Slot =
   H.Slot (F.Query OptionsForm (Const Void) ChildSlots) Message
 
-_optionsForm = SProxy :: SProxy "optionsForm"
+_optionsForm = Proxy :: Proxy "optionsForm"
 
 -- We'll maintain a flag so we can check if the enabled state has changed
 type State =
@@ -109,7 +118,7 @@ type ChildSlots =
 -- Form spec
 
 prx :: F.SProxies OptionsForm
-prx = F.mkSProxies (F.FormProxy :: _ OptionsForm)
+prx = F.mkSProxies (Proxy :: Proxy OptionsForm)
 
 component :: F.Component OptionsForm (Const Void) ChildSlots Unit Message Aff
 component = F.component (const input) $ F.defaultSpec
@@ -163,7 +172,7 @@ component = F.component (const input) $ F.defaultSpec
       when (st.prevEnabled /= enabled) case enabled of
         true -> do
           let
-            initial = F.mkInputFields (F.FormProxy :: _ OptionsForm)
+            initial = F.mkInputFields
             new = over OptionsForm (_ { enable = F.InputField true }) initial
           eval $ F.loadForm new
         _ ->
@@ -201,7 +210,7 @@ component = F.component (const input) $ F.defaultSpec
               [ class_ "checkbox"
               , HP.type_ InputCheckbox
               , HP.checked $ F.getInput prx.enable form
-              , HE.onChange \_ -> Just $ F.modify prx.enable not
+              , HE.onChange \_ -> F.modify prx.enable not
               ]
           , HH.text " Enable extra options"
           ]
@@ -214,7 +223,7 @@ component = F.component (const input) $ F.defaultSpec
       }
       [ HH.slot DD._dropdown unit (Select.component DD.input DD.spec) ddInput handler ]
       where
-      handler = Just <<< F.injAction <<< HandleDropdown
+      handler = F.injAction <<< HandleDropdown
       ddInput =
         { placeholder: "Choose a metric"
         , items: [ ViewCost, ClickCost, InstallCost ]
@@ -268,7 +277,7 @@ component = F.component (const input) $ F.defaultSpec
               , class_ "radio"
               , HP.type_ InputRadio
               , HP.checked $ speed.input == speed'
-              , HE.onClick \_ -> Just $ F.set prx.speed speed'
+              , HE.onClick \_ -> F.set prx.speed speed'
               ]
           , HH.text (" " <> show speed')
           ]

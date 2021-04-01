@@ -5,7 +5,6 @@ import Prelude
 import Data.Array (difference, filter, length, (:), (!!))
 import Data.Maybe (Maybe(..))
 import Data.String as String
-import Data.Symbol (SProxy(..))
 import Effect.Aff.Class (class MonadAff)
 import Example.App.UI.Dropdown as Dropdown
 import Example.App.UI.Element (class_)
@@ -16,13 +15,14 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Select as Select
 import Select.Setters as Setters
+import Type.Proxy (Proxy(..))
 
 type Slot f item =
   H.Slot (Select.Query (Query item) ()) (Message f item)
 
-_typeahead = SProxy :: SProxy "typeahead"
-_typeaheadSingle = SProxy :: SProxy "typeaheadSingle"
-_typeaheadMulti = SProxy :: SProxy "typeaheadMulti"
+_typeahead = Proxy :: Proxy "typeahead"
+_typeaheadSingle = Proxy :: Proxy "typeaheadSingle"
+_typeaheadMulti = Proxy :: Proxy "typeaheadMulti"
 
 data Query item a
   = GetAvailableItems (Array item -> a)
@@ -35,10 +35,10 @@ clear :: forall item. Select.Query (Query item) () Unit
 clear = Select.Query (Clear unit)
 
 data Action item
-  = Remove item 
+  = Remove item
 
 remove :: forall item. item -> Select.Action (Action item)
-remove = Select.Action <<< Remove 
+remove = Select.Action <<< Remove
 
 type State f item =
   ( items :: Array item
@@ -64,7 +64,7 @@ input { items, placeholder } =
   , placeholder
   }
 
-data Message f item
+data Message (f :: Type -> Type) item
   = SelectionsChanged (f item)
 
 ----------
@@ -85,18 +85,18 @@ single = spec' (\i av -> const (av !! i)) (const $ const Nothing) filter' render
   render st = case st.selected of
     Just item ->
       HH.div
-        [ if st.visibility == Select.On 
-            then class_ "dropdown is-active" 
+        [ if st.visibility == Select.On
+            then class_ "dropdown is-active"
             else class_ "dropdown is-flex" ]
-        [ Dropdown.toggle 
-            [ HE.onClick \_ -> Just $ remove item ] 
+        [ Dropdown.toggle
+            [ HE.onClick \_ -> remove item ]
             st
         , Dropdown.menu st
         ]
     Nothing ->
       HH.div
-        [ if st.visibility == Select.On 
-            then class_ "dropdown is-flex is-active" 
+        [ if st.visibility == Select.On
+            then class_ "dropdown is-flex is-active"
             else class_ "dropdown is-flex" ]
         [ HH.input
           ( Setters.setInputProps
@@ -123,27 +123,27 @@ multi = spec' selectByIndex (filter <<< (/=)) difference render
   render st =
     HH.div_
       [ HH.div
-        [ if length st.selected > 0 
-            then class_ "panel is-marginless" 
-            else class_ "panel is-hidden" 
+        [ if length st.selected > 0
+            then class_ "panel is-marginless"
+            else class_ "panel is-hidden"
         ]
         (st.selected <#> \i ->
           HH.div
             [ class_ "panel-block has-background-white"
-            , HE.onClick \_ -> Just $ remove i
+            , HE.onClick \_ -> remove i
             ]
             [ HH.text $ toText i ]
         )
       , HH.div
-        [ if st.visibility == Select.On 
-            then class_ "dropdown is-flex is-active" 
-            else class_ "dropdown is-flex" 
+        [ if st.visibility == Select.On
+            then class_ "dropdown is-flex is-active"
+            else class_ "dropdown is-flex"
         ]
         [ HH.input
-            (Setters.setInputProps 
+            (Setters.setInputProps
               [ class_ "input"
               , HP.placeholder st.placeholder
-              , HP.value st.search 
+              , HP.value st.search
               ]
             )
         , Dropdown.menu st
@@ -163,12 +163,12 @@ spec'
   => (Int -> Array item -> f item -> f item)
   -> (item -> f item -> f item)
   -> (Array item -> f item -> Array item)
-  -> (Select.State (State f item) 
+  -> (Select.State (State f item)
        -> H.ComponentHTML (Select.Action (Action item)) () m
      )
   -> Select.Spec (State f item) (Query item) (Action item) () i (Message f item) m
 spec' select' remove' filter' render' = Select.defaultSpec
-  { render = render' 
+  { render = render'
   , handleEvent = handleEvent
   , handleQuery = handleQuery
   , handleAction = handleAction
@@ -183,7 +183,7 @@ spec' select' remove' filter' render' = Select.defaultSpec
     Select.Selected ix -> do
       st <- H.get
       let selected' = select' ix st.available st.selected
-      H.modify_ _ 
+      H.modify_ _
         { selected = selected'
         , available = filter' st.available selected'
         , visibility = Select.Off
@@ -209,6 +209,6 @@ spec' select' remove' filter' render' = Select.defaultSpec
       let selected' = remove' item st.selected
       H.modify_ _
         { selected = selected'
-        , available = filter' st.items selected' 
+        , available = filter' st.items selected'
         }
       H.raise (SelectionsChanged selected')

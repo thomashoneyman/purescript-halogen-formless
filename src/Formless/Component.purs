@@ -7,7 +7,6 @@ import Data.Eq (class EqRecord)
 import Data.Functor.Variant as VF
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, over, unwrap)
-import Data.Symbol (SProxy(..))
 import Data.Traversable (traverse_)
 import Data.Tuple (Tuple(..))
 import Data.Variant (Variant, match, inj, expand)
@@ -21,7 +20,7 @@ import Formless.Internal.Transform as IT
 import Formless.Transform.Record (UnwrapField, unwrapOutputFields)
 import Formless.Transform.Row (mkInputFields, class MakeInputFieldsFromRow)
 import Formless.Types.Component (Action, Component, HalogenM, Input, InternalState(..), Event(..), PublicAction, Query, QueryF(..), Spec, State, ValidStatus(..))
-import Formless.Types.Form (FormField, InputField, InputFunction, OutputField, U, FormProxy(..))
+import Formless.Types.Form (FormField, InputField, InputFunction, OutputField, U)
 import Formless.Validation (Validation)
 import Halogen as H
 import Halogen.HTML as HH
@@ -29,6 +28,7 @@ import Heterogeneous.Mapping as HM
 import Prim.Row as Row
 import Prim.RowList as RL
 import Record.Builder as Builder
+import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 
 -- | The default spec, which can be overridden by whatever functions you need
@@ -124,7 +124,7 @@ component mkInput spec = H.mkComponent
   , eval: H.mkEval
       { handleQuery: \q -> handleQuery spec.handleQuery spec.handleEvent q
       , handleAction: \act -> handleAction spec.handleAction spec.handleEvent act
-      , initialize: Just (inj (SProxy :: _ "initialize") spec.initialize)
+      , initialize: Just (inj (Proxy :: _ "initialize") spec.initialize)
       , receive: map (map FA.injAction) spec.receive
       , finalize: map FA.injAction spec.finalize
       }
@@ -136,7 +136,7 @@ component mkInput spec = H.mkComponent
   initialState input = Builder.build pipeline input
     where
     initialInputs = case input.initialInputs of
-      Nothing -> mkInputFields (FormProxy :: FormProxy form)
+      Nothing -> mkInputFields
       Just inputs -> inputs
     initialForm = IT.inputFieldsToFormFields initialInputs
     internalState = InternalState
@@ -147,15 +147,15 @@ component mkInput spec = H.mkComponent
       , validationRef: Nothing
       }
     pipeline =
-      Builder.delete (SProxy :: _ "validators")
-        >>> Builder.delete (SProxy :: _ "initialInputs")
-        >>> Builder.insert (SProxy :: _ "validity") Incomplete
-        >>> Builder.insert (SProxy :: _ "dirty") false
-        >>> Builder.insert (SProxy :: _ "errors") 0
-        >>> Builder.insert (SProxy :: _ "submitAttempts") 0
-        >>> Builder.insert (SProxy :: _ "submitting") false
-        >>> Builder.insert (SProxy :: _ "form") initialForm
-        >>> Builder.insert (SProxy :: _ "internal") internalState
+      Builder.delete (Proxy :: _ "validators")
+        >>> Builder.delete (Proxy :: _ "initialInputs")
+        >>> Builder.insert (Proxy :: _ "validity") Incomplete
+        >>> Builder.insert (Proxy :: _ "dirty") false
+        >>> Builder.insert (Proxy :: _ "errors") 0
+        >>> Builder.insert (Proxy :: _ "submitAttempts") 0
+        >>> Builder.insert (Proxy :: _ "submitting") false
+        >>> Builder.insert (Proxy :: _ "form") initialForm
+        >>> Builder.insert (Proxy :: _ "internal") internalState
 
 handleAction
   :: forall form st act slots msg m is ixs ivs fs fxs us vs os ifs ivfs
@@ -337,7 +337,7 @@ handleAction handleAction' handleEvent action = flip match action
   }
   where
   sync :: Action form act
-  sync = inj (SProxy :: SProxy "syncFormData") unit
+  sync = inj (Proxy :: Proxy "syncFormData") unit
 
 handleQuery
   :: forall form st query act slots msg m a is ixs ivs fs fxs us vs os ifs ivfs

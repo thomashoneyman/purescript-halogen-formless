@@ -8,7 +8,7 @@ import Prelude
 
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, wrap)
-import Data.Symbol (class IsSymbol, SProxy(..))
+import Data.Symbol (class IsSymbol)
 import Data.Time.Duration (Milliseconds)
 import Data.Tuple (Tuple(..))
 import Data.Variant (Variant, inj)
@@ -18,10 +18,11 @@ import Formless.Types.Component (Action)
 import Formless.Types.Form (InputField, InputFunction, U(..))
 import Heterogeneous.Mapping as HM
 import Prim.Row as Row
+import Type.Proxy (Proxy(..))
 
 -- | Inject your own action into the Formless component so it can be used in HTML
 injAction :: forall form act. act -> Action form act
-injAction = inj (SProxy :: _ "userAction")
+injAction = inj (Proxy :: _ "userAction")
 
 -- | Set the input value of a form field at the specified label.
 -- |
@@ -33,11 +34,11 @@ set
    . IsSymbol sym
   => Newtype (form Variant InputFunction) (Variant inputs)
   => Row.Cons sym (InputFunction e i o) r inputs
-  => SProxy sym
+  => Proxy sym
   -> i
   -> Variant (modify :: form Variant InputFunction | v)
 set sym i =
-  inj (SProxy :: _ "modify") (wrap (inj sym (wrap (const i))))
+  inj (Proxy :: _ "modify") (wrap (inj sym (wrap (const i))))
 
 -- | Modify the input value of a form field at the specified label with the
 -- | provided function.
@@ -50,11 +51,11 @@ modify
    . IsSymbol sym
   => Newtype (form Variant InputFunction) (Variant inputs)
   => Row.Cons sym (InputFunction e i o) r inputs
-  => SProxy sym
+  => Proxy sym
   -> (i -> i)
   -> Variant (modify :: form Variant InputFunction | v)
 modify sym f =
-  inj (SProxy :: _ "modify") (wrap (inj sym (wrap f)))
+  inj (Proxy :: _ "modify") (wrap (inj sym (wrap f)))
 
 -- | Trigger validation on a form field
 -- |
@@ -66,10 +67,10 @@ validate
    . IsSymbol sym
   => Newtype (form Variant U) (Variant us)
   => Row.Cons sym (U e i o) r us
-  => SProxy sym
+  => Proxy sym
   -> Variant (validate :: form Variant U | v)
 validate sym =
-  inj (SProxy :: _ "validate") (wrap (inj sym U))
+  inj (Proxy :: _ "validate") (wrap (inj sym U))
 
 -- | Set the input value of a form field at the specified label, also triggering
 -- | validation to run on the field.
@@ -82,11 +83,11 @@ setValidate
    . IsSymbol sym
   => Newtype (form Variant InputFunction) (Variant inputs)
   => Row.Cons sym (InputFunction e i o) r inputs
-  => SProxy sym
+  => Proxy sym
   -> i
   -> Variant (modifyValidate :: Tuple (Maybe Milliseconds) (form Variant InputFunction) | v)
 setValidate sym i =
-  inj (SProxy :: _ "modifyValidate") (Tuple Nothing (wrap (inj sym (wrap (const i)))))
+  inj (Proxy :: _ "modifyValidate") (Tuple Nothing (wrap (inj sym (wrap (const i)))))
 
 -- | Modify the input value of a form field at the specified label, also triggering
 -- | validation to run on the field, with the provided function.
@@ -99,11 +100,11 @@ modifyValidate
    . IsSymbol sym
   => Newtype (form Variant InputFunction) (Variant inputs)
   => Row.Cons sym (InputFunction e i o) r inputs
-  => SProxy sym
+  => Proxy sym
   -> (i -> i)
   -> Variant (modifyValidate :: Tuple (Maybe Milliseconds) (form Variant InputFunction) | v)
 modifyValidate sym f =
-  inj (SProxy :: _ "modifyValidate") (Tuple Nothing (wrap (inj sym (wrap f))))
+  inj (Proxy :: _ "modifyValidate") (Tuple Nothing (wrap (inj sym (wrap f))))
 
 -- | Set the input value of a form field at the specified label, while debouncing
 -- | validation so that it only runs after the specified amount of time has elapsed
@@ -119,11 +120,11 @@ asyncSetValidate
   => Newtype (form Variant InputFunction) (Variant inputs)
   => Row.Cons sym (InputFunction e i o) r inputs
   => Milliseconds
-  -> SProxy sym
+  -> Proxy sym
   -> i
   -> Variant (modifyValidate :: Tuple (Maybe Milliseconds) (form Variant InputFunction) | v)
 asyncSetValidate ms sym i =
-  inj (SProxy :: _ "modifyValidate") (Tuple (Just ms) (wrap (inj sym (wrap (const i)))))
+  inj (Proxy :: _ "modifyValidate") (Tuple (Just ms) (wrap (inj sym (wrap (const i)))))
 
 -- | Modify the input value of a form field at the specified label, while debouncing
 -- | validation so that it only runs after the specified amount of time has elapsed
@@ -139,11 +140,11 @@ asyncModifyValidate
   => Newtype (form Variant InputFunction) (Variant inputs)
   => Row.Cons sym (InputFunction e i o) r inputs
   => Milliseconds
-  -> SProxy sym
+  -> Proxy sym
   -> (i -> i)
   -> Variant (modifyValidate :: Tuple (Maybe Milliseconds) (form Variant InputFunction) | v)
 asyncModifyValidate ms s f =
-  inj (SProxy :: _ "modifyValidate") (Tuple (Just ms) (wrap (inj s (wrap f))))
+  inj (Proxy :: _ "modifyValidate") (Tuple (Just ms) (wrap (inj s (wrap f))))
 
 -- | Reset the value of the specified form field to its default value
 -- | according to the `Initial` type class.
@@ -157,10 +158,10 @@ reset
   => Initial i
   => Newtype (form Variant InputFunction) (Variant inputs)
   => Row.Cons sym (InputFunction e i o) r inputs
-  => SProxy sym
+  => Proxy sym
   -> Variant (reset :: form Variant InputFunction | v)
 reset sym =
-  inj (SProxy :: _ "reset") (wrap (inj sym (wrap (const initial))))
+  inj (Proxy :: _ "reset") (wrap (inj sym (wrap (const initial))))
 
 -- | Provide a record of input fields to overwrite all current
 -- | inputs. Unlike `loadForm`, this does not otherwise reset
@@ -181,7 +182,7 @@ setAll
   => { | is }
   -> Variant (setAll :: Tuple (form Record InputField) Boolean | v)
 setAll is =
-  inj (SProxy :: _ "setAll") (Tuple (wrapInputFields is) false)
+  inj (Proxy :: _ "setAll") (Tuple (wrapInputFields is) false)
 
 -- | Provide a record of input functions to modify all current
 -- | inputs. Similar to calling `modify` on every field in the form.
@@ -201,7 +202,7 @@ modifyAll
   => { | ifs }
   -> Variant (modifyAll :: Tuple (form Record InputFunction) Boolean | v)
 modifyAll fs =
-  inj (SProxy :: _ "modifyAll") (Tuple (wrapInputFunctions fs) false)
+  inj (Proxy :: _ "modifyAll") (Tuple (wrapInputFunctions fs) false)
 
 -- | Validate all fields in the form, collecting errors
 -- |
@@ -210,7 +211,7 @@ modifyAll fs =
 -- | ```
 validateAll :: forall v. Variant (validateAll :: Unit | v)
 validateAll =
-  inj (SProxy :: _ "validateAll") unit
+  inj (Proxy :: _ "validateAll") unit
 
 -- | Provide a record of inputs to overwrite all current inputs without
 -- | resetting the form (as `loadForm` does), and then validate the
@@ -231,7 +232,7 @@ setValidateAll
   => { | is }
   -> Variant (setAll :: Tuple (form Record InputField) Boolean | v)
 setValidateAll is =
-  inj (SProxy :: _ "setAll") (Tuple (wrapInputFields is) true)
+  inj (Proxy :: _ "setAll") (Tuple (wrapInputFields is) true)
 
 -- | Provide a record of input functions to modify all current
 -- | inputs, and then validate all fields.  Similar to calling
@@ -251,7 +252,7 @@ modifyValidateAll
   => { | ifs }
   -> Variant (modifyAll :: Tuple (form Record InputFunction) Boolean | v)
 modifyValidateAll ifs =
-  inj (SProxy :: _ "modifyAll") (Tuple (wrapInputFunctions ifs) true)
+  inj (Proxy :: _ "modifyAll") (Tuple (wrapInputFunctions ifs) true)
 
 -- | Reset all fields to their initial values, and reset the form
 -- | to its initial pristine state, no touched fields.
@@ -261,7 +262,7 @@ modifyValidateAll ifs =
 -- | ```
 resetAll :: forall v. Variant (resetAll :: Unit | v)
 resetAll =
-  inj (SProxy :: _ "resetAll") unit
+  inj (Proxy :: _ "resetAll") unit
 
 -- | Submit the form, which will trigger a `Submitted` result if the
 -- | form validates successfully.
@@ -271,7 +272,7 @@ resetAll =
 -- | ```
 submit :: forall v. Variant (submit :: Unit | v)
 submit =
-  inj (SProxy :: _ "submit") unit
+  inj (Proxy :: _ "submit") unit
 
 -- | Load a form from a set of existing inputs. Useful for when you need to mount
 -- | Formless, perform some other actions like request data from the server, and
@@ -288,4 +289,4 @@ loadForm
   :: forall form v
    . form Record InputField
   -> Variant (loadForm :: form Record InputField | v)
-loadForm = inj (SProxy :: _ "loadForm")
+loadForm = inj (Proxy :: _ "loadForm")

@@ -5,9 +5,9 @@ import Prelude
 import DOM.HTML.Indexed (HTMLa, HTMLbutton, HTMLinput, HTMLtextarea)
 import DOM.HTML.Indexed.InputType (InputType(..))
 import Data.Either (Either(..), either)
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (maybe)
 import Data.Newtype (class Newtype)
-import Data.Symbol (class IsSymbol, SProxy(..))
+import Data.Symbol (class IsSymbol)
 import Data.Variant (Variant)
 import Example.App.Validation (class ToText, toText)
 import Example.App.Validation as V
@@ -18,6 +18,7 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Prim.Row (class Cons)
 import Record.Builder as Builder
+import Type.Proxy (Proxy(..))
 import Web.Event.Event (Event)
 import Web.UIEvent.FocusEvent (FocusEvent)
 
@@ -125,11 +126,12 @@ type FieldConfig' =
 
 -- Provide a label, help text, placeholder, and symbol to have Formless wire everything
 -- up on your behalf.
+type FieldConfig :: Symbol -> Type
 type FieldConfig sym =
   { label :: String
   , help :: String
   , placeholder :: String
-  , sym :: SProxy sym
+  , sym :: Proxy sym
   }
 
 input :: forall i p. FieldConfig' -> Array (HH.IProp HTMLinput p) -> HH.HTML i p
@@ -148,8 +150,8 @@ textarea config props =
   field
     { label: config.label, help: config.help }
     [ HH.textarea $
-        [ config.help # either 
-            (const $ class_ "textarea is-danger") 
+        [ config.help # either
+            (const $ class_ "textarea is-danger")
             (const $ class_ "textarea")
         , HP.placeholder config.placeholder
         ] <> props
@@ -177,14 +179,14 @@ formlessField
 formlessField fieldType config state = fieldType (Builder.build config' config) props
   where
     config' =
-      Builder.delete (SProxy :: SProxy "sym")
-        >>> Builder.modify (SProxy :: SProxy "help") (const help')
+      Builder.delete (Proxy :: Proxy "sym")
+        >>> Builder.modify (Proxy :: Proxy "help") (const help')
 
-    help' = 
+    help' =
       maybe (Right config.help) (Left <<< toText) (F.getError config.sym state.form)
 
     props =
       [ HP.value (F.getInput config.sym state.form)
-      , HE.onValueInput (Just <<< F.setValidate config.sym)
+      , HE.onValueInput (F.setValidate config.sym)
       ]
 

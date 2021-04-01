@@ -3,12 +3,9 @@ module Formless.Types.Component where
 import Prelude
 
 import Data.Const (Const)
-import Data.Functor.Variant (VariantF, FProxy)
-import Data.Generic.Rep (class Generic)
-import Data.Generic.Rep.Show (genericShow)
+import Data.Functor.Variant (VariantF)
 import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype)
-import Data.Symbol (SProxy(..))
 import Data.Tuple (Tuple)
 import Data.Variant (Variant)
 import Effect.Aff (Fiber, Milliseconds)
@@ -16,11 +13,11 @@ import Effect.Aff.AVar (AVar)
 import Effect.Ref (Ref)
 import Formless.Types.Form (FormField, InputField, InputFunction, OutputField, U)
 import Formless.Validation (Validation)
-import Type.Row (type (+))
 import Halogen as H
-import Halogen.HTML as HH
 import Halogen.Query.ChildQuery (ChildQueryBox)
 import Halogen.Query.HalogenM (ForkId)
+import Type.Proxy (Proxy(..))
+import Type.Row (type (+))
 
 -- | A type representing the various functions that can be provided to extend
 -- | the Formless component. Usually only the `render` function is required,
@@ -54,6 +51,7 @@ type Action form act = Variant
   + PublicAction form
   )
 
+type PublicAction :: ((Row Type -> Type) -> (Type -> Type -> Type -> Type) -> Type) -> Row Type
 type PublicAction form =
   ( modify :: form Variant InputFunction
   , validate :: form Variant U
@@ -74,6 +72,7 @@ type InternalAction act r =
   )
 
 -- | A simple action type when the component does not need extension
+type Action' :: ((Row Type -> Type) -> (Type -> Type -> Type -> Type) -> Type) -> Type
 type Action' form = Action form Void
 
 -- | The internals of the public component query type. Many of these are shared
@@ -91,8 +90,8 @@ derive instance functorQueryF :: Functor (QueryF form slots)
 -- | The component query type, which you can freely extend with your own queries
 -- | using `injQuery` from `Formless.Query`.
 type Query form query slots = VariantF
-  ( query :: FProxy (QueryF form slots)
-  , userQuery :: FProxy query
+  ( query :: QueryF form slots
+  , userQuery :: query
   )
 
 -- | A simple query type when the component does not need extension
@@ -100,7 +99,7 @@ type Query' form = Query form (Const Void) ()
 
 -- | The component type
 type Component form query slots input msg m =
-  H.Component HH.HTML (Query form query slots) input msg m
+  H.Component (Query form query slots) input msg m
 
 -- | A simple component type when the component does not need extension
 type Component' form input m =
@@ -170,12 +169,14 @@ data ValidStatus
   | Incomplete
   | Valid
 
-derive instance genericValidStatus :: Generic ValidStatus _
 derive instance eqValidStatus :: Eq ValidStatus
 derive instance ordValidStatus :: Ord ValidStatus
 
 instance showValidStatus :: Show ValidStatus where
-  show = genericShow
+  show = case _ of
+    Invalid -> "Invalid"
+    Incomplete -> "Incomplete"
+    Valid -> "Valid"
 
 -- | The component's input type. If you provide `Nothing` as your `initialInputs`
 -- | then the form will fill in values based on the `Initial` type class for the
@@ -215,4 +216,4 @@ type Slot' form msg = H.Slot (Query' form) msg
 -- | type ChildSlots = (formless :: F.Slot' Form FormResult)
 -- | HH.slot F._formless unit (F.component spec) input handler
 -- | ```
-_formless = SProxy :: SProxy "formless"
+_formless = Proxy :: Proxy "formless"

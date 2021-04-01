@@ -39,7 +39,7 @@ instance showAge :: Show Age where
 
 data AgeError = TooLow | TooHigh | InvalidInt
 
-newtype DogForm r f = DogForm (r
+newtype DogForm (r :: Row Type -> Type) f = DogForm (r
   --          error    input  output
   ( name :: f Void     String String
   , age  :: f AgeError String Age
@@ -80,10 +80,10 @@ For our small form, we'll do two things: we'll provide a render function, and wh
 Note: If you would like to have your form raise no messages (rare), do not supply a `handleEvent` function. If you would like to raise the usual Formless messages (`Changed`, `Submitted`), then provide `H.raise` as your `handleEvent` function. If you would like to simply raise your form's validated output type (`Dog`, in this example), then provide `F.raiseResult` as your `handleEvent` function. Finally, if you want to do something else, you can write a custom function that does whatever you would like.
 
 ```purescript
-import Data.Symbol (SProxy(..))
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Type.Proxy (Proxy(..))
 
 spec :: forall input m. Monad m => F.Spec' DogForm Dog input m
 spec = F.defaultSpec { render = render, handleEvent = F.raiseResult }
@@ -92,11 +92,11 @@ spec = F.defaultSpec { render = render, handleEvent = F.raiseResult }
     HH.form_
       [ HH.input
           [ HP.value $ F.getInput _name form
-          , HE.onValueInput $ Just <<< F.set _name
+          , HE.onValueInput $ F.set _name
           ]
       , HH.input
           [ HP.value $ F.getInput _age form
-          , HE.onValueInput $ Just <<< F.setValidate _age
+          , HE.onValueInput $ F.setValidate _age
           ]
       , HH.text case F.getError _age form of
           Nothing -> ""
@@ -104,12 +104,12 @@ spec = F.defaultSpec { render = render, handleEvent = F.raiseResult }
           Just TooLow -> "Age cannot be negative"
           Just TooHigh -> "No dog has lived past 30 before"
       , HH.button
-          [ HE.onClick \_ -> Just F.submit ]
+          [ HE.onClick \_ -> F.submit ]
           [ HH.text "Submit" ]
       ]
     where
-    _name = SProxy :: SProxy "name"
-    _age = SProxy :: SProxy "age"
+    _name = Proxy :: Proxy "name"
+    _age = Proxy :: Proxy "age"
 ```
 
 Our form is now complete. It's easy to put this form in a parent page component:
@@ -118,10 +118,11 @@ Our form is now complete. It's easy to put this form in a parent page component:
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class.Console (logShow)
 import Halogen as H
+import Halogen.HTML as HH
 
 data Action = HandleDogForm Dog
 
-page :: forall q i o m. MonadAff m => H.Component HH.HTML q i o m
+page :: forall q i o m. MonadAff m => H.Component q i o m
 page = H.mkComponent
   { initialState: const unit
   , render: const render
@@ -130,9 +131,7 @@ page = H.mkComponent
   where
   handleAction (HandleDogForm dog) = logShow (dog :: Dog)
 
-  render = HH.slot F._formless unit (F.component (const input) spec) unit handler
-    where
-    handler = Just <<< HandleDogForm
+  render = HH.slot F._formless unit (F.component (const input) spec) unit HandleDogForm
 ```
 
 ## Next Steps

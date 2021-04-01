@@ -5,7 +5,6 @@ import Prelude
 import DOM.HTML.Indexed (HTMLbutton)
 import Data.Array (difference, mapWithIndex, length, (!!))
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Symbol (SProxy(..))
 import Data.Traversable (for_)
 import Effect.Aff.Class (class MonadAff)
 import Example.App.UI.Element (class_)
@@ -15,17 +14,18 @@ import Halogen as H
 import Halogen.HTML as HH
 import Select as Select
 import Select.Setters as Setters
+import Type.Proxy (Proxy(..))
 
 type Slot item =
   H.Slot (Select.Query Query ()) (Message item)
 
-_dropdown = SProxy :: SProxy "dropdown"
+_dropdown = Proxy :: Proxy "dropdown"
 
-data Query a 
+data Query a
   = Clear a
 
 clear :: Select.Query Query () Unit
-clear = Select.Query (H.tell Clear)
+clear = Select.Query (H.mkTell Clear)
 
 type State item =
   ( selected :: Maybe item
@@ -55,15 +55,15 @@ data Message item
   = Selected item
   | Cleared
 
-spec 
+spec
   :: forall item m i
-   . MonadAff m 
+   . MonadAff m
   => ToText item
   => Eq item
   => Select.Spec (State item) Query Void () i (Message item) m
 spec = Select.defaultSpec
-  { render = render 
-  , handleQuery = handleQuery 
+  { render = render
+  , handleQuery = handleQuery
   , handleEvent = handleEvent
   }
   where
@@ -87,7 +87,7 @@ spec = Select.defaultSpec
         H.modify_ _
           { selected = Just item
           , available = difference st.items [ item ]
-          , visibility = Select.Off 
+          , visibility = Select.Off
           }
         H.raise (Selected item)
     _ -> pure unit
@@ -117,13 +117,13 @@ menu st =
   [ if st.visibility == Select.Off then HH.text "" else
     HH.div
       (Setters.setContainerProps [ class_ "dropdown-content" ])
-      (mapWithIndex 
+      (mapWithIndex
         (\ix item ->
           HH.span
             (Setters.setItemProps ix case Just ix == st.highlightedIndex of
-              true -> 
+              true ->
                 [ class_ "dropdown-item has-background-link has-text-white-bis" ]
-              _ -> 
+              _ ->
                 [ class_ "dropdown-item" ]
             )
             [ HH.text (toText item) ]
