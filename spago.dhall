@@ -1,4 +1,6 @@
 { name = "halogen-formless"
+, license = "MIT"
+, repository = "https://github.com/thomashoneyman/purescript-halogen-formless"
 , dependencies =
   [ "aff"
   , "avar"
