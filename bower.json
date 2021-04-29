@@ -1,0 +1,40 @@
+{
+    "name": "purescript-halogen-formless",
+    "license": [
+        "MIT"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/thomashoneyman/purescript-halogen-formless"
+    },
+    "ignore": [
+        "**/.*",
+        "node_modules",
+        "bower_components",
+        "output"
+    ],
+    "dependencies": {
+        "purescript-aff": "^v6.0.0",
+        "purescript-avar": "^v4.0.0",
+        "purescript-const": "^v5.0.0",
+        "purescript-control": "^v5.0.0",
+        "purescript-datetime": "^v5.0.2",
+        "purescript-either": "^v5.0.0",
+        "purescript-foldable-traversable": "^v5.0.1",
+        "purescript-free": "^v6.0.1",
+        "purescript-halogen": "^v6.1.1",
+        "purescript-heterogeneous": "^v0.5.0",
+        "purescript-lists": "^v6.0.1",
+        "purescript-maybe": "^v5.0.0",
+        "purescript-newtype": "^v4.0.0",
+        "purescript-ordered-collections": "^v2.0.1",
+        "purescript-prelude": "^v5.0.0",
+        "purescript-profunctor-lenses": "^v7.0.0",
+        "purescript-record": "^v3.0.0",
+        "purescript-refs": "^v5.0.0",
+        "purescript-tuples": "^v6.0.0",
+        "purescript-typelevel-prelude": "^v6.0.0",
+        "purescript-unsafe-coerce": "^v5.0.0",
+        "purescript-variant": "^v7.0.2"
+    }
+}
