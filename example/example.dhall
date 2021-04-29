@@ -2,9 +2,18 @@ let conf = ../spago.dhall
 in conf //
   { dependencies =
       conf.dependencies #
-        [ "debug"
+        [ "arrays"
+        , "console"
+        , "debug"
+        , "dom-indexed"
+        , "effect"
+        , "foreign-object"
         , "halogen-select"
         , "halogen-storybook"
+        , "integers"
+        , "strings"
+        , "web-events"
+        , "web-uievents"
         ]
   , sources =
       conf.sources #
