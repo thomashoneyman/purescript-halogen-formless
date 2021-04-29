@@ -7,8 +7,8 @@ let
   pursPkgs = import (pkgs.fetchFromGitHub {
     owner = "justinwoo";
     repo = "easy-purescript-nix";
-    rev = "e8a1ffafafcdf2e81adba419693eb35f3ee422f8";
-    sha256 = "0bk32wckk82f1j5i5gva63f3b3jl8swc941c33bqc3pfg5cgkyyf";
+    rev = "dae91f43317fd5ff207e11ea6bf4b6130e4ba9fc";
+    sha256 = "1lx6dpa8g2xa6wwhqfarw4bixibk743r0cwafmqmq6l4qjb061sa";
   }) { inherit pkgs; };
 
 in pkgs.stdenv.mkDerivation {
