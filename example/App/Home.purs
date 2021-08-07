@@ -25,8 +25,8 @@ render =
         , UI.a
             [ HP.href "https://github.com/thomashoneyman/purescript-halogen-formless" ]
             [ HH.text "purescript-halogen-formless" ]
-      ]
-  ]
+        ]
+    ]
 
 -- Component
 

@@ -65,7 +65,6 @@ data Tab = GroupTab | OptionsTab
 derive instance eqTab :: Eq Tab
 derive instance ordTab :: Ord Tab
 
-
 -- Form types
 
 newtype GroupForm (r :: Row Type -> Type) f = GroupForm (r (GroupFormRow f))
@@ -73,13 +72,13 @@ derive instance newtypeGroupForm :: Newtype (GroupForm r f) _
 
 type GroupFormRow :: (Type -> Type -> Type -> Type) -> Row Type
 type GroupFormRow f =
-  ( name         :: f FieldError String         String
-  , admin        :: f FieldError (Maybe Admin)  Admin
+  ( name :: f FieldError String String
+  , admin :: f FieldError (Maybe Admin) Admin
   , applications :: f FieldError (Array String) (Array String)
-  , pixels       :: f FieldError (Array String) (Array String)
-  , whiskey      :: f FieldError (Maybe String) String
-  , secretKey1   :: f FieldError String         String
-  , secretKey2   :: f FieldError String         String
+  , pixels :: f FieldError (Array String) (Array String)
+  , whiskey :: f FieldError (Maybe String) String
+  , secretKey1 :: f FieldError String String
+  , secretKey2 :: f FieldError String String
   )
 
 -- Form component types
@@ -90,9 +89,9 @@ type Slot =
 _groupForm = Proxy :: Proxy "groupForm"
 
 type State =
-  ( selectedTab :: Tab        -- which tab the user is viewing
-  , optionsErrors :: Int      -- count of errors in the options form
-  , optionsDirty :: Boolean   -- whether the options form has been edited
+  ( selectedTab :: Tab -- which tab the user is viewing
+  , optionsErrors :: Int -- count of errors in the options form
+  , optionsDirty :: Boolean -- whether the options form has been edited
   )
 
 data Action
@@ -115,7 +114,6 @@ type ChildSlots =
 data TASlot = Applications | Pixels
 derive instance eqTASlot :: Eq TASlot
 derive instance ordTASlot :: Ord TASlot
-
 
 -- Form spec
 
@@ -148,15 +146,13 @@ component = F.component (const input) $ F.defaultSpec
     where
     equalsSecretKey2 = F.hoistFnE \form secretKey1 -> do
       let secretKey2 = F.getInput prx.secretKey2 form
-      if secretKey1 == secretKey2
-        then Right secretKey1
-        else Left $ V.NotEqual secretKey2 secretKey1
+      if secretKey1 == secretKey2 then Right secretKey1
+      else Left $ V.NotEqual secretKey2 secretKey1
 
     equalsSecretKey1 = F.hoistFnE \form secretKey2 -> do
       let secretKey1 = F.getInput prx.secretKey1 form
-      if secretKey2 == secretKey1
-        then Right secretKey2
-        else Left $ V.NotEqual secretKey1 secretKey2
+      if secretKey2 == secretKey1 then Right secretKey2
+      else Left $ V.NotEqual secretKey1 secretKey2
 
   handleEvent = case _ of
     F.Submitted form -> do
@@ -165,8 +161,8 @@ component = F.component (const input) $ F.defaultSpec
       let options = map (OF.Options <<< F.unwrapOutputFields) (join mbOptionsForm)
       -- next, we'll fetch a new group id (in the real world this might be a server call)
       groupId <- pure $ GroupId 10
-     -- then, we'll produce a new Group by transforming our form outputs and raise it
-     -- as a message.
+      -- then, we'll produce a new Group by transforming our form outputs and raise it
+      -- as a message.
       H.raise
         $ Group
         $ Record.delete (Proxy :: _ "secretKey2")
@@ -230,40 +226,37 @@ component = F.component (const input) $ F.defaultSpec
       [ UI.grouped_
           [ UI.button
               [ HE.onClick \_ -> F.injAction $ Select GroupTab ]
-                [ UI.p_ $ "Group Form" <>
-                    if st.errors > 0
-                      then " (" <> show st.errors  <> ")"
-                      else ""
-                ]
+              [ UI.p_ $ "Group Form" <>
+                  if st.errors > 0 then " (" <> show st.errors <> ")"
+                  else ""
+              ]
           , UI.button
               [ HE.onClick \_ -> F.injAction $ Select OptionsTab ]
               [ UI.p_ $ "Options Form" <>
-                  if st.optionsErrors > 0
-                    then " (" <> show st.optionsErrors  <> ")"
-                    else ""
+                  if st.optionsErrors > 0 then " (" <> show st.optionsErrors <> ")"
+                  else ""
               ]
           , UI.buttonPrimary
               [ HE.onClick \_ -> F.submit ]
               [ HH.text "Submit Form" ]
           , UI.button
-              [ if st.dirty || st.optionsDirty
-                  then HE.onClick \_ -> F.injAction ResetForm
-                  else HP.disabled true
+              [ if st.dirty || st.optionsDirty then HE.onClick \_ -> F.injAction ResetForm
+                else HP.disabled true
               ]
               [ HH.text "Reset All" ]
           ]
       , HH.div
-         [ class_ $ "is-hidden" # guard (st.selectedTab /= GroupTab) ]
-         [ UI.formContent_
-             [ renderName
-             , renderAdmin
-             , renderSecretKey1
-             , renderSecretKey2
-             , renderApplications
-             , renderPixels
-             , renderWhiskey
-             ]
-        ]
+          [ class_ $ "is-hidden" # guard (st.selectedTab /= GroupTab) ]
+          [ UI.formContent_
+              [ renderName
+              , renderAdmin
+              , renderSecretKey1
+              , renderSecretKey2
+              , renderApplications
+              , renderPixels
+              , renderWhiskey
+              ]
+          ]
       , HH.div
           [ class_ $ "is-hidden" # guard (st.selectedTab /= OptionsTab) ]
           [ HH.slot OF._optionsForm unit OF.component unit handleOF ]

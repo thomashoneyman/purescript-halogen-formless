@@ -37,9 +37,12 @@ instance altValidation :: Monad m => Alt (Validation form m e i) where
 instance semigroupValidation :: Semigroup (m (Either e o)) => Semigroup (Validation form m e i o) where
   append (Validation v0) (Validation v1) = Validation \form i -> v0 form i <> v1 form i
 
-instance monoidValidation
-  :: (Applicative m, Monoid (m (Either e o)), Semigroup (m (Either e o)))
-  => Monoid (Validation form m e i o) where
+instance monoidValidation ::
+  ( Applicative m
+  , Monoid (m (Either e o))
+  , Semigroup (m (Either e o))
+  ) =>
+  Monoid (Validation form m e i o) where
   mempty = Validation <<< const <<< pure $ mempty
 
 instance semigroupoidValidation :: Monad m => Semigroupoid (Validation form m e) where
@@ -50,36 +53,35 @@ instance semigroupoidValidation :: Monad m => Semigroupoid (Validation form m e)
 instance categoryValidation :: Monad m => Category (Validation form m e) where
   identity = Validation $ \_ -> pure <<< pure
 
-
 ----------
 -- Helpers
 
 -- | A more verbose but clearer function for running a validation function on its inputs
-runValidation :: ∀ form m e i o. Monad m => Validation form m e i o -> form Record FormField -> i -> m (Either e o)
+runValidation :: forall form m e i o. Monad m => Validation form m e i o -> form Record FormField -> i -> m (Either e o)
 runValidation = unwrap
 
 -- | Turn a function from (form Record FormField -> i -> o) into a proper Validation
-hoistFn :: ∀ form m e i o. Monad m => (form Record FormField -> i -> o) -> Validation form m e i o
+hoistFn :: forall form m e i o. Monad m => (form Record FormField -> i -> o) -> Validation form m e i o
 hoistFn f = Validation $ \form -> pure <<< pure <<< f form
 
 -- | Turn a function from (i -> o) into a proper Validation
-hoistFn_ :: ∀ form m e i o. Monad m => (i -> o) -> Validation form m e i o
+hoistFn_ :: forall form m e i o. Monad m => (i -> o) -> Validation form m e i o
 hoistFn_ f = Validation $ const $ pure <<< pure <<< f
 
 -- | Turn a function from (form Record FormField -> i -> Either e o) into a proper Validation
-hoistFnE :: ∀ form m e i o. Monad m => (form Record FormField -> i -> Either e o) -> Validation form m e i o
+hoistFnE :: forall form m e i o. Monad m => (form Record FormField -> i -> Either e o) -> Validation form m e i o
 hoistFnE f = Validation $ \form -> pure <<< f form
 
 -- | Turn a function from (i -> Either e o) into a proper Validation
-hoistFnE_ :: ∀ form m e i o. Monad m => (i -> Either e o) -> Validation form m e i o
+hoistFnE_ :: forall form m e i o. Monad m => (i -> Either e o) -> Validation form m e i o
 hoistFnE_ f = Validation $ const $ pure <<< f
 
 -- | Turn a function from (form Record FormField -> i -> m (Either e o)) into a proper Validation
-hoistFnME :: ∀ form m e i o. Monad m => (form Record FormField -> i -> m (Either e o)) -> Validation form m e i o
+hoistFnME :: forall form m e i o. Monad m => (form Record FormField -> i -> m (Either e o)) -> Validation form m e i o
 hoistFnME = Validation
 
 -- | Turn a function from (i -> m (Either e o)) into a proper Validation
-hoistFnME_ :: ∀ form m e i o. Monad m => (i -> m (Either e o)) -> Validation form m e i o
+hoistFnME_ :: forall form m e i o. Monad m => (i -> m (Either e o)) -> Validation form m e i o
 hoistFnME_ = Validation <<< const
 
 ----------
@@ -88,7 +90,7 @@ hoistFnME_ = Validation <<< const
 -- | A function to create a record of validators that simply pass through all inputs
 -- | for when no validation is needed. Provide this as your `validators` function.
 noValidators
-  :: ∀ form fields m vs xs
+  :: forall form fields m vs xs
    . Monad m
   => RowToList fields xs
   => Newtype (form Record (Validation form m)) { | vs }
@@ -100,7 +102,7 @@ noValidators = wrap <<< hmap EmptyValidators <<< unwrap
 
 -- | A validation function which simply passes through its input value as its
 -- | output value. Use on individual fields which do not need any validation.
-noValidation :: ∀ form m e i. Monad m => Validation form m e i i
+noValidation :: forall form m e i. Monad m => Validation form m e i i
 noValidation = hoistFn_ identity
 
 ----------

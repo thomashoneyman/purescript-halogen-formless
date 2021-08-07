@@ -24,7 +24,7 @@ import Web.UIEvent.FocusEvent (FocusEvent)
 
 type Plain i p = Array (HH.HTML i p) -> HH.HTML i p
 
-class_ :: forall r t. String -> HH.IProp ( "class" :: String | r ) t
+class_ :: forall r t. String -> HH.IProp ("class" :: String | r) t
 class_ = HP.class_ <<< HH.ClassName
 
 ----------
@@ -85,7 +85,7 @@ grouped_ :: forall i p. Plain i p
 grouped_ array =
   HH.div
     [ class_ "field is-grouped" ]
-    ( wrap <$> array )
+    (wrap <$> array)
   where
   wrap x = HH.p [ class_ "control" ] [ x ]
 
@@ -104,8 +104,8 @@ field config contents =
         Right str -> help_ str
     ]
   where
-    help_ str = HH.p [ class_ "help" ] [ HH.text str ]
-    helpError_ str = HH.p [ class_ "help is-danger" ] [ HH.text str ]
+  help_ str = HH.p [ class_ "help" ] [ HH.text str ]
+  helpError_ str = HH.p [ class_ "help is-danger" ] [ HH.text str ]
 
 ----------
 -- Formless
@@ -166,11 +166,12 @@ formlessField
   => Newtype (form Variant F.InputFunction) (Variant inputs)
   => Cons sym (F.FormField e String o) t0 fields
   => Cons sym (F.InputFunction e String o) t1 inputs
-  => (FieldConfig'
-       -> Array (HH.IProp
-                  (value :: String, onBlur :: FocusEvent, onInput :: Event | r)
-                  (F.Action form act)
-                )
+  => ( FieldConfig'
+       -> Array
+            ( HH.IProp
+                (value :: String, onBlur :: FocusEvent, onInput :: Event | r)
+                (F.Action form act)
+            )
        -> F.ComponentHTML form act ps m
      )
   -> FieldConfig sym
@@ -178,15 +179,15 @@ formlessField
   -> F.ComponentHTML form act ps m
 formlessField fieldType config state = fieldType (Builder.build config' config) props
   where
-    config' =
-      Builder.delete (Proxy :: Proxy "sym")
-        >>> Builder.modify (Proxy :: Proxy "help") (const help')
+  config' =
+    Builder.delete (Proxy :: Proxy "sym")
+      >>> Builder.modify (Proxy :: Proxy "help") (const help')
 
-    help' =
-      maybe (Right config.help) (Left <<< toText) (F.getError config.sym state.form)
+  help' =
+    maybe (Right config.help) (Left <<< toText) (F.getError config.sym state.form)
 
-    props =
-      [ HP.value (F.getInput config.sym state.form)
-      , HE.onValueInput (F.setValidate config.sym)
-      ]
+  props =
+    [ HP.value (F.getInput config.sym state.form)
+    , HE.onValueInput (F.setValidate config.sym)
+    ]
 

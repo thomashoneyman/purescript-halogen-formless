@@ -229,7 +229,7 @@ handleAction handleAction' handleEvent action = flip match action
   , userAction: \act ->
       handleAction' act
 
-  , modify: \variant ->  do
+  , modify: \variant -> do
       H.modify_ \st -> st
         { form = IT.unsafeModifyInputVariant identity variant st.form }
       handleAction handleAction' handleEvent sync

@@ -16,7 +16,7 @@ data Action
   = HandleFormless User
 
 type ChildSlot =
-  ( formless :: F.Slot UserForm (Const Void) ChildSlots User Unit )
+  (formless :: F.Slot UserForm (Const Void) ChildSlots User Unit)
 
 component :: H.Component (Const Void) Unit Void Aff
 component = H.mkComponent
@@ -28,7 +28,7 @@ component = H.mkComponent
   handleAction = case _ of
     HandleFormless user -> logShow (user :: User)
 
-  render st =
+  render _ =
     UI.section_
       [ UI.h1_ [ HH.text "Formless" ]
       , UI.h2_ [ HH.text "A form leveraging external components and custom form actions." ]

@@ -4,7 +4,6 @@ in conf //
       conf.dependencies #
         [ "arrays"
         , "console"
-        , "debug"
         , "dom-indexed"
         , "effect"
         , "foreign-object"

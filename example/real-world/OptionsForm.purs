@@ -62,14 +62,14 @@ instance initialSpeed :: F.Initial Speed where
 -- This is the data type used throughout our fake application. In this case, it's
 -- the same type the form and the underlying row, so we'll use `F.OutputType`.
 newtype Options = Options
-  { enable       :: Boolean
-  , metric       :: Metric
-  , viewCost     :: Maybe Dollars
-  , clickCost    :: Maybe Dollars
-  , installCost  :: Maybe Dollars
-  , size         :: Number
-  , dimensions   :: Number
-  , speed        :: Speed
+  { enable :: Boolean
+  , metric :: Metric
+  , viewCost :: Maybe Dollars
+  , clickCost :: Maybe Dollars
+  , installCost :: Maybe Dollars
+  , size :: Number
+  , dimensions :: Number
+  , speed :: Speed
   }
 derive instance newtypeOptions :: Newtype Options _
 derive newtype instance eqOptions :: Eq Options
@@ -82,16 +82,15 @@ derive instance newtypeOptionsForm :: Newtype (OptionsForm r f) _
 
 type OptionsRow :: (Type -> Type -> Type -> Type) -> Row Type
 type OptionsRow f =
-  ( enable       :: f Void       Boolean        Boolean
-  , metric       :: f FieldError (Maybe Metric) Metric
-  , viewCost     :: f FieldError String         (Maybe Dollars)
-  , clickCost    :: f FieldError String         (Maybe Dollars)
-  , installCost  :: f FieldError String         (Maybe Dollars)
-  , size         :: f FieldError String         Number
-  , dimensions   :: f FieldError String         Number
-  , speed        :: f Void       Speed          Speed
+  ( enable :: f Void Boolean Boolean
+  , metric :: f FieldError (Maybe Metric) Metric
+  , viewCost :: f FieldError String (Maybe Dollars)
+  , clickCost :: f FieldError String (Maybe Dollars)
+  , installCost :: f FieldError String (Maybe Dollars)
+  , size :: f FieldError String Number
+  , dimensions :: f FieldError String Number
+  , speed :: f Void Speed Speed
   )
-
 
 -- Form component types
 
@@ -102,7 +101,7 @@ _optionsForm = Proxy :: Proxy "optionsForm"
 
 -- We'll maintain a flag so we can check if the enabled state has changed
 type State =
-  ( prevEnabled :: Boolean )
+  (prevEnabled :: Boolean)
 
 data Action
   = HandleDropdown (DD.Message Metric)
@@ -113,7 +112,7 @@ type Message =
   }
 
 type ChildSlots =
-  ( dropdown :: DD.Slot Metric Unit )
+  (dropdown :: DD.Slot Metric Unit)
 
 -- Form spec
 
@@ -144,9 +143,8 @@ component = F.component (const input) $ F.defaultSpec
     }
     where
     validateMetric metric = F.Validation \form i ->
-      if F.getInput prx.metric form == Just metric
-        then map (map (Just <<< Dollars)) $ F.runValidation V.strIsInt form i
-        else pure (pure Nothing)
+      if F.getInput prx.metric form == Just metric then map (map (Just <<< Dollars)) $ F.runValidation V.strIsInt form i
+      else pure (pure Nothing)
 
   defaultInputFields :: OptionsForm Record F.InputField
   defaultInputFields = F.wrapInputFields

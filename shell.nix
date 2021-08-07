@@ -3,12 +3,12 @@ let
     url = "https://github.com/NixOS/nixpkgs/archive/20.09.tar.gz";
   }) {};
 
-  # 2021-03-14 nix-prefetch-git https://github.com/justinwoo/easy-purescript-nix
+  # 2021-08-05 nix-prefetch-git https://github.com/justinwoo/easy-purescript-nix
   pursPkgs = import (pkgs.fetchFromGitHub {
     owner = "justinwoo";
     repo = "easy-purescript-nix";
-    rev = "dae91f43317fd5ff207e11ea6bf4b6130e4ba9fc";
-    sha256 = "1lx6dpa8g2xa6wwhqfarw4bixibk743r0cwafmqmq6l4qjb061sa";
+    rev = "bbef4245cd6810ea84e97a47c801947bfec9fadc";
+    sha256 = "00764zbwhbn61jwb5px2syzi2f9djyl8fmbd2p8wma985af54iwx";
   }) { inherit pkgs; };
 
 in pkgs.stdenv.mkDerivation {
@@ -16,6 +16,7 @@ in pkgs.stdenv.mkDerivation {
   buildInputs = with pursPkgs; [
     pursPkgs.purs
     pursPkgs.spago
+    pursPkgs.psa
     pkgs.nodejs-14_x
   ];
 }

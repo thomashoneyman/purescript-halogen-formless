@@ -48,7 +48,7 @@ type Spec' form msg input m = Spec form () (Const Void) Void () input msg m
 type Action form act = Variant
   ( userAction :: act
   | InternalAction act
-  + PublicAction form
+      + PublicAction form
   )
 
 type PublicAction :: ((Row Type -> Type) -> (Type -> Type -> Type -> Type) -> Type) -> Row Type

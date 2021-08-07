@@ -14,7 +14,7 @@ import Type.Proxy (Proxy(..))
 data Action = HandleEventForm Form.Event
 
 type ChildSlots =
-  ( eventForm :: Form.Slot Unit )
+  (eventForm :: Form.Slot Unit)
 
 component :: H.Component (Const Void) Unit Void Aff
 component = H.mkComponent
@@ -23,7 +23,7 @@ component = H.mkComponent
   , eval: H.mkEval $ H.defaultEval { handleAction = handleAction }
   }
   where
-  render st =
+  render _ =
     UI.section_
       [ UI.h1_ [ HH.text "Formless" ]
       , UI.h2_ [ HH.text "A form with a dynamic array of nested sub-forms." ]
