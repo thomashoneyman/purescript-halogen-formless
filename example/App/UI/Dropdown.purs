@@ -100,11 +100,11 @@ toggle
   -> H.ComponentHTML (Select.Action act) ps m
 toggle props st =
   HH.div
-  [ class_ "dropdown-trigger" ]
-  [ UI.button
-    ( Setters.setToggleProps props )
-    [ HH.text $ fromMaybe st.placeholder (toText <$> st.selected) ]
-  ]
+    [ class_ "dropdown-trigger" ]
+    [ UI.button
+        (Setters.setToggleProps props)
+        [ HH.text $ fromMaybe st.placeholder (toText <$> st.selected) ]
+    ]
 
 menu
   :: forall item st act ps m
@@ -113,22 +113,23 @@ menu
   -> H.ComponentHTML (Select.Action act) ps m
 menu st =
   HH.div
-  [ class_ "dropdown-menu" ]
-  [ if st.visibility == Select.Off then HH.text "" else
-    HH.div
-      (Setters.setContainerProps [ class_ "dropdown-content" ])
-      (mapWithIndex
-        (\ix item ->
-          HH.span
-            (Setters.setItemProps ix case Just ix == st.highlightedIndex of
-              true ->
-                [ class_ "dropdown-item has-background-link has-text-white-bis" ]
-              _ ->
-                [ class_ "dropdown-item" ]
-            )
-            [ HH.text (toText item) ]
-        )
-        st.available
-      )
-  ]
+    [ class_ "dropdown-menu" ]
+    [ if st.visibility == Select.Off then HH.text ""
+      else
+        HH.div
+          (Setters.setContainerProps [ class_ "dropdown-content" ])
+          ( mapWithIndex
+              ( \ix item ->
+                  HH.span
+                    ( Setters.setItemProps ix case Just ix == st.highlightedIndex of
+                        true ->
+                          [ class_ "dropdown-item has-background-link has-text-white-bis" ]
+                        _ ->
+                          [ class_ "dropdown-item" ]
+                    )
+                    [ HH.text (toText item) ]
+              )
+              st.available
+          )
+    ]
 

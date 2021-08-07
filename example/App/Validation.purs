@@ -46,7 +46,7 @@ derive newtype instance eqEmail :: Eq Email
 derive newtype instance showEmail :: Show Email
 
 -- | Unpacks errors to render as a string
-showError :: ∀ e o. ToText e => FormFieldResult e o -> Maybe String
+showError :: forall e o. ToText e => FormFieldResult e o -> Maybe String
 showError = map toText <<< preview _Error
 
 class ToText item where
@@ -59,58 +59,59 @@ instance toTextString :: ToText String where
 -- Formless Validation
 --------------------
 
-emailFormat :: ∀ form m. Monad m => Validation form m FieldError String Email
+emailFormat :: forall form m. Monad m => Validation form m FieldError String Email
 emailFormat = hoistFnE_ $ \str ->
-  if contains (Pattern "@") str
-    then pure $ Email str
-    else Left InvalidEmail
+  if contains (Pattern "@") str then pure $ Email str
+  else Left InvalidEmail
 
-minLength :: ∀ form m. Monad m => Int -> Validation form m FieldError String String
+minLength :: forall form m. Monad m => Int -> Validation form m FieldError String String
 minLength n = hoistFnE_ $ \str ->
-  let n' = length str
-   in if n' < n then Left (TooShort n) else Right str
+  let
+    n' = length str
+  in
+    if n' < n then Left (TooShort n) else Right str
 
 -- | The opposite of minLength.
-maxLength :: ∀ form m. Monad m => Int -> Validation form m FieldError String String
+maxLength :: forall form m. Monad m => Int -> Validation form m FieldError String String
 maxLength n = hoistFnE_ \str ->
-  let n' = length str
-   in if n' > n then Left (TooLong n) else Right str
+  let
+    n' = length str
+  in
+    if n' > n then Left (TooLong n) else Right str
 
-exists :: ∀ form m a. Monad m => Validation form m FieldError (Maybe a) a
+exists :: forall form m a. Monad m => Validation form m FieldError (Maybe a) a
 exists = hoistFnE_ $ maybe (Left EmptyField) Right
 
-strIsInt :: ∀ form m. Monad m => Validation form m FieldError String Int
+strIsInt :: forall form m. Monad m => Validation form m FieldError String Int
 strIsInt = hoistFnE_ $ \str -> maybe (Left $ InvalidInt str) Right (Int.fromString str)
 
-nonEmptyArray :: ∀ form m a. Monad m => Validation form m FieldError (Array a) (Array a)
+nonEmptyArray :: forall form m a. Monad m => Validation form m FieldError (Array a) (Array a)
 nonEmptyArray = hoistFnE_ \arr ->
-  if Foldable.length arr > 0
-    then Right arr
-    else Left EmptyField
+  if Foldable.length arr > 0 then Right arr
+  else Left EmptyField
 
 -- | Validate that an input string is not empty
-nonEmptyStr :: ∀ form m. Monad m => Validation form m FieldError String String
+nonEmptyStr :: forall form m. Monad m => Validation form m FieldError String String
 nonEmptyStr = hoistFnE_ $ \str ->
-  if null str
-    then Left EmptyField
-    else Right str
+  if null str then Left EmptyField
+  else Right str
 
 --------------------
 -- Formless Async Validation
 --------------------
 
-emailIsUsed :: ∀ form m. MonadAff m => Validation form m FieldError Email Email
+emailIsUsed :: forall form m. MonadAff m => Validation form m FieldError Email Email
 emailIsUsed = Validation \_ e@(Email e') -> do
   -- Perhaps we hit the server to  if the email is in use
   _ <- liftAff $ delay $ Milliseconds 1000.0
-  pure $ if (contains (Pattern "t") e')
-    then Left EmailInUse
+  pure $
+    if (contains (Pattern "t") e') then Left EmailInUse
     else pure e
 
-enoughMoney :: ∀ form m. MonadAff m => Validation form m FieldError Int Int
+enoughMoney :: forall form m. MonadAff m => Validation form m FieldError Int Int
 enoughMoney = Validation \_ i -> do
   -- Let's check if we have enough money...
   _ <- liftAff $ delay $ Milliseconds 5000.0
-  pure $ if (i > 1000)
-    then Left NotEnoughMoney
+  pure $
+    if (i > 1000) then Left NotEnoughMoney
     else pure i

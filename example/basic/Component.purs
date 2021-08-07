@@ -19,10 +19,12 @@ import Type.Proxy (Proxy(..))
 
 type Contact = { name :: String, text :: String }
 
-newtype ContactForm (r :: Row Type -> Type) f = ContactForm (r
-  ( name :: f V.FieldError String String
-  , text :: f Void String String
-  ))
+newtype ContactForm (r :: Row Type -> Type) f = ContactForm
+  ( r
+      ( name :: f V.FieldError String String
+      , text :: f Void String String
+      )
+  )
 derive instance newtypeContactForm :: Newtype (ContactForm r f) _
 
 data Action = HandleContact Contact
@@ -58,27 +60,27 @@ component = H.mkComponent
       }
 
     renderFormless st =
-     UI.formContent_
-       [ UI.input
-           { label: "Name"
-           , help: UI.resultToHelp "Write your name" $ F.getResult _name st.form
-           , placeholder: "Dale"
-           }
-           [ HP.value $ F.getInput _name st.form
-           , HE.onValueInput (F.setValidate _name)
-           ]
-       , UI.textarea
-           { label: "Message"
-           , help: Right "Write us a message"
-           , placeholder: "We prefer nice messages, but have at it."
-           }
-           [ HP.value $ F.getInput _text st.form
-           , HE.onValueInput (F.set _text)
-           ]
-       , UI.buttonPrimary
-           [ HE.onClick \_ -> F.submit ]
-           [ HH.text "Submit" ]
-       ]
-     where
-     _name = Proxy :: Proxy "name"
-     _text = Proxy :: Proxy "text"
+      UI.formContent_
+        [ UI.input
+            { label: "Name"
+            , help: UI.resultToHelp "Write your name" $ F.getResult _name st.form
+            , placeholder: "Dale"
+            }
+            [ HP.value $ F.getInput _name st.form
+            , HE.onValueInput (F.setValidate _name)
+            ]
+        , UI.textarea
+            { label: "Message"
+            , help: Right "Write us a message"
+            , placeholder: "We prefer nice messages, but have at it."
+            }
+            [ HP.value $ F.getInput _text st.form
+            , HE.onValueInput (F.set _text)
+            ]
+        , UI.buttonPrimary
+            [ HE.onClick \_ -> F.submit ]
+            [ HH.text "Submit" ]
+        ]
+      where
+      _name = Proxy :: Proxy "name"
+      _text = Proxy :: Proxy "text"

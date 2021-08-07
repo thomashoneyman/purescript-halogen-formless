@@ -29,12 +29,11 @@ derive instance newtypeUserForm' :: Newtype (UserForm r f) _
 
 type UserFormRow :: (Type -> Type -> Type -> Type) -> Row Type
 type UserFormRow f =
-  ( name     :: f V.FieldError String         String
-  , email    :: f V.FieldError (Maybe String) V.Email
-  , whiskey  :: f V.FieldError (Maybe String) String
+  ( name :: f V.FieldError String String
+  , email :: f V.FieldError (Maybe String) V.Email
+  , whiskey :: f V.FieldError (Maybe String) String
   , language :: f V.FieldError (Maybe String) String
   )
-
 
 -- Form component types
 
@@ -42,11 +41,10 @@ data Action
   = HandleTypeahead Typeahead (TA.Message Maybe String)
   | Reset
 
-
 -- Form child component types
 
 type ChildSlots =
-  ( typeahead :: TA.Slot Maybe String Typeahead )
+  (typeahead :: TA.Slot Maybe String Typeahead)
 
 data Typeahead
   = Email
@@ -120,15 +118,13 @@ component = F.component (const defaultInput) $ F.defaultSpec
       , HH.br_
       , UI.grouped_
           [ UI.buttonPrimary
-              [ if st.submitting || st.validity /= F.Valid
-                  then HP.disabled true
-                  else HE.onClick \_ -> F.submit
+              [ if st.submitting || st.validity /= F.Valid then HP.disabled true
+                else HE.onClick \_ -> F.submit
               ]
               [ HH.text "Submit" ]
           , UI.button
-              [ if not st.dirty
-                  then HP.disabled true
-                  else HE.onClick \_ -> F.injAction Reset
+              [ if not st.dirty then HP.disabled true
+                else HE.onClick \_ -> F.injAction Reset
               ]
               [ HH.text "Reset" ]
           ]

@@ -27,8 +27,8 @@ derive instance newtypeForm :: Newtype (Form r f) _
 
 type FormRow :: (Type -> Type -> Type -> Type) -> Row Type
 type FormRow f =
-  ( name    :: f V.FieldError String String
-  , email   :: f V.FieldError String V.Email
+  ( name :: f V.FieldError String String
+  , email :: f V.FieldError String V.Email
   , balance :: f V.FieldError String Int
   )
 

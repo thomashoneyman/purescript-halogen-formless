@@ -20,7 +20,7 @@ type State =
   { group :: Maybe GF.Group }
 
 type ChildSlots =
-  ( groupForm :: GF.Slot Unit )
+  (groupForm :: GF.Slot Unit)
 
 component :: H.Component (Const Void) Unit Void Aff
 component = H.mkComponent
@@ -38,7 +38,7 @@ component = H.mkComponent
       H.liftEffect $ Console.logShow group
 
   render :: State -> H.ComponentHTML Action ChildSlots Aff
-  render st =
+  render _ =
     UI.section_
       [ UI.h1_ [ HH.text "Formless" ]
       , UI.h2_ [ HH.text "A complex form inspired by real-world use cases." ]

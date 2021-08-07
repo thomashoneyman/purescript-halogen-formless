@@ -53,7 +53,7 @@ data Action
   | HandleMemberForm Int MFMessage
 
 type ChildSlots =
-  ( memberForm :: MFSlot Int )
+  (memberForm :: MFSlot Int)
 
 -- Form spec
 
@@ -86,7 +86,6 @@ eventComponent = F.component (const eventFormInput) $ F.defaultSpec
         { nextId = st.nextId + 1, formIds = st.formIds `snoc` st.nextId }
 
     SubmitAll -> do
-      st <- H.get
       res <- H.queryAll _memberForm $ H.mkRequest F.submitReply
       case map F.unwrapOutputFields $ catMaybes $ toUnfoldable $ M.values res of
         [] -> eval F.submit
@@ -105,20 +104,20 @@ eventComponent = F.component (const eventFormInput) $ F.defaultSpec
   render st =
     HH.div_
       [ HH.div
-        [ class_ "field is-grouped" ]
-        [ HH.div
-            [ class_ "control" ]
-            [ UI.button
-                [ HE.onClick \_ -> F.injAction AddMemberForm ]
-                [ HH.text "Add Member Form" ]
-            ]
-        , HH.div
-            [ class_ "control" ]
-            [ UI.buttonPrimary
-                [ HE.onClick \_ -> F.injAction SubmitAll ]
-                [ HH.text "Submit" ]
-            ]
-        ]
+          [ class_ "field is-grouped" ]
+          [ HH.div
+              [ class_ "control" ]
+              [ UI.button
+                  [ HE.onClick \_ -> F.injAction AddMemberForm ]
+                  [ HH.text "Add Member Form" ]
+              ]
+          , HH.div
+              [ class_ "control" ]
+              [ UI.buttonPrimary
+                  [ HE.onClick \_ -> F.injAction SubmitAll ]
+                  [ HH.text "Submit" ]
+              ]
+          ]
       , UI.input
           { label: "Event Name"
           , help: F.getResult _name st.form # UI.resultToHelp
@@ -148,7 +147,6 @@ eventComponent = F.component (const eventFormInput) $ F.defaultSpec
     _name = Proxy :: Proxy "name"
     _location = Proxy :: Proxy "location"
     _memberForm = Proxy :: Proxy "memberForm"
-
 
 -----
 -- Member form, nested inside
@@ -198,40 +196,40 @@ memberFormComponent = F.component (const memberFormInput) $ F.defaultSpec
     RemoveMe -> H.raise Destroy
 
   render st =
-   UI.formContent_
-     [ HH.div
-         [ class_ "field" ]
-         [ UI.buttonPrimary
-             [ HE.onClick \_ -> F.injAction RemoveMe ]
-             [ HH.text "Remove Me" ]
-         ]
-     , UI.input
-         { label: "Member Name"
-         , help: F.getResult _name st.form # UI.resultToHelp
-             "Provide the registrant's name"
-         , placeholder: "Dale Cooper"
-         }
-         [ HP.value $ F.getInput _name st.form
-         , HE.onValueInput (F.setValidate _name)
-         ]
-     , UI.input
-         { label: "Member Email"
-         , help: F.getResult _email st.form # UI.resultToHelp
-             "Provide the registrant's email address"
-         , placeholder: "dalecooper@fbi.gov"
-         }
-         [ HP.value $ F.getInput _email st.form
-         , HE.onValueInput (F.setValidate _email)
-         ]
-     , UI.input
-         { label: "Additional Notes"
-         , help: Right "Provide any additional notes you'd like."
-         , placeholder: "Fond of Tibetan traditions"
-         }
-         [ HP.value $ F.getInput _notes st.form
-         , HE.onValueInput (F.set _notes)
-         ]
-    ]
+    UI.formContent_
+      [ HH.div
+          [ class_ "field" ]
+          [ UI.buttonPrimary
+              [ HE.onClick \_ -> F.injAction RemoveMe ]
+              [ HH.text "Remove Me" ]
+          ]
+      , UI.input
+          { label: "Member Name"
+          , help: F.getResult _name st.form # UI.resultToHelp
+              "Provide the registrant's name"
+          , placeholder: "Dale Cooper"
+          }
+          [ HP.value $ F.getInput _name st.form
+          , HE.onValueInput (F.setValidate _name)
+          ]
+      , UI.input
+          { label: "Member Email"
+          , help: F.getResult _email st.form # UI.resultToHelp
+              "Provide the registrant's email address"
+          , placeholder: "dalecooper@fbi.gov"
+          }
+          [ HP.value $ F.getInput _email st.form
+          , HE.onValueInput (F.setValidate _email)
+          ]
+      , UI.input
+          { label: "Additional Notes"
+          , help: Right "Provide any additional notes you'd like."
+          , placeholder: "Fond of Tibetan traditions"
+          }
+          [ HP.value $ F.getInput _notes st.form
+          , HE.onValueInput (F.set _notes)
+          ]
+      ]
     where
     _name = Proxy :: Proxy "name"
     _email = Proxy :: Proxy "email"

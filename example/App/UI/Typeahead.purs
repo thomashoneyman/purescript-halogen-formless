@@ -48,7 +48,7 @@ type State f item =
   )
 
 type Input item =
-  { items  :: Array item
+  { items :: Array item
   , placeholder :: String
   }
 
@@ -71,7 +71,7 @@ data Message (f :: Type -> Type) item
 -- Premade
 
 single
-  :: ∀ item i m
+  :: forall item i m
    . MonadAff m
   => ToText item
   => Eq item
@@ -85,9 +85,9 @@ single = spec' (\i av -> const (av !! i)) (const $ const Nothing) filter' render
   render st = case st.selected of
     Just item ->
       HH.div
-        [ if st.visibility == Select.On
-            then class_ "dropdown is-active"
-            else class_ "dropdown is-flex" ]
+        [ if st.visibility == Select.On then class_ "dropdown is-active"
+          else class_ "dropdown is-flex"
+        ]
         [ Dropdown.toggle
             [ HE.onClick \_ -> remove item ]
             st
@@ -95,21 +95,21 @@ single = spec' (\i av -> const (av !! i)) (const $ const Nothing) filter' render
         ]
     Nothing ->
       HH.div
-        [ if st.visibility == Select.On
-            then class_ "dropdown is-flex is-active"
-            else class_ "dropdown is-flex" ]
+        [ if st.visibility == Select.On then class_ "dropdown is-flex is-active"
+          else class_ "dropdown is-flex"
+        ]
         [ HH.input
-          ( Setters.setInputProps
-              [ HP.placeholder st.placeholder
-              , HP.value st.search
-              , class_ "input"
-              ]
-          )
+            ( Setters.setInputProps
+                [ HP.placeholder st.placeholder
+                , HP.value st.search
+                , class_ "input"
+                ]
+            )
         , Dropdown.menu st
         ]
 
 multi
-  :: ∀ item i m
+  :: forall item i m
    . MonadAff m
   => ToText item
   => Eq item
@@ -123,38 +123,36 @@ multi = spec' selectByIndex (filter <<< (/=)) difference render
   render st =
     HH.div_
       [ HH.div
-        [ if length st.selected > 0
-            then class_ "panel is-marginless"
+          [ if length st.selected > 0 then class_ "panel is-marginless"
             else class_ "panel is-hidden"
-        ]
-        (st.selected <#> \i ->
-          HH.div
-            [ class_ "panel-block has-background-white"
-            , HE.onClick \_ -> remove i
-            ]
-            [ HH.text $ toText i ]
-        )
+          ]
+          ( st.selected <#> \i ->
+              HH.div
+                [ class_ "panel-block has-background-white"
+                , HE.onClick \_ -> remove i
+                ]
+                [ HH.text $ toText i ]
+          )
       , HH.div
-        [ if st.visibility == Select.On
-            then class_ "dropdown is-flex is-active"
+          [ if st.visibility == Select.On then class_ "dropdown is-flex is-active"
             else class_ "dropdown is-flex"
-        ]
-        [ HH.input
-            (Setters.setInputProps
-              [ class_ "input"
-              , HP.placeholder st.placeholder
-              , HP.value st.search
-              ]
-            )
-        , Dropdown.menu st
-        ]
+          ]
+          [ HH.input
+              ( Setters.setInputProps
+                  [ class_ "input"
+                  , HP.placeholder st.placeholder
+                  , HP.value st.search
+                  ]
+              )
+          , Dropdown.menu st
+          ]
       ]
 
 ----------
 -- Base component
 
 spec'
-  :: ∀ item f i m
+  :: forall item f i m
    . MonadAff m
   => Functor f
   => Monoid (f item)
@@ -163,7 +161,7 @@ spec'
   => (Int -> Array item -> f item -> f item)
   -> (item -> f item -> f item)
   -> (Array item -> f item -> Array item)
-  -> (Select.State (State f item)
+  -> ( Select.State (State f item)
        -> H.ComponentHTML (Select.Action (Action item)) () m
      )
   -> Select.Spec (State f item) (Query item) (Action item) () i (Message f item) m
