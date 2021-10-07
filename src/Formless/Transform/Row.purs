@@ -9,6 +9,7 @@ import Formless.Internal.Transform (class Row1Cons, FromScratch, fromScratch)
 import Formless.Types.Form (InputField(..))
 import Prim.Row as Row
 import Prim.RowList as RL
+import Prim.TypeError (class Warn, Text)
 import Record.Builder as Builder
 import Type.Proxy (Proxy(..))
 
@@ -68,9 +69,13 @@ type SProxies form =
 
 -- | A helper function to produce a record of SProxies given a form spec, to save
 -- | you the boilerplate of writing them all out.
+-- |
+-- | WARNING: This can create significant code bloat, and it is not recommended
+-- | for production use.
 mkSProxies
   :: forall form xs inputs row
-   . RL.RowToList inputs xs
+   . Warn (Text "This function is not recommended for use in production settings due to large amounts of generated code.")
+  => RL.RowToList inputs xs
   => Newtype (form Record InputField) (Record inputs)
   => MakeSProxies xs row
   => Proxy form
