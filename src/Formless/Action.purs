@@ -12,6 +12,7 @@ import Data.Symbol (class IsSymbol)
 import Data.Time.Duration (Milliseconds)
 import Data.Tuple (Tuple(..))
 import Data.Variant (Variant, inj)
+import Formless as F
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Transform.Record (WrapField, wrapInputFields, wrapInputFunctions)
 import Formless.Types.Component (Action)
@@ -19,6 +20,7 @@ import Formless.Types.Form (InputField, InputFunction, U(..))
 import Heterogeneous.Mapping as HM
 import Prim.Row as Row
 import Type.Proxy (Proxy(..))
+import Web.Event.Event as Event
 
 -- | Inject your own action into the Formless component so it can be used in HTML
 injAction :: forall form act. act -> Action form act
@@ -273,6 +275,19 @@ resetAll =
 submit :: forall v. Variant (submit :: Unit | v)
 submit =
   inj (Proxy :: _ "submit") unit
+
+-- | Submit the form, which will trigger a `Submitted` result if the form
+-- | validates successfully. Calls `preventDefault` (`Web.Event.Event`) on the
+-- | event
+-- |
+-- | ```purescript
+-- | [ HE.onSubmit F.submitPreventDefault ]
+-- | ```
+submitPreventDefault
+  :: forall v
+   . Event.Event
+  -> Variant (submitPreventDefault :: Event.Event | v)
+submitPreventDefault = inj (Proxy :: _ "submitPreventDefault")
 
 -- | Load a form from a set of existing inputs. Useful for when you need to mount
 -- | Formless, perform some other actions like request data from the server, and

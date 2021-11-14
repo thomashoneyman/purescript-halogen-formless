@@ -24,6 +24,7 @@
   , "typelevel-prelude"
   , "unsafe-coerce"
   , "variant"
+  , "web-events"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs" ]

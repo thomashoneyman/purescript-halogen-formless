@@ -8,6 +8,7 @@ import Effect (Effect)
 import Effect.Aff (Aff)
 import Example.Basic.Component as Basic
 import Example.Async.Component as Async
+import Example.Readme.Component as Readme
 import Example.Nested.Page as Nested
 import Example.ExternalComponents.Page as ExternalComponents
 import Example.App.Home as Home
@@ -25,6 +26,7 @@ stories = Object.fromFoldable
   , Tuple "async" $ proxy Async.component
   , Tuple "nested" $ proxy Nested.component
   , Tuple "real-world" $ proxy RealWorld.component
+  , Tuple "readme" $ proxy Readme.component
   ]
 
 main :: Effect Unit

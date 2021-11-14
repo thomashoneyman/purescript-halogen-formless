@@ -12,6 +12,7 @@ import Data.Tuple (Tuple(..))
 import Data.Variant (Variant, match, inj, expand)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Ref as Ref
+import Formless.Action (submitPreventDefault)
 import Formless.Action as FA
 import Formless.Data.FormFieldResult (FormFieldResult(..))
 import Formless.Internal.Component as IC
@@ -30,6 +31,7 @@ import Prim.RowList as RL
 import Record.Builder as Builder
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
+import Web.Event.Event as Event
 
 -- | The default spec, which can be overridden by whatever functions you need
 -- | to extend the component. For example:
@@ -317,6 +319,12 @@ handleAction handleAction' handleEvent action = flip match action
       handleEvent $ Changed $ IC.getPublicState new
 
   , submit: \_ -> do
+      _ <- IC.preSubmit
+      _ <- handleAction handleAction' handleEvent FA.validateAll
+      IC.submit >>= traverse_ (Submitted >>> handleEvent)
+
+  , submitPreventDefault: \event -> do
+      H.liftEffect $ Event.preventDefault event
       _ <- IC.preSubmit
       _ <- handleAction handleAction' handleEvent FA.validateAll
       IC.submit >>= traverse_ (Submitted >>> handleEvent)

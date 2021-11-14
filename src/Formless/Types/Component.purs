@@ -18,6 +18,7 @@ import Halogen.Query.ChildQuery (ChildQueryBox)
 import Halogen.Query.HalogenM (ForkId)
 import Type.Proxy (Proxy(..))
 import Type.Row (type (+))
+import Web.Event.Event as Event
 
 -- | A type representing the various functions that can be provided to extend
 -- | the Formless component. Usually only the `render` function is required,
@@ -62,6 +63,7 @@ type PublicAction form =
   , validateAll :: Unit
   , resetAll :: Unit
   , submit :: Unit
+  , submitPreventDefault :: Event.Event
   , loadForm :: form Record InputField
   )
 
