@@ -12,7 +12,6 @@ import Data.Tuple (Tuple(..))
 import Data.Variant (Variant, match, inj, expand)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Ref as Ref
-import Formless.Action (submitPreventDefault)
 import Formless.Action as FA
 import Formless.Data.FormFieldResult (FormFieldResult(..))
 import Formless.Internal.Component as IC

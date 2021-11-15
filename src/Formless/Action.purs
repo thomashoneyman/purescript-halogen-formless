@@ -12,7 +12,6 @@ import Data.Symbol (class IsSymbol)
 import Data.Time.Duration (Milliseconds)
 import Data.Tuple (Tuple(..))
 import Data.Variant (Variant, inj)
-import Formless as F
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Transform.Record (WrapField, wrapInputFields, wrapInputFunctions)
 import Formless.Types.Component (Action)
