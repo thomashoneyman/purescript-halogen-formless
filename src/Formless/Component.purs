@@ -318,13 +318,13 @@ handleAction handleAction' handleEvent action = flip match action
       handleEvent $ Changed $ IC.getPublicState new
 
   , submit: \_ -> do
-     _ <- IC.preSubmit
-     _ <- handleAction handleAction' handleEvent FA.validateAll
-     IC.submit >>= traverse_ (Submitted >>> handleEvent)
+      _ <- IC.preSubmit
+      _ <- handleAction handleAction' handleEvent FA.validateAll
+      IC.submit >>= traverse_ (Submitted >>> handleEvent)
 
   , submitPreventDefault: \event -> do
-     H.liftEffect $ Event.preventDefault event
-     handleAction handleAction' handleEvent FA.submit
+      H.liftEffect $ Event.preventDefault event
+      handleAction handleAction' handleEvent FA.submit
 
   , loadForm: \formInputs -> do
       let setFields rec = rec { allTouched = false, initialInputs = formInputs }
