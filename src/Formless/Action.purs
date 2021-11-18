@@ -275,12 +275,13 @@ submit :: forall v. Variant (submit :: Unit | v)
 submit =
   inj (Proxy :: _ "submit") unit
 
--- | Submit the form, which will trigger a `Submitted` result if the form
--- | validates successfully. Calls `preventDefault` (`Web.Event.Event`) on the
--- | event
+-- | Submit the form, calling `preventDefault` from `Web.Event.Event` on the 
+-- | submission event to prevent the browser from refreshing the page.
 -- |
 -- | ```purescript
--- | [ HE.onSubmit F.submitPreventDefault ]
+-- | HH.form
+-- |   [ HE.onSubmit F.submitPreventDefault ]
+-- |   [ ... ]
 -- | ```
 submitPreventDefault
   :: forall v
