@@ -20,7 +20,7 @@ module Formless
   , module Formless.Validation
   ) where
 
-import Formless.Action (asyncModifyValidate, asyncSetValidate, injAction, loadForm, modify, modifyAll, modifyValidate, modifyValidateAll, reset, resetAll, set, setAll, setValidate, setValidateAll, submit, validate, validateAll)
+import Formless.Action (asyncModifyValidate, asyncSetValidate, injAction, loadForm, modify, modifyAll, modifyValidate, modifyValidateAll, reset, resetAll, set, setAll, setValidate, setValidateAll, submit, submitPreventDefault, validate, validateAll)
 import Formless.Class.Initial (class Initial, initial)
 import Formless.Component (component, defaultSpec, handleAction, handleQuery, raiseResult)
 import Formless.Data.FormFieldResult (FormFieldResult(..), _Error, _Success, fromEither, toMaybe)

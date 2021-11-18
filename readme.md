@@ -91,7 +91,9 @@ spec :: forall input m. Monad m => F.Spec' DogForm Dog input m
 spec = F.defaultSpec { render = render, handleEvent = F.raiseResult }
   where
   render st@{ form } =
-    HH.form_
+    HH.form
+      [ HE.onSubmit F.submitPreventDefault
+      ]
       [ HH.input
           [ HP.value $ F.getInput _name form
           , HE.onValueInput $ F.set _name
@@ -105,8 +107,7 @@ spec = F.defaultSpec { render = render, handleEvent = F.raiseResult }
           Just InvalidInt -> "Age must be an integer"
           Just TooLow -> "Age cannot be negative"
           Just TooHigh -> "No dog has lived past 30 before"
-      , HH.button
-          [ HE.onClick \_ -> F.submit ]
+      , HH.button_
           [ HH.text "Submit" ]
       ]
     where

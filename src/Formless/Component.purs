@@ -30,6 +30,7 @@ import Prim.RowList as RL
 import Record.Builder as Builder
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
+import Web.Event.Event as Event
 
 -- | The default spec, which can be overridden by whatever functions you need
 -- | to extend the component. For example:
@@ -320,6 +321,10 @@ handleAction handleAction' handleEvent action = flip match action
       _ <- IC.preSubmit
       _ <- handleAction handleAction' handleEvent FA.validateAll
       IC.submit >>= traverse_ (Submitted >>> handleEvent)
+
+  , submitPreventDefault: \event -> do
+      H.liftEffect $ Event.preventDefault event
+      handleAction handleAction' handleEvent FA.submit
 
   , loadForm: \formInputs -> do
       let setFields rec = rec { allTouched = false, initialInputs = formInputs }
