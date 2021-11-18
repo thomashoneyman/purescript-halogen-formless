@@ -265,8 +265,9 @@ resetAll :: forall v. Variant (resetAll :: Unit | v)
 resetAll =
   inj (Proxy :: _ "resetAll") unit
 
--- | Submit the form, which will trigger a `Submitted` result if the
--- | form validates successfully.
+-- | Submit the form, which will trigger a `Submitted` result if the form
+-- | validates successfully. If you want to capture the form submission event
+-- | and submit your form use `submitPreventDefault`.
 -- |
 -- | ```purescript
 -- | [ HE.onClick \_ -> Just F.submit ]

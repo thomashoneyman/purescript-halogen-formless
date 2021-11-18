@@ -107,15 +107,6 @@ component = H.mkComponent
   render = 
     UI.section_
       [ UI.h1_ [ HH.text "Formless" ]
-      , UI.h2_ [ HH.text "A form using a default form element" ]
-      , UI.p_
-          """
-          In formless, if you use a default form you would notice a page refresh when submitting the form.
-          In the other examples, this is avoided by not using a form element. In this example, we use
-          a special function F.submitPreventDefault to avoid the page refresh.
-
-          You can download the examples and replace F.submitPreventDefault with
-          \_ -> F.submit to see the difference.
-          """
+      , UI.h2_ [ HH.text "The form from the readme" ]
       , HH.slot F._formless unit (F.component (const input) spec) unit HandleDogForm
       ]
