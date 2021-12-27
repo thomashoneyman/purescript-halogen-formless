@@ -156,7 +156,7 @@ The `FormContext` and `FormlessAction` types you need to write for your `Action`
 -- (in our case, `Unit`), and so it takes the `Input` type as its third
 -- argument. Finally, it provides some form-wide helper actions, and so we must
 -- provide our `Action` type as the fourth argument.
-type FormContext = F.FormContext (Form F.FieldState) (Form F.FieldAction Action) Input Action
+type FormContext = F.FormContext (Form F.FieldState) (Form (F.FieldAction Action)) Input Action
 
 -- Our form raises Formless actions for evaluation, most of which track the
 -- state of a particular form field. We can specialize `F.FormlessAction` to our
