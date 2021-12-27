@@ -9,6 +9,8 @@ Formless helps you write forms in Halogen without the boilerplate.
 - [Examples & documentation site](https://thomashoneyman.github.io/purescript-halogen-formless/)
 - [Source code for examples](./example)
 
+⚠️ You are looking at the pre-release for Formless 3, which is not in the package sets. Please use the [v2.2.0](https://github.com/thomashoneyman/purescript-halogen-formless/tree/v2.2.0) tag if you are using Formless 2. ⚠️
+
 ## Installation
 
 Install Formless with Spago:
