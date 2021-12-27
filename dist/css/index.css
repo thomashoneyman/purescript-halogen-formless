@@ -1,0 +1,17 @@
+:root {
+  --font-size: 18px;
+}
+
+body {
+  font-family: sans-serif;
+}
+
+article {
+  max-width: 800px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.Storybook-nav-list a:focus {
+  background-color: inherit;
+}

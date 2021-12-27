@@ -14,7 +14,7 @@ jobs:
       - uses: purescript-contrib/setup-purescript@main
 
       - name: Build source
-        run: spago build
+        run: npm run build
 
       - name: Build examples
-        run: spago -x example/example.dhall build
+        run: npm run build:examples
