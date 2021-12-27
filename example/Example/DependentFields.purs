@@ -33,8 +33,8 @@ type Form f =
   , password2 :: f String String String
   )
 
-type FormlessAction = F.FormlessAction (Form F.FieldState)
 type FormContext = F.FormContext (Form F.FieldState) (Form (F.FieldAction Action)) Unit Action
+type FormlessAction = F.FormlessAction (Form F.FieldState)
 
 data Action
   = Receive FormContext

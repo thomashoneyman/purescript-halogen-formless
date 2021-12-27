@@ -21,12 +21,12 @@ type Form f =
   , picked :: f Picked Void Picked
   )
 
-type FormContext =
-  F.FormContext (Form F.FieldState) (Form (F.FieldAction Action)) Unit Action
+type FormContext = F.FormContext (Form F.FieldState) (Form (F.FieldAction Action)) Unit Action
+type FormlessAction = F.FormlessAction (Form F.FieldState)
 
 data Action
   = Receive FormContext
-  | Eval (F.FormlessAction (Form F.FieldState))
+  | Eval FormlessAction
 
 form :: forall query. H.Component query Unit { | Form F.FieldOutput } Aff
 form = F.formless { liftAction: Eval } initialForm $ H.mkComponent

@@ -29,8 +29,8 @@ type Form f =
   , state :: StringField f
   )
 
-type FormAction = F.FormlessAction (Form F.FieldState)
 type FormContext = F.FormContext (Form F.FieldState) (Form (F.FieldAction Action)) Unit Action
+type FormAction = F.FormlessAction (Form F.FieldState)
 
 data Action
   = Initialize
