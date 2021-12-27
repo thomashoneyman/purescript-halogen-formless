@@ -1,0 +1,7 @@
+{
+  "scripts": {
+    "build": "spago build",
+    "build:examples": "spago --config example/example.dhall build",
+    "storybook": "spago --config example/example.dhall bundle-app --main Example.Main --to dist/app.js"
+  }
+}
