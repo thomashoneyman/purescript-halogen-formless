@@ -29,12 +29,6 @@ in  upstream
   with variant.version = "map-variant"
   with variant.repo = "https://github.com/MonoidMusician/purescript-variant"
 
-  with convertable-options = {
-    repo = "https://github.com/natefaubion/purescript-convertable-options",
-    version = "v1.0.0",
-    dependencies = [ "console", "effect", "maybe", "record" ],
-  }
-
   with halogen-formless = {
     repo = "https://github.com/thomashoneyman/purescript-halogen-formless",
     version = "main",
