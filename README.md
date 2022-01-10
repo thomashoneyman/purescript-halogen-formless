@@ -216,7 +216,7 @@ form = F.formless ...
       [ HE.onSubmit formActions.handleSubmit ]
       [ HH.div_
           [ HH.label_ [ HH.text "Name" ]
-          [ HH.input
+          , HH.input
               [ HP.type_ HP.InputText
               , HP.placeholder "Scooby"
               , HP.value fields.name.value
