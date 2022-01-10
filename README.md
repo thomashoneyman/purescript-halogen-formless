@@ -90,7 +90,7 @@ initialValues = { name: "", nickname: "", age: "" }
 
 We can write a type for this value by writing a brand new record type, or by reusing our form type:
 
-```hs
+```purs
 import Formless as F
 
 -- Option 1: Define a new record type
@@ -108,7 +108,7 @@ Formless is a higher-order component, which means that it takes a component as a
 
 #### Public Types
 
-Let's write concrete types for our component's public interface. We don't need any input or to handle any queries, but we'll have our form raise a valid `Cat` as its output.
+Let's write concrete types for our component's public interface. We don't need any input or to handle any queries, but we'll have our form raise a custom success message and a valid `Cat` as its output.
 
 ```purs
 -- Reusing our form row again! This type is identical to:
@@ -119,7 +119,7 @@ type Query = Const Void
 
 type Input = Unit
 
-type Output = Cat
+type Output = { successMessage :: String, newCat :: Cat }
 
 -- We now have the types necessary for our wrapped component,
 -- which we'll run in `Aff`:
@@ -215,7 +215,8 @@ form = F.formless ...
     HH.form
       [ HE.onSubmit formActions.handleSubmit ]
       [ HH.div_
-          [ HH.label_ [ HH.text "Name" ]
+          [ HH.label_
+              [ HH.text "Name" ]
           , HH.input
               [ HP.type_ HP.InputText
               , HP.placeholder "Scooby"
@@ -240,15 +241,20 @@ Every form component you provide to Formless should implement a `handleAction` f
 ```purs
 form = F.formless ...
   where
-  -- While our outer component's output type is `Output`, our inner component's
-  -- output type is `F.FormOutput Output`, as we raise `FormlessAction`s to
-  -- Formless for evaluation.
+  -- Here we've written out the full type signature for `handleAction`, but the
+  -- compiler can infer these types for you if you would like to omit the type
+  -- signature or provide `_` wildcards for lengthy types like `F.FormOutput`.
+  --
+  -- Remember that our outer component has an output type of `Output`, but our
+  -- inner component raises messages to Formless rather than to the form parent
+  -- directly. We raise both our own output messages, `Output`, and also Formless
+  -- actions that need to be evaluated. For that reason, we use the `F.FormOutput`
+  -- output type for our inner component.
   handleAction
     :: Action
-    -> H.HalogenM State Action () (F.FormOutput Output) Aff Unit
+    -> H.HalogenM State Action () (F.FormOutput (Form F.FieldState) Output) Aff Unit
   handleAction = case _ of
-    -- When we receive new form context, we need to update our form state so our
-    -- component renders again.
+    -- When we receive new form context we need to update our form state.
     Receive context ->
       H.put context
 
@@ -273,11 +279,13 @@ A typical `handleQuery` function uses the `handleSubmitValidate` or `handleSubmi
 ```purs
 form = F.formless ...
   where
-  handleQuery
-    :: forall a. F.FormQuery _ _ _ _ a
-    -> H.HalogenM State Action () (F.FormOutput Output) Aff (Maybe a)
+  -- Here we'll use wildcards rather than type everything out; the compiler is
+  -- able to infer these types for us.
+  handleQuery :: forall a. F.FormQuery _ _ _ _ a -> H.HalogenM _ _ _ _ _ (Maybe a)
   handleQuery = do
     let
+      -- These validators would usually be in a separate validation module in
+      -- your app rather than be defined inline like this.
       validateName :: String -> Either String String
       validateName input
         | input == "" = Left "Required"
@@ -303,10 +311,15 @@ form = F.formless ...
         , age: validateAge
         }
 
-      -- F.raise is a helper function for raising your own output types as
-      -- component output directly.
       handleSuccess :: Cat -> H.HalogenM _ _ _ _ _ Unit
-      handleSuccess = F.raise
+      handleSuccess cat = do
+        let
+          output :: Output
+          output = { successMessage: "Got a cat!", newCat: cat }
+
+        -- F.raise is a helper function for raising your `Output` type through
+        -- Formless and up to the parent component.
+        F.raise output
 
     -- handleSubmitValidate lets you provide a success handler and a record
     -- of validation functions to handle submission and validation events.
@@ -320,10 +333,11 @@ import MyApp.Validation as V
 
 form = F.formless ...
   where
+  handleQuery :: forall a. F.FormQuery _ _ _ _ a -> H.HalogenM _ _ _ _ _ (Maybe a)
   handleQuery = F.handleSubmitValidate F.raise F.validate
     { name: V.required
     , nickname: V.optional
-    , age: V.greaterThan 0 <=< V.lessThan 20 <=< V.int
+    , age: V.int >=> V.greaterThan 0 >=> V.lessThan 20
     }
 ```
 
