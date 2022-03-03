@@ -10,8 +10,6 @@ Formless helps you write forms in Halogen without the boilerplate.
 - [Source code for examples](./example)
 - [Migration of Real World Halogen from Formless 2 to Formless 3](https://github.com/thomashoneyman/purescript-halogen-realworld/pull/102)
 
-⚠️ You are looking at the pre-release for Formless 3, which is not in the package sets. Please use the [v2.2.0](https://github.com/thomashoneyman/purescript-halogen-formless/tree/v2.2.0) tag if you are using Formless 2. ⚠️
-
 ## Installation
 
 Install Formless with Spago:
@@ -20,36 +18,33 @@ Install Formless with Spago:
 $ spago install halogen-formless
 ```
 
-Formless 3 is not yet in the package sets. You can add it manually to your package set with the addition below. This library also requires `variant >= 7.1.0`, which you may need to add to your pacakge set as well.
+Formless 3 is available in package sets beginning with `psc-0.14.7-20220303`. If you are using an older package set, then you should add an override to your `packages.dhall` file as in the example below. Older package sets do not include `variant >=7.1.0` either, so you will need to override that also.
 
 ```dhall
 let upstream = ...
 
 in  upstream
   with variant.version = "v7.1.0"
-  with halogen-formless = {
-    repo = "https://github.com/thomashoneyman/purescript-halogen-formless",
-    version = "main",
-    dependencies =
-      [ "convertable-options"
-      , "effect"
-      , "either"
-      , "foldable-traversable"
-      , "foreign-object"
-      , "halogen"
-      , "heterogeneous"
-      , "maybe"
-      , "prelude"
-      , "record"
-      , "safe-coerce"
-      , "type-equality"
-      , "unsafe-coerce"
-      , "unsafe-reference"
-      , "variant"
-      , "web-events"
-      , "web-uievents"
-      ]
-  }
+  with halogen-formless.version = "v3.0.0"
+  with halogen-formless.dependencies =
+    [ "convertable-options"
+    , "effect"
+    , "either"
+    , "foldable-traversable"
+    , "foreign-object"
+    , "halogen"
+    , "heterogeneous"
+    , "maybe"
+    , "prelude"
+    , "record"
+    , "safe-coerce"
+    , "type-equality"
+    , "unsafe-coerce"
+    , "unsafe-reference"
+    , "variant"
+    , "web-events"
+    , "web-uievents"
+    ]
 ```
 
 ## Tutorial
