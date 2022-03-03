@@ -48,7 +48,7 @@ import Data.Maybe (Maybe(..))
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Variant (class VariantMapCases, Variant)
 import Data.Variant as Variant
-import Data.Variant.Internal (class VariantTravCases, VariantRep(..))
+import Data.Variant.Internal (class VariantTraverseCases, VariantRep(..))
 import Effect.Class (class MonadEffect)
 import Foreign.Object (Object)
 import Foreign.Object as Object
@@ -71,15 +71,6 @@ import Unsafe.Reference (unsafeRefEq)
 import Web.Event.Event (Event)
 import Web.Event.Event as Event
 import Web.UIEvent.FocusEvent (FocusEvent)
-
--- TODO:
---
--- 1. Add examples for common form requirements: custom components (dropdown),
---    multi-step form (see below)
---    https://github.com/jaredpalmer/formik/blob/master/examples/MultistepWizard.js
---
--- 2. Support missing features from Formless 2: record if all fields are valid,
---    track submitting and validating statuses for form and fields.
 
 type FieldInput :: Type -> Type -> Type -> Type
 type FieldInput input error output = input
@@ -121,7 +112,7 @@ type FieldValidationM m input error output = input -> m (Either error output)
 validateM
   :: forall xs r1 r2 r3 inputs validators results m
    . RL.RowToList validators xs
-  => VariantTravCases m xs r1 r2
+  => VariantTraverseCases m xs r1 r2
   => Row.Union r1 r3 inputs
   => Row.Union r2 r3 results
   => Applicative m
