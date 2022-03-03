@@ -20,15 +20,13 @@ Install Formless with Spago:
 $ spago install halogen-formless
 ```
 
-This version of Formless is not included in the official package set because it relies on a not-yet-merged pull request to `variant`. You will need to add these packages to your `packages.dhall` additions to support Formless 3:
+Formless 3 is not yet in the package sets. You can add it manually to your package set with the addition below. This library also requires `variant >= 7.1.0`, which you may need to add to your pacakge set as well.
 
 ```dhall
 let upstream = ...
 
 in  upstream
-  with variant.version = "map-variant"
-  with variant.repo = "https://github.com/MonoidMusician/purescript-variant"
-
+  with variant.version = "v7.1.0"
   with halogen-formless = {
     repo = "https://github.com/thomashoneyman/purescript-halogen-formless",
     version = "main",
