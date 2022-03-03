@@ -72,9 +72,11 @@ import Web.Event.Event (Event)
 import Web.Event.Event as Event
 import Web.UIEvent.FocusEvent (FocusEvent)
 
+-- | A type synonym which picks the `input` type from a form field.
 type FieldInput :: Type -> Type -> Type -> Type
 type FieldInput input error output = input
 
+-- | A type synonym which represents the current state of a form field.
 type FieldState :: Type -> Type -> Type -> Type
 type FieldState input error output =
   { initialValue :: input
@@ -82,6 +84,8 @@ type FieldState input error output =
   , result :: Maybe (Either error output)
   }
 
+-- | A type synonym which represents the available actions that can be called
+-- | on a form field.
 type FieldAction :: Type -> Type -> Type -> Type -> Type
 type FieldAction action input error output =
   { key :: String
@@ -92,9 +96,12 @@ type FieldAction action input error output =
   , handleBlur :: FocusEvent -> action
   }
 
+-- | A type synonm which represents a pure validation function for a form field.
 type FieldValidation :: Type -> Type -> Type -> Type
 type FieldValidation input error output = input -> Either error output
 
+-- | Validate a variant of form field inputs by providing a record of validation
+-- | functions, one per possible case in the variant. Used for pure validation.
 validate
   :: forall validators xs r1 r2 r3 inputs results
    . RL.RowToList validators xs
@@ -106,9 +113,15 @@ validate
   -> Variant results
 validate = flip Variant.over
 
+-- | A type synonm which represents an effectful validation function for a form
+-- | field.
 type FieldValidationM :: (Type -> Type) -> Type -> Type -> Type -> Type
 type FieldValidationM m input error output = input -> m (Either error output)
 
+-- | Validate a variant of form field inputs by providing a record of validation
+-- | functions, one per possible case in the variant. Used for effectful
+-- | validation. It is possible to use `HalogenM` as your validation monad,
+-- | which gives you full access to your component state (including form fields).
 validateM
   :: forall xs r1 r2 r3 inputs validators results m
    . RL.RowToList validators xs
@@ -121,12 +134,16 @@ validateM
   -> m (Variant results)
 validateM = flip Variant.traverse
 
+-- | A type synonym which represents the result of validating the `input` type
+-- | of a form field to produce either its `error` or `output`.
 type FieldResult :: Type -> Type -> Type -> Type
 type FieldResult input error output = Either error output
 
+-- | A type synonym which picks the `output` type from a form field.
 type FieldOutput :: Type -> Type -> Type -> Type
 type FieldOutput input error output = output
 
+-- | Available settings for controlling the form's behavior.
 type FormConfig =
   { validateOnBlur :: Boolean
   , validateOnChange :: Boolean
@@ -140,6 +157,32 @@ type InitialFormConfig fields action =
   | OptionalFormConfig
   }
 
+-- | Formless uses queries to notify you when important events happen in your
+-- | form. You are expected to handle these queries in your `handleQuery`
+-- | function so that Formless works correctly.
+-- |
+-- | You can use `handleSubmitValidate` or `handleSubmitValidateM` if you only
+-- | need to handle form submission and validation events.
+-- |
+-- | - **Query**
+-- |   Formless has proxied a query from the parent component to you. You are
+-- |   expected to handle the query.
+-- |
+-- | - **Validate**
+-- |   A field needs to be validated. You are expected to validate the field and
+-- |   return its validated result. You can use the `validate` and `validateM`
+-- |   functions provided for Formless to perform validation.
+-- |
+-- | - **SubmitAttempt**
+-- |   The form was submitted, but not all fields passed validation. You are
+-- |   given a record of all form fields along with their validation result.
+-- |
+-- | - **Submit**
+-- |   The form was submitted and all fields passed validation. You are given
+-- |   a record of the validated output types for every field in the form.
+-- |
+-- | - **Reset**
+-- |   The form was reset to its initial state.
 data FormQuery :: (Type -> Type) -> Row Type -> Row Type -> Row Type -> Type -> Type
 data FormQuery query inputs results outputs a
   = Query (query a)
@@ -149,7 +192,8 @@ data FormQuery query inputs results outputs a
   | Reset a
 
 -- | A default implementation for `handleQuery` which only handles successful
--- | submission and validation events.
+-- | submission and validation events, used when you only need non-monadic
+-- | validation. See `FormQuery` for all available events in Formless.
 handleSubmitValidate
   :: forall inputs fields validators results outputs query state action slots output m a
    . ({ | outputs } -> H.HalogenM state action slots (FormOutput fields output) m Unit)
@@ -167,7 +211,8 @@ handleSubmitValidate onSubmit validate' validators = case _ of
     pure Nothing
 
 -- | A default implementation for `handleQuery` which only handles successful
--- | submission and validation events.
+-- | submission and validation events, used when you need monadic validation.
+-- | See `FormQuery` for all available events in Formless.
 handleSubmitValidateM
   :: forall inputs fields validators results outputs query state action slots output m a
    . ({ | outputs } -> H.HalogenM state action slots (FormOutput fields output) m Unit)
@@ -185,6 +230,7 @@ handleSubmitValidateM onSubmit validateM' validators = case _ of
   _ ->
     pure Nothing
 
+-- | Available form-wide actions you can tell Formless to do.
 type FormAction fields action =
   { setFields :: { | fields } -> action
   , reset :: action
@@ -193,12 +239,16 @@ type FormAction fields action =
   , handleSubmit :: Event -> action
   }
 
+-- | The summary state of the entire form.
 type FormState =
   { errorCount :: Int
   , submitCount :: Int
   , allTouched :: Boolean
   }
 
+-- | The full form context which is provided to you. It includes any component
+-- | input you wish to take, along with the current state of the form fields and
+-- | the form and a set of actions you can use on the form fields or the form.
 type FormContext :: Row Type -> Row Type -> Type -> Type -> Type
 type FormContext fields actions input action =
   { input :: input
@@ -208,23 +258,39 @@ type FormContext fields actions input action =
   , formActions :: FormAction fields action
   }
 
+-- | Formless uses `FormOutput` to let you notify it of events it should handle.
+-- |
+-- | - **Raise**
+-- |   Tell Formless to proxy the provided output to the parent component.
+-- |
+-- | - **Eval**
+-- |   Tell Formless to evaluate an action on the form. Actions are provided to
+-- |   you via the `FormContext`, which gives you actions you can call on
+-- |   individual form fields or on the form as a whole.
 data FormOutput :: Row Type -> Type -> Type
 data FormOutput fields output
   = Raise output
   | Eval (FormlessAction fields)
 
+-- | A drop-in replacement for Halogen's `raise` function, which you can use to
+-- | proxy output through Formless up to the parent component.
 raise
   :: forall fields state action slots output m
    . output
   -> H.HalogenM state action slots (FormOutput fields output) m Unit
 raise = H.raise <<< Raise
 
+-- | Tell Formless to evaluate a Formless action.
 eval
   :: forall fields state action slots output m
    . FormlessAction fields
   -> H.HalogenM state action slots (FormOutput fields output) m Unit
 eval = H.raise <<< Eval
 
+-- | Internal actions that Formless evaluates to modify the state of the form.
+--
+-- These constructors should never be exported. These actions are only provided
+-- to the user via the form context after being constructed by Formless.
 data FormlessAction :: Row Type -> Type
 data FormlessAction fields
   = SubmitForm (Maybe Event)
@@ -253,6 +319,12 @@ type InternalFormState fields actions input action =
   , formConfig :: FormConfig
   }
 
+-- | The Formless higher-order component. Expects a form configuration, the
+-- | initial input values for each field in the form, and the component that
+-- | you want to provide `FormContext` to (ie. your form component).
+-- |
+-- | Please see the Formless README.md and examples directory for a thorough
+-- | description of this component.
 formless
   :: forall config inputs fields actions results outputs query action input output m
    . MonadEffect m
