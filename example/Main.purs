@@ -3,24 +3,26 @@ module Main where
 import Prelude
 
 import Data.Maybe (Maybe(..))
-import Data.Symbol (SProxy(..))
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Aff (Aff)
-import Example.Basic (basic)
-import Example.MutualDependency (mutualDependency)
+import Example.Basic as Basic
+import Example.BasicAnnotated as BasicAnnotated
+import Example.Dependency (mutualDependency)
 import Foreign.Object as Object
 import Halogen as H
 import Halogen.Aff as HA
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Halogen.Storybook (Stories, runStorybook, proxy)
+import Type.Proxy (Proxy(..))
 
 stories :: Stories Aff
 stories = Object.fromFoldable
   [ Tuple "" $ proxy home
-  , Tuple "basic" $ proxy $ H.mkComponent { initialState: identity, eval: H.mkEval H.defaultEval, render: \_ -> HH.slot (SProxy :: SProxy "?") 0 basic {} absurd }
-  , Tuple "mutual-dependency" $ proxy $ H.mkComponent { initialState: identity, eval: H.mkEval H.defaultEval, render: \_ -> HH.slot (SProxy :: SProxy "!") 0 mutualDependency {} absurd }
+  , Tuple "basic" $ proxy $ H.mkComponent { initialState: identity, eval: H.mkEval H.defaultEval, render: \_ -> HH.slot (Proxy :: Proxy "?") 0 Basic.basic {} absurd }
+  , Tuple "basic-annotated" $ proxy $ H.mkComponent { initialState: identity, eval: H.mkEval H.defaultEval, render: \_ -> HH.slot (Proxy :: Proxy "??") 0 BasicAnnotated.basic {} absurd }
+  , Tuple "mutual-dependency" $ proxy $ H.mkComponent { initialState: identity, eval: H.mkEval H.defaultEval, render: \_ -> HH.slot (Proxy :: Proxy "!") 0 mutualDependency {} absurd }
   -- , Tuple "external-components" $ proxy ExternalComponents.component
   -- , Tuple "async" $ proxy Async.component
   -- , Tuple "nested" $ proxy Nested.component

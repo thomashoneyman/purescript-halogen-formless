@@ -10,10 +10,10 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties (InputType(..))
 import Halogen.HTML.Properties as HP
-import Halogen.Hooks (class HookEquals, class HookNewtype, HookM, kind HookType)
+import Halogen.Hooks (class HookNewtype, HookM, HookType)
 import Halogen.Hooks as Hooks
 import Halogen.Hooks.Formless (FormField(..))
-import Type.Proxy (Proxy2)
+import Type.Proxy (Proxy)
 
 foreign import data UseBasicTextField :: Type -> HookType
 
@@ -22,8 +22,7 @@ type UseBasicTextField' a =
     Hooks.<> Hooks.Pure
 
 instance newtypeUseBasicTextField
-  :: HookEquals (UseBasicTextField' a) h
-  => HookNewtype (UseBasicTextField a) h
+  :: HookNewtype (UseBasicTextField a) (UseBasicTextField' a)
 
 type BasicTextFieldInput a =
   { validate :: String -> Either String a
@@ -40,7 +39,7 @@ type BasicTextFieldInterface m = ( input :: H.ComponentHTML (HookM m Unit) () m 
 -- | in your application.
 textField
   :: forall m a
-   . Proxy2 m
+   . Proxy m
   -> BasicTextFieldInput a
   -> FormField m (UseBasicTextField a) (BasicTextFieldInterface m) String a
 textField proxy { validate } = FormField proxy \field -> Hooks.wrap Hooks.do
@@ -58,7 +57,7 @@ textField proxy { validate } = FormField proxy \field -> Hooks.wrap Hooks.do
         [ HH.input
             [ HP.type_ InputText
             , HP.value currentValue
-            , HE.onValueInput (Just <<< field.onChange)
+            , HE.onValueInput field.onChange
             ]
         , case field.value of
             Nothing -> HH.text ""

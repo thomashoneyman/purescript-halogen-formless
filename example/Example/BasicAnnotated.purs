@@ -7,7 +7,7 @@ module Example.BasicAnnotated where
 import Prelude
 
 import Data.Either (note)
-import Data.Maybe (Maybe(..), fromMaybe, isNothing)
+import Data.Maybe (fromMaybe, isNothing)
 import Data.String.NonEmpty (NonEmptyString)
 import Data.String.NonEmpty as NES
 import Effect.Class (class MonadEffect, liftEffect)
@@ -19,7 +19,7 @@ import Halogen.HTML.Properties as HP
 import Halogen.Hooks (HookM)
 import Halogen.Hooks as Hooks
 import Halogen.Hooks.Formless (FormField(..), buildForm, initialFormState, useForm)
-import Type.Proxy (Proxy2(..))
+import Type.Proxy (Proxy(..))
 import Web.Event.Event (preventDefault)
 import Web.HTML as HTML
 import Web.HTML.Window as Window
@@ -31,26 +31,26 @@ type Form f m =
 
 fields :: forall m. Form FormField m
 fields =
-  { name: textField Proxy2 { validate: note "Name is required." <<< NES.fromString }
-  , message: FormField Proxy2 \field -> Hooks.pure
+  { name: textField Proxy { validate: note "Name is required." <<< NES.fromString }
+  , message: FormField Proxy \field -> Hooks.pure
       { input:
           HH.div_
             [ HH.input
                 [ HP.value (fromMaybe "" field.value)
-                , HE.onValueInput (Just <<< field.onChange)
+                , HE.onValueInput field.onChange
                 ]
             ]
       , value: field.value
       }
   }
 
-basic :: forall q i o m. MonadEffect m => H.Component HH.HTML q i o m
+basic :: forall q i o m. MonadEffect m => H.Component q i o m
 basic = Hooks.component \_ _ -> Hooks.do
   form <- useForm (\_ -> initialFormState) (buildForm fields)
 
   Hooks.pure do
     HH.form
-      [ HE.onSubmit \ev -> Just $ liftEffect do
+      [ HE.onSubmit \ev -> liftEffect do
           preventDefault ev
           HTML.window >>= Window.alert (show form.value)
       ]
