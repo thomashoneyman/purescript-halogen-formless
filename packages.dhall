@@ -1,12 +1,10 @@
-
 let upstream =
-      https://github.com/purescript/package-sets/releases/download/psc-0.14.5-20211116/packages.dhall sha256:7ba810597a275e43c83411d2ab0d4b3c54d0b551436f4b1632e9ff3eb62e327a
+      https://github.com/purescript/package-sets/releases/download/psc-0.15.0-20220502/packages.dhall
+        sha256:38d347aeba9fe6359c208abe87a5cecf1ffb14294f11ad19664ae35c59b6e29a
 
 in  upstream
-  with variant.version = "v7.1.0"
-
-  with convertable-options = {
-    repo = "https://github.com/natefaubion/purescript-convertable-options",
-    version = "v1.0.0",
-    dependencies = [ "console", "effect", "maybe", "record" ],
-  }
+  with halogen-storybook =
+    { dependencies = [ "halogen", "routing", "foreign-object" ]
+    , repo = "https://github.com/CarstenKoenig/purescript-halogen-storybook.git"
+    , version = "purs015"
+    }
