@@ -12,18 +12,18 @@ let
     repo = "easy-purescript-nix";
     rev = "0ad5775c1e80cdd952527db2da969982e39ff592";
     sha256 = "0x53ads5v8zqsk4r1mfpzf5913byifdpv5shnvxpgw634ifyj1kg";
-  }) { inherit pkgs; };
+  }) {inherit pkgs;};
+in
+  pkgs.stdenv.mkDerivation {
+    name = "halogen-formless";
+    buildInputs = with pursPkgs; [
+      purs
+      spago
+      psa
+      purs-tidy
+      purescript-language-server
 
-in pkgs.stdenv.mkDerivation {
-  name = "halogen-formless";
-  buildInputs = with pursPkgs; [
-    pursPkgs.purs
-    pursPkgs.spago
-    pursPkgs.psa
-    pursPkgs.purs-tidy
-    pursPkgs.purescript-language-server
-
-    pkgs.nodejs-16_x
-    pkgs.esbuild
-  ];
-}
+      pkgs.nodejs-16_x
+      pkgs.esbuild
+    ];
+  }

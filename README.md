@@ -18,33 +18,35 @@ Install Formless with Spago:
 $ spago install halogen-formless
 ```
 
-Formless 3 is available in package sets beginning with `psc-0.14.7-20220303`. If you are using an older package set, then you should add an override to your `packages.dhall` file as in the example below. Older package sets do not include `variant >=7.1.0` either, so you will need to override that also.
+Formless 3 is available in package sets beginning with `psc-0.14.7-20220303`. If you are using a package set that does not include Formless, then you can add it to your local set as shown in the example below:
 
 ```dhall
 let upstream = ...
 
 in  upstream
-  with variant.version = "v7.1.0"
-  with halogen-formless.version = "v3.0.0"
-  with halogen-formless.dependencies =
-    [ "convertable-options"
-    , "effect"
-    , "either"
-    , "foldable-traversable"
-    , "foreign-object"
-    , "halogen"
-    , "heterogeneous"
-    , "maybe"
-    , "prelude"
-    , "record"
-    , "safe-coerce"
-    , "type-equality"
-    , "unsafe-coerce"
-    , "unsafe-reference"
-    , "variant"
-    , "web-events"
-    , "web-uievents"
-    ]
+  with halogen-formless =
+    { version = "v3.0.0"
+    , repo = "https://github.com/thomashoneyman/purescript-halogen-formless.git"
+    , dependencies =
+        [ "convertable-options"
+        , "effect"
+        , "either"
+        , "foldable-traversable"
+        , "foreign-object"
+        , "halogen"
+        , "heterogeneous"
+        , "maybe"
+        , "prelude"
+        , "record"
+        , "safe-coerce"
+        , "type-equality"
+        , "unsafe-coerce"
+        , "unsafe-reference"
+        , "variant"
+        , "web-events"
+        , "web-uievents"
+        ]
+    }
 ```
 
 ## Tutorial
