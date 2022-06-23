@@ -22,8 +22,10 @@ in
       psa
       purs-tidy
       purescript-language-server
+      pulp
 
       pkgs.nodejs-16_x
+      pkgs.nodePackages.bower
       pkgs.esbuild
     ];
   }
