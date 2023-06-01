@@ -11,6 +11,7 @@ module Formless
   , validateM
   , FormContext
   , FormConfig
+  , OptionalFormConfig
   , FormQuery(..)
   , FormState
   , FormAction
@@ -144,12 +145,7 @@ type FieldOutput :: Type -> Type -> Type -> Type
 type FieldOutput input error output = output
 
 -- | Available settings for controlling the form's behavior.
-type FormConfig =
-  { validateOnBlur :: Boolean
-  , validateOnChange :: Boolean
-  , validateOnModify :: Boolean
-  , validateOnMount :: Boolean
-  }
+type FormConfig = { | OptionalFormConfig }
 
 type InitialFormConfig :: Row Type -> Type -> Type
 type InitialFormConfig fields action =
