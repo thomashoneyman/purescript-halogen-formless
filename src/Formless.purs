@@ -240,6 +240,7 @@ type FormState =
   { errorCount :: Int
   , submitCount :: Int
   , allTouched :: Boolean
+  , anyTouched :: Boolean
   }
 
 -- | The full form context which is provided to you. It includes any component
@@ -374,6 +375,7 @@ formless providedConfig initialForm component = H.mkComponent
         { submitCount: 0
         , errorCount: 0
         , allTouched: false
+        , anyTouched: false
         }
 
       initialFormActions :: FormAction fields action
@@ -436,14 +438,17 @@ formless providedConfig initialForm component = H.mkComponent
         let reset field = field { value = field.initialValue, result = Nothing }
         H.modify_ \state -> state
           { fieldObject = map reset state.fieldObject
-          , formState = { submitCount: 0, errorCount: 0, allTouched: false }
+          , formState = { submitCount: 0, errorCount: 0, allTouched: false, anyTouched: false }
           }
         H.tell _inner unit Reset
 
       ChangeField changed input -> do
         { formConfig } <- H.get
         let modify = mkFieldRep changed (_ { value = input })
-        H.modify_ \state -> state { fieldObject = modifyField modify state.fieldObject }
+        H.modify_ \state -> state
+          { fieldObject = modifyField modify state.fieldObject
+          , formState = state.formState { anyTouched = true }
+          }
         when' formConfig.validateOnChange \_ ->
           runFormAction $ ValidateField changed
 
@@ -455,7 +460,10 @@ formless providedConfig initialForm component = H.mkComponent
       ModifyField changed modifyFn -> do
         { formConfig } <- H.get
         let modify = mkFieldRep changed modifyFn
-        H.modify_ \state -> state { fieldObject = modifyField modify state.fieldObject }
+        H.modify_ \state -> state
+          { fieldObject = modifyField modify state.fieldObject
+          , formState = state.formState { anyTouched = true }
+          }
         when' formConfig.validateOnModify \_ ->
           runFormAction $ ValidateField changed
 
