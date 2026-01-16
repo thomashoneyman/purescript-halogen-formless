@@ -10,15 +10,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: thomashoneyman/setup-purescript@main
 
-      - name: Cache PureScript dependencies
-        uses: actions/cache@v4
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v21
         with:
-          key: ${{ runner.os }}-spago-${{ hashFiles('**/spago.lock') }}
-          path: |
-            .spago
-            output
+          determinate: false
+
+      - name: Setup Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@v13
+
+      - name: Checkout registry-dev
+        uses: actions/checkout@v4
+        with:
+          repository: purescript/registry-dev
+          ref: master
+          path: registry-dev
 
       - name: Install esbuild
         run: npm install --global esbuild@0.19.8
@@ -27,7 +33,7 @@ jobs:
         working-directory: example
         run: |
           mkdir -p ../dist
-          spago bundle-app --to ../dist/index.js
+          nix develop -c spago bundle-app --to ../dist/index.js
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
