@@ -9,17 +9,28 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: thomashoneyman/setup-purescript@main
 
+      - name: Cache PureScript dependencies
+        uses: actions/cache@v4
+        with:
+          key: ${{ runner.os }}-spago-${{ hashFiles('**/spago.lock') }}
+          path: |
+            .spago
+            output
+
       - name: Install esbuild
-        run: npm install --global esbuild@0.13.12
+        run: npm install --global esbuild@0.19.8
 
       - name: Build Storybook
-        run: npm run storybook
+        working-directory: example
+        run: |
+          mkdir -p ../dist
+          spago bundle-app --to ../dist/index.js
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
