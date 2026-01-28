@@ -15,12 +15,6 @@ package:
     - web-events: ">=4.0.0 <5.0.0"
     - web-html: ">=4.1.1 <5.0.0"
     - web-storage: ">=5.0.0 <6.0.0"
-  publish:
-    version: 0.0.0
-    license: MIT
-    location:
-      githubOwner: thomashoneyman
-      githubRepo: purescript-halogen-formless
 workspace:
   packageSet:
     registry: 70.0.0
