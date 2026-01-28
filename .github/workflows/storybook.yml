@@ -9,17 +9,34 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: thomashoneyman/setup-purescript@main
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v21
+        with:
+          determinate: false
+
+      - name: Setup Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@v13
+
+      - name: Checkout registry-dev
+        uses: actions/checkout@v4
+        with:
+          repository: purescript/registry-dev
+          ref: master
+          path: registry-dev
 
       - name: Install esbuild
-        run: npm install --global esbuild@0.13.12
+        run: npm install --global esbuild@0.19.8
 
       - name: Build Storybook
-        run: npm run storybook
+        working-directory: example
+        run: |
+          mkdir -p ../dist
+          nix develop -c spago bundle-app --to ../dist/index.js
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist

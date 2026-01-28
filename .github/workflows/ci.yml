@@ -10,14 +10,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-      - uses: purescript-contrib/setup-purescript@main
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v21
         with:
-          purs-tidy: "latest"
+          determinate: false
+
+      - name: Setup Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@v13
+
+      - name: Checkout registry-dev
+        uses: actions/checkout@v4
+        with:
+          repository: purescript/registry-dev
+          ref: master
+          path: registry-dev
 
       - name: Build source
-        run: npm run build
+        run: nix develop -c spago build
 
       - name: Build examples
-        run: npm run build:examples
+        working-directory: example
+        run: nix develop -c spago build

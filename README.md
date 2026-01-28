@@ -18,35 +18,32 @@ Install Formless with Spago:
 $ spago install halogen-formless
 ```
 
-Formless 3 is available in package sets beginning with `psc-0.14.7-20220303`. If you are using a package set that does not include Formless, then you can add it to your local set as shown in the example below:
+If you are using a package set that does not include Formless, then you can add it to your local set as shown in the example below:
 
-```dhall
-let upstream = ...
-
-in  upstream
-  with halogen-formless =
-    { version = "v3.0.0"
-    , repo = "https://github.com/thomashoneyman/purescript-halogen-formless.git"
-    , dependencies =
-        [ "convertable-options"
-        , "effect"
-        , "either"
-        , "foldable-traversable"
-        , "foreign-object"
-        , "halogen"
-        , "heterogeneous"
-        , "maybe"
-        , "prelude"
-        , "record"
-        , "safe-coerce"
-        , "type-equality"
-        , "unsafe-coerce"
-        , "unsafe-reference"
-        , "variant"
-        , "web-events"
-        , "web-uievents"
-        ]
-    }
+```yaml
+workspace:
+  extraPackages:
+    halogen-formless:
+      git: https://github.com/thomashoneyman/purescript-halogen-formless.git
+      ref: v4.0.2
+      dependencies:
+        - convertable-options
+        - effect
+        - either
+        - foldable-traversable
+        - foreign-object
+        - halogen
+        - heterogeneous
+        - maybe
+        - prelude
+        - record
+        - safe-coerce
+        - type-equality
+        - unsafe-coerce
+        - unsafe-reference
+        - variant
+        - web-events
+        - web-uievents
 ```
 
 ## Tutorial
