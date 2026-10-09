@@ -18,37 +18,6 @@ Install Formless with Spago:
 $ spago install halogen-formless
 ```
 
-Formless 3 is available in package sets beginning with `psc-0.14.7-20220303`. If you are using a package set that does not include Formless, then you can add it to your local set as shown in the example below:
-
-```dhall
-let upstream = ...
-
-in  upstream
-  with halogen-formless =
-    { version = "v3.0.0"
-    , repo = "https://github.com/thomashoneyman/purescript-halogen-formless.git"
-    , dependencies =
-        [ "convertable-options"
-        , "effect"
-        , "either"
-        , "foldable-traversable"
-        , "foreign-object"
-        , "halogen"
-        , "heterogeneous"
-        , "maybe"
-        , "prelude"
-        , "record"
-        , "safe-coerce"
-        , "type-equality"
-        , "unsafe-coerce"
-        , "unsafe-reference"
-        , "variant"
-        , "web-events"
-        , "web-uievents"
-        ]
-    }
-```
-
 ## Tutorial
 
 We're going to write a form from scratch, demonstrating how to use Formless with no helper functions. This tutorial can serve as the basis for your real applications, but you'll typically write your own helper functions for common form controls and validation in your app. Make sure to check out the [examples directory](./example) after you read this tutorial to expand your knowledge!

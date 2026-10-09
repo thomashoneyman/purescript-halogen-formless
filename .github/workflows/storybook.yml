@@ -5,21 +5,30 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
+concurrency:
+  group: storybook-pages
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: thomashoneyman/setup-purescript@main
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
 
-      - name: Install esbuild
-        run: npm install --global esbuild@0.13.12
+      - run: npm ci
 
       - name: Build Storybook
         run: npm run storybook
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
