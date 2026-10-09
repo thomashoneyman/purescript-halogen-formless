@@ -1,4 +1,17 @@
+workspace:
+  packageSet:
+    registry: 81.4.0
 package:
+  name: halogen-formless
+  publish:
+    version: 4.1.0
+    license: MIT
+    location:
+      githubOwner: thomashoneyman
+      githubRepo: purescript-halogen-formless
+    owners:
+      - keytype: ssh-rsa
+        public: AAAAB3NzaC1yc2EAAAADAQABAAACAQDBgp2kJjtwzQrRbiM+hBtTQeW5giQb3ZJOn8JkBV9vF+m0prdzxv1kwCJkI4BUW3YZi7HrjGvLOz94IrY5NSX62YSc8bArbll5PlSzZROpov1ndow2UTXFYItsGc2n40CdB1XcYxQJpHl2bzPNjAXN8cljGKMGXwHxFSz4tZX2uida4PBAxvgvcvD+yOxQidAq8tx0aXa+QsJfMAjpEkl+NcFDy/x41sKPgHj8NR1w42j0STpmtxnkEk7wo+Htl7jbtXsi6SPcuf3fLfGryts6q7PCBjkIWpSSqtBX0qJM4q8SGpzZhs0aqqND8c9FjjevqdCSK/DMm6YFeIZu9TDE4XiQtNojUSTKEaVsz0sD2M3igGxUohRQuSWCuYuhlcNfhXE4liUy8MgiTSLw1nYC2rdjWYKmEm++pKvp1P/CoAYm3scrz7sLtKXRDUw8b7c67sLRB2rQf972OhfvXbglYB3gtwUQqhCoOnI1E564aveDp5fpKoToVPkoj59CwMUGVzTGxYCofLK8TNnUBF8as3hFMnw0lfzjTYWZrxOzMC7sgduhi6rWDLyqRbDJOxgPlnOJS6Sc53gJ5nq9z+D0jIy5Bfweiu2321n0mf6Pnd8lzFTVN3S/7de5X9K0cbR4qySQxLowjMLfnYgdtZg1m3AZvrQDzoCP/rDPyUMCaw==
   dependencies:
     - convertable-options: ">=1.0.0 <2.0.0"
     - effect: ">=4.0.0 <5.0.0"
@@ -17,16 +30,3 @@ package:
     - variant: ">=8.0.0 <9.0.0"
     - web-events: ">=4.0.0 <5.0.0"
     - web-uievents: ">=4.0.0 <6.0.0"
-  name: halogen-formless
-  publish:
-    version: 4.1.0
-    license: MIT
-    location:
-      githubOwner: thomashoneyman
-      githubRepo: purescript-halogen-formless
-    owners:
-      - keytype: ssh-rsa
-        public: AAAAB3NzaC1yc2EAAAADAQABAAACAQDBgp2kJjtwzQrRbiM+hBtTQeW5giQb3ZJOn8JkBV9vF+m0prdzxv1kwCJkI4BUW3YZi7HrjGvLOz94IrY5NSX62YSc8bArbll5PlSzZROpov1ndow2UTXFYItsGc2n40CdB1XcYxQJpHl2bzPNjAXN8cljGKMGXwHxFSz4tZX2uida4PBAxvgvcvD+yOxQidAq8tx0aXa+QsJfMAjpEkl+NcFDy/x41sKPgHj8NR1w42j0STpmtxnkEk7wo+Htl7jbtXsi6SPcuf3fLfGryts6q7PCBjkIWpSSqtBX0qJM4q8SGpzZhs0aqqND8c9FjjevqdCSK/DMm6YFeIZu9TDE4XiQtNojUSTKEaVsz0sD2M3igGxUohRQuSWCuYuhlcNfhXE4liUy8MgiTSLw1nYC2rdjWYKmEm++pKvp1P/CoAYm3scrz7sLtKXRDUw8b7c67sLRB2rQf972OhfvXbglYB3gtwUQqhCoOnI1E564aveDp5fpKoToVPkoj59CwMUGVzTGxYCofLK8TNnUBF8as3hFMnw0lfzjTYWZrxOzMC7sgduhi6rWDLyqRbDJOxgPlnOJS6Sc53gJ5nq9z+D0jIy5Bfweiu2321n0mf6Pnd8lzFTVN3S/7de5X9K0cbR4qySQxLowjMLfnYgdtZg1m3AZvrQDzoCP/rDPyUMCaw==
-workspace:
-  packageSet:
-    registry: 81.4.0
