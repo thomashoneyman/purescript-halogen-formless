@@ -5,19 +5,28 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6
 
-      - uses: purescript-contrib/setup-purescript@main
+      - uses: actions/setup-node@v6
         with:
-          purs-tidy: "latest"
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
 
       - name: Build source
         run: npm run build
 
       - name: Build examples
         run: npm run build:examples
+
+      - name: Build Storybook
+        run: npm run storybook

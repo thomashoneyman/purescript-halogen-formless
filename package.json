@@ -5,7 +5,7 @@
     "storybook": "spago bundle -p formless-examples --bundle-type app --platform browser --module Example.Main --outfile ../dist/app.js"
   },
   "devDependencies": {
-    "esbuild": "0.28.1",
+    "esbuild": "0.28.2",
     "purescript": "0.15.15",
     "spago": "1.0.4"
   }
