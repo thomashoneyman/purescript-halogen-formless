@@ -12,13 +12,11 @@ Formless helps you write forms in Halogen without the boilerplate.
 
 ## Installation
 
-Install Formless with Spago 1.x:
+Install Formless with Spago:
 
 ```console
 $ spago install halogen-formless
 ```
-
-Formless 4 supports PureScript 0.15 and Halogen 7. It is available in the registry package sets used by Spago 1.x. If your package set does not include it, update the `workspace.packageSet.registry` version in `spago.yaml` to a compatible set that does.
 
 ## Tutorial
 
