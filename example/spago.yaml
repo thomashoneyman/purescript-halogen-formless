@@ -1,0 +1,26 @@
+package:
+  name: formless-examples
+  dependencies:
+    - aff
+    - argonaut
+    - arrays
+    - console
+    - dom-indexed
+    - effect
+    - either
+    - foldable-traversable
+    - foreign-object
+    - halogen
+    - halogen-formless
+    - halogen-storybook
+    - maybe
+    - media-types
+    - newtype
+    - prelude
+    - strings
+    - transformers
+    - tuples
+    - web-dom
+    - web-file
+    - web-html
+    - web-storage

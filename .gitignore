@@ -8,3 +8,4 @@ output
 generated-docs
 bower_components
 dist/app.js
+node_modules

@@ -12,42 +12,13 @@ Formless helps you write forms in Halogen without the boilerplate.
 
 ## Installation
 
-Install Formless with Spago:
+Install Formless with Spago 1.x:
 
 ```console
 $ spago install halogen-formless
 ```
 
-Formless 3 is available in package sets beginning with `psc-0.14.7-20220303`. If you are using a package set that does not include Formless, then you can add it to your local set as shown in the example below:
-
-```dhall
-let upstream = ...
-
-in  upstream
-  with halogen-formless =
-    { version = "v3.0.0"
-    , repo = "https://github.com/thomashoneyman/purescript-halogen-formless.git"
-    , dependencies =
-        [ "convertable-options"
-        , "effect"
-        , "either"
-        , "foldable-traversable"
-        , "foreign-object"
-        , "halogen"
-        , "heterogeneous"
-        , "maybe"
-        , "prelude"
-        , "record"
-        , "safe-coerce"
-        , "type-equality"
-        , "unsafe-coerce"
-        , "unsafe-reference"
-        , "variant"
-        , "web-events"
-        , "web-uievents"
-        ]
-    }
-```
+Formless 4 supports PureScript 0.15 and Halogen 7. It is available in the registry package sets used by Spago 1.x. If your package set does not include it, update the `workspace.packageSet.registry` version in `spago.yaml` to a compatible set that does.
 
 ## Tutorial
 
